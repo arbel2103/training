@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore'
-import { HEB_DAYS, formatDayMonth, toISODate, weekDays } from '../../lib/dates'
+import {
+  HEB_DAYS,
+  addDays,
+  formatDayMonth,
+  startOfWeek,
+  toISODate,
+  weekDays,
+} from '../../lib/dates'
 import { describeEntry } from '../../lib/describe'
 import { compareToTargets } from '../../lib/analysis'
 import WorkoutFormModal from './WorkoutFormModal'
@@ -12,19 +19,46 @@ export default function EntryTab() {
   const targets = useStore((s) => s.aerobicTargets)
   const removeEntry = useStore((s) => s.removeEntry)
 
-  const days = useMemo(() => weekDays(new Date()), [])
+  const [weekRef, setWeekRef] = useState(() => new Date())
+  const days = useMemo(() => weekDays(weekRef), [weekRef])
   const [formDate, setFormDate] = useState<string | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
 
   const weekStart = toISODate(days[0])
   const weekEnd = toISODate(days[6])
+  const isCurrentWeek = weekStart === toISODate(weekDays(new Date())[0])
   const weekEntries = log.filter((e) => e.date >= weekStart && e.date <= weekEnd)
   const results = compareToTargets(weekEntries, targets)
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-2xl font-bold">השבוע הנוכחי</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeekRef((d) => addDays(startOfWeek(d), -7))}
+            className="btn-ghost"
+          >
+            ← שבוע קודם
+          </button>
+          <div className="text-center min-w-[150px]">
+            <button
+              onClick={() => setWeekRef(new Date())}
+              className="font-semibold hover:text-accent"
+              title="חזרה לשבוע הנוכחי"
+            >
+              {isCurrentWeek ? 'השבוע הנוכחי' : 'חזרה לשבוע הנוכחי'}
+            </button>
+            <div className="text-sm text-muted">
+              {formatDayMonth(days[0])} – {formatDayMonth(days[6])}
+            </div>
+          </div>
+          <button
+            onClick={() => setWeekRef((d) => addDays(startOfWeek(d), 7))}
+            className="btn-ghost"
+          >
+            שבוע הבא →
+          </button>
+        </div>
         <button onClick={() => setShowAnalysis(true)} className="btn-accent">
           ניתוח שבועי
         </button>
@@ -102,7 +136,7 @@ export default function EntryTab() {
         title="ניתוח שבועי מול היעדים"
       >
         <p className="text-sm text-muted mb-4">
-          השוואת המרחקים שביצעת השבוע למול היעדים השבועיים שהגדרת.
+          השוואת המרחקים שביצעת בשבוע המוצג למול היעדים השבועיים שהגדרת.
         </p>
         <GoalFeedback results={results} />
       </Modal>
