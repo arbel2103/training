@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Squarespace-inspired palette. RGB channel triplets so Tailwind alpha
+     modifiers (e.g. bg-ink/90, ring-accent/15) work. */
+  --bg: 246 244 241;
+  --surface: 255 255 255;
+  --ink: 28 28 26;
+  --muted: 122 117 110;
+  --line: 231 226 218;
+  --accent: 181 101 74;
+  --accent-soft: 241 228 221;
+
+  /* sport / category colors (muted, editorial) */
+  --c-strength: 138 90 60;
+  --c-run: 194 96 58;
+  --c-bike: 62 124 106;
+  --c-swim: 58 110 165;
+  --c-other: 122 117 110;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+  font-family: 'Assistant', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-line rounded-2xl shadow-card;
+  }
+  .input {
+    @apply w-full bg-surface border border-line rounded-xl px-3 py-2 text-ink
+           outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15;
+  }
+  .label {
+    @apply block text-sm font-medium text-muted mb-1;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold
+           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-white hover:bg-ink/90;
+  }
+  .btn-accent {
+    @apply btn bg-accent text-white hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink hover:bg-ink/5 border border-line;
+  }
+  .btn-soft {
+    @apply btn bg-accent-soft text-accent hover:bg-accent-soft/70;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border border-line bg-surface;
+  }
+  .seg-btn {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium transition border border-transparent;
+  }
+  .seg-btn-active {
+    @apply bg-ink text-white;
+  }
+  .seg-btn-idle {
+    @apply bg-surface text-muted border-line hover:text-ink;
+  }
+}
+
+/* number inputs: hide spinners for a cleaner look */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
