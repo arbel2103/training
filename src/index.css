@@ -81,6 +81,15 @@ body {
   }
 }
 
+/* hide scrollbars on the page carousel while keeping it scrollable */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* number inputs: hide spinners for a cleaner look */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
