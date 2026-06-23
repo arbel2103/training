@@ -27,6 +27,13 @@ export function addDays(d: Date, n: number): Date {
   return x
 }
 
+/** Add `n` months to an ISO date, returning an ISO date. */
+export function addMonths(iso: string, n: number): string {
+  const d = fromISO(iso)
+  d.setMonth(d.getMonth() + n)
+  return toISODate(d)
+}
+
 /** Sunday of the week containing `d`. */
 export function startOfWeek(d: Date): Date {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate())

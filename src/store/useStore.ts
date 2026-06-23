@@ -73,6 +73,21 @@ export interface PlannedWorkout {
   syncedEventId?: string
 }
 
+/* ---------------- Health: weight & checkups ---------------- */
+export interface WeighIn {
+  id: ID
+  date: string // yyyy-mm-dd
+  weight: number
+}
+export interface Checkup {
+  id: ID
+  type: string
+  date: string // yyyy-mm-dd performed
+  validMonths: number // validity period; next due = date + validMonths
+  fileName?: string
+  fileType?: string
+}
+
 function adjustReps(reps: number[], sets: number): number[] {
   const next = reps.slice(0, sets)
   const fill = reps.length ? reps[reps.length - 1] : 10
@@ -85,6 +100,8 @@ interface State {
   aerobicTargets: AerobicTargets
   log: WorkoutEntry[]
   planned: PlannedWorkout[]
+  weighIns: WeighIn[]
+  checkups: Checkup[]
 
   // strength categories
   addCategory: (name: string) => void
@@ -110,6 +127,15 @@ interface State {
   addPlanned: (p: Omit<PlannedWorkout, 'id'>) => void
   updatePlanned: (id: ID, patch: Partial<PlannedWorkout>) => void
   removePlanned: (id: ID) => void
+
+  // health: weight
+  addWeighIn: (date: string, weight: number) => void
+  removeWeighIn: (id: ID) => void
+
+  // health: checkups
+  addCheckup: (c: Omit<Checkup, 'id'>) => void
+  updateCheckup: (id: ID, patch: Partial<Checkup>) => void
+  removeCheckup: (id: ID) => void
 }
 
 export const useStore = create<State>()(
@@ -119,6 +145,8 @@ export const useStore = create<State>()(
       aerobicTargets: { run: [], bike: [], swim: [] },
       log: [],
       planned: [],
+      weighIns: [],
+      checkups: [],
 
       addCategory: (name) =>
         set((s) => ({
@@ -224,6 +252,20 @@ export const useStore = create<State>()(
         })),
       removePlanned: (id) =>
         set((s) => ({ planned: s.planned.filter((p) => p.id !== id) })),
+
+      addWeighIn: (date, weight) =>
+        set((s) => ({ weighIns: [...s.weighIns, { id: uid(), date, weight }] })),
+      removeWeighIn: (id) =>
+        set((s) => ({ weighIns: s.weighIns.filter((w) => w.id !== id) })),
+
+      addCheckup: (c) =>
+        set((s) => ({ checkups: [...s.checkups, { ...c, id: uid() }] })),
+      updateCheckup: (id, patch) =>
+        set((s) => ({
+          checkups: s.checkups.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        })),
+      removeCheckup: (id) =>
+        set((s) => ({ checkups: s.checkups.filter((c) => c.id !== id) })),
     }),
     { name: 'training-app-v1' },
   ),
