@@ -13,9 +13,9 @@ import { describePlanned } from '../../lib/describe'
 import { compareToTargets } from '../../lib/analysis'
 import {
   connect,
-  findCalendarId,
   insertEvent,
   isConfigured,
+  listCalendars,
   listEvents,
   TIME_ZONE,
   type GCalEvent,
@@ -63,6 +63,7 @@ export default function PlanningPage() {
   const [showCheck, setShowCheck] = useState(false)
 
   const [connected, setConnected] = useState(false)
+  const [account, setAccount] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [calEvents, setCalEvents] = useState<Record<string, GCalEvent[]>>({})
@@ -76,7 +77,10 @@ export default function PlanningPage() {
     try {
       await connect()
       setConnected(true)
-      const calId = (await findCalendarId(ALBATROSS_NAME)) ?? 'primary'
+      const cals = await listCalendars()
+      setAccount(cals.find((c) => c.primary)?.id ?? null)
+      const albatross = cals.find((c) => (c.summary || '').includes(ALBATROSS_NAME))
+      const calId = albatross?.id ?? 'primary'
       const events = await listEvents(
         calId,
         `${weekStart}T00:00:00Z`,
@@ -152,6 +156,11 @@ export default function PlanningPage() {
             {busy && <span className="text-sm text-muted">{busy}</span>}
             {connected && !busy && (
               <span className="text-sm text-bike">מחובר ליומן ✓</span>
+            )}
+            {account && (
+              <span className="chip text-sm" title="חשבון Google המחובר">
+                👤 {account}
+              </span>
             )}
           </>
         )}
