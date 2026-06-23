@@ -6,6 +6,18 @@ import TabBar from '../../components/ui/TabBar'
 
 type Sub = 'new' | 'history'
 
+type CheckupStatus = 'ok' | 'soon' | 'overdue'
+
+/** next-due date + status; "soon" = within one month before due. */
+function checkupStatus(c: Checkup): { nextDue: string; status: CheckupStatus } {
+  const nextDue = addMonths(c.date, c.validMonths)
+  const alertDate = addMonths(c.date, Math.max(0, c.validMonths - 1))
+  const today = toISODate(new Date())
+  const status: CheckupStatus =
+    today >= nextDue ? 'overdue' : today >= alertDate ? 'soon' : 'ok'
+  return { nextDue, status }
+}
+
 function NewCheckup({ onDone }: { onDone: () => void }) {
   const addCheckup = useStore((s) => s.addCheckup)
   const today = toISODate(new Date())
@@ -73,8 +85,7 @@ function NewCheckup({ onDone }: { onDone: () => void }) {
 function CheckupRow({ c }: { c: Checkup }) {
   const updateCheckup = useStore((s) => s.updateCheckup)
   const removeCheckup = useStore((s) => s.removeCheckup)
-  const nextDue = addMonths(c.date, c.validMonths)
-  const overdue = nextDue < toISODate(new Date())
+  const { nextDue, status } = checkupStatus(c)
 
   const onUpload = async (file: File) => {
     await saveFile(c.id, file)
@@ -106,8 +117,18 @@ function CheckupRow({ c }: { c: Checkup }) {
         <div className="text-sm text-muted">
           בוצע: {formatFullDate(c.date)}
         </div>
-        <div className={`text-sm ${overdue ? 'text-run font-semibold' : 'text-muted'}`}>
-          הבא: {formatFullDate(nextDue)} {overdue && '· עבר התוקף!'}
+        <div
+          className={`text-sm ${
+            status === 'overdue'
+              ? 'text-run font-semibold'
+              : status === 'soon'
+                ? 'text-accent font-semibold'
+                : 'text-muted'
+          }`}
+        >
+          הבא: {formatFullDate(nextDue)}
+          {status === 'overdue' && ' · עבר התוקף · קבע תור'}
+          {status === 'soon' && ' · מתקרב — כדאי לקבוע תור'}
         </div>
       </div>
 
@@ -155,8 +176,34 @@ export default function CheckupsTab() {
 
   const sorted = [...checkups].sort((a, b) => b.date.localeCompare(a.date))
 
+  const attention = checkups
+    .map((c) => ({ c, ...checkupStatus(c) }))
+    .filter((x) => x.status !== 'ok')
+    .sort((a, b) => a.nextDue.localeCompare(b.nextDue))
+
   return (
     <div>
+      {attention.length > 0 && (
+        <div
+          className="card p-4 mb-5 bg-accent-soft/40"
+          style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
+        >
+          <div className="font-semibold mb-2">🔔 לקבוע תור</div>
+          <ul className="grid gap-1 text-sm">
+            {attention.map(({ c, status, nextDue }) => (
+              <li
+                key={c.id}
+                className={status === 'overdue' ? 'text-run' : 'text-accent'}
+              >
+                • <b>{c.type}</b> —{' '}
+                {status === 'overdue' ? 'עבר התוקף' : 'מתקרב לתוקף'} (
+                {formatFullDate(nextDue)})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mb-6">
         <TabBar
           variant="pill"

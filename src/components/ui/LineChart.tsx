@@ -7,23 +7,17 @@ interface Point {
  * Minimal dependency-free SVG line chart, styled with the app's design tokens.
  * Scales to the container width via viewBox.
  */
-export default function LineChart({
-  data,
-  unit = '',
-}: {
-  data: Point[]
-  unit?: string
-}) {
+export default function LineChart({ data }: { data: Point[] }) {
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
   }
 
   const W = 640
-  const H = 220
+  const H = 190
   const padL = 46
   const padR = 16
-  const padT = 16
-  const padB = 30
+  const padT = 18
+  const padB = 28
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
@@ -34,6 +28,10 @@ export default function LineChart({
     min -= 1
     max += 1
   }
+  // inset the value range so points don't sit on the top/bottom gridlines
+  const padV = (max - min) * 0.18
+  min -= padV
+  max += padV
   const span = max - min
 
   const x = (i: number) =>
@@ -118,7 +116,6 @@ export default function LineChart({
         fill="rgb(var(--ink))"
       >
         {round(data[data.length - 1].value)}
-        {unit}
       </text>
     </svg>
   )

@@ -122,10 +122,12 @@ export default function WeightTab() {
       {/* weekly-average chart */}
       <div className="card p-5">
         <h3 className="font-display text-xl font-bold mb-1">
-          ממוצע משקל שבועי
+          ממוצע משקל שבועי <span className="text-muted font-normal text-base">(ק״ג)</span>
         </h3>
         <p className="text-sm text-muted mb-4">נקודה לכל שבוע (ממוצע השקילות).</p>
-        <LineChart data={chartData} unit=" ק״ג" />
+        <div className="max-w-xl mx-auto">
+          <LineChart data={chartData} />
+        </div>
       </div>
     </div>
   )
