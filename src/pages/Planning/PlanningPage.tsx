@@ -3,6 +3,7 @@ import { useStore, type PlannedWorkout } from '../../store/useStore'
 import {
   addDays,
   formatDayMonth,
+  formatFullDate,
   HEB_DAYS_SHORT,
   startOfWeek,
   toISODate,
@@ -58,6 +59,7 @@ export default function PlanningPage() {
   const weekEnd = toISODate(days[6])
 
   const [formDate, setFormDate] = useState<string | null>(null)
+  const [detailDate, setDetailDate] = useState<string | null>(null)
   const [showCheck, setShowCheck] = useState(false)
 
   const [connected, setConnected] = useState(false)
@@ -193,13 +195,18 @@ export default function PlanningPage() {
           return (
             <div
               key={iso}
-              className={`card p-3 flex flex-col gap-2 min-h-[180px] ${
+              onClick={() => setDetailDate(iso)}
+              title="לחץ להגדלה וצפייה בלו״ז המלא"
+              className={`card p-3 flex flex-col gap-2 min-h-[180px] cursor-pointer transition hover:shadow-pop ${
                 isToday ? 'ring-2 ring-accent/30' : ''
               }`}
             >
               <div className="flex items-baseline justify-between">
                 <span className="font-bold">{HEB_DAYS_SHORT[i]}</span>
-                <span className="text-xs text-muted">{formatDayMonth(d)}</span>
+                <span className="flex items-center gap-1 text-xs text-muted">
+                  {formatDayMonth(d)}
+                  <span className="opacity-50">⤢</span>
+                </span>
               </div>
 
               {/* existing calendar events (read-only) */}
@@ -230,7 +237,10 @@ export default function PlanningPage() {
                         {v.icon} {v.title}
                       </span>
                       <button
-                        onClick={() => removePlanned(p.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removePlanned(p.id)
+                        }}
                         className="text-muted hover:text-accent leading-none"
                         aria-label="הסר"
                       >
@@ -246,7 +256,10 @@ export default function PlanningPage() {
               })}
 
               <button
-                onClick={() => setFormDate(iso)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setFormDate(iso)
+                }}
                 className="mt-auto text-sm text-accent hover:bg-accent-soft rounded-lg py-1.5 font-semibold"
               >
                 + הוסף
@@ -271,6 +284,111 @@ export default function PlanningPage() {
           השוואת המרחקים המתוכננים לשבוע זה למול היעדים השבועיים.
         </p>
         <GoalFeedback results={checkResults} />
+      </Modal>
+
+      <Modal
+        open={detailDate !== null}
+        onClose={() => setDetailDate(null)}
+        title={detailDate ? formatFullDate(detailDate) : ''}
+        maxWidth="max-w-2xl"
+      >
+        {detailDate &&
+          (() => {
+            const evs = calEvents[detailDate] ?? []
+            const pls = weekPlanned.filter((p) => p.date === detailDate)
+            return (
+              <div className="grid gap-6">
+                <section>
+                  <h4 className="font-semibold mb-2">🗓️ לו״ז היומן</h4>
+                  {!connected ? (
+                    <p className="text-sm text-muted">
+                      התחבר וטען את היומן כדי לראות את הלו״ז.
+                    </p>
+                  ) : evs.length === 0 ? (
+                    <p className="text-sm text-muted">אין אירועים ביומן ביום זה.</p>
+                  ) : (
+                    <div className="grid gap-2">
+                      {evs.map((ev, idx) => (
+                        <div key={idx} className="rounded-xl bg-ink/5 px-3 py-2">
+                          <div className="text-sm font-semibold text-accent">
+                            <span dir="ltr">{eventTime(ev)}</span>
+                            {ev.end?.dateTime && (
+                              <span dir="ltr">–{ev.end.dateTime.slice(11, 16)}</span>
+                            )}
+                          </div>
+                          <div className="text-ink break-words">
+                            {ev.summary || '(ללא כותרת)'}
+                          </div>
+                          {ev.description && (
+                            <div className="text-sm text-muted mt-1 whitespace-pre-wrap break-words">
+                              {ev.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">🏋️ אימונים מתוכננים</h4>
+                    <button
+                      onClick={() => {
+                        const d = detailDate
+                        setDetailDate(null)
+                        setFormDate(d)
+                      }}
+                      className="btn-soft text-sm"
+                    >
+                      + הוסף אימון
+                    </button>
+                  </div>
+                  {pls.length === 0 ? (
+                    <p className="text-sm text-muted">לא תוכננו אימונים ליום זה.</p>
+                  ) : (
+                    <div className="grid gap-2">
+                      {pls.map((p) => {
+                        const v = describePlanned(p)
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2"
+                            style={{ borderColor: v.color }}
+                          >
+                            <div className="min-w-0">
+                              <span
+                                className="font-semibold"
+                                style={{ color: v.color }}
+                              >
+                                {v.icon} {v.title}
+                              </span>
+                              {v.details.length > 0 && (
+                                <span className="text-sm text-muted">
+                                  {' · '}
+                                  {v.details.join(' · ')}
+                                </span>
+                              )}
+                              {p.syncedEventId && (
+                                <span className="text-bike text-sm"> · ביומן ✓</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => removePlanned(p.id)}
+                              className="text-muted hover:text-accent shrink-0"
+                              aria-label="הסר"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )
+          })()}
       </Modal>
     </div>
   )
