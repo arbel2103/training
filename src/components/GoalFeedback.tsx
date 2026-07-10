@@ -12,8 +12,8 @@ export default function GoalFeedback({ results }: { results: GoalResult[] }) {
   if (results.length === 0) {
     return (
       <p className="text-muted text-sm">
-        עדיין לא הוגדרו יעדים שבועיים לאירובי. הגדר אותם בעמוד{' '}
-        <b>תוכנית אימונים</b> כדי לקבל פידבק.
+        אין עדיין יעדי מרחק לשבוע זה בתוכנית. בקש מ<b>המאמן</b> (🏋️) לבנות תוכנית,
+        או שהשבוע הזה הוא מנוחה.
       </p>
     )
   }

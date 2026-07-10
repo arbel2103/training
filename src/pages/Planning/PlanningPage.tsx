@@ -11,6 +11,7 @@ import {
 } from '../../lib/dates'
 import { describePlanned } from '../../lib/describe'
 import { compareToTargets } from '../../lib/analysis'
+import { targetsForWeek } from '../../lib/planMatch'
 import {
   connect,
   insertEvent,
@@ -49,7 +50,7 @@ function planToEvent(p: PlannedWorkout): GCalEvent {
 
 export default function PlanningPage() {
   const planned = useStore((s) => s.planned)
-  const targets = useStore((s) => s.aerobicTargets)
+  const plan = useStore((s) => s.trainingPlan)
   const removePlanned = useStore((s) => s.removePlanned)
   const updatePlanned = useStore((s) => s.updatePlanned)
 
@@ -69,7 +70,7 @@ export default function PlanningPage() {
   const [calEvents, setCalEvents] = useState<Record<string, GCalEvent[]>>({})
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
-  const checkResults = compareToTargets(weekPlanned, targets)
+  const checkResults = compareToTargets(weekPlanned, targetsForWeek(plan, weekStart))
 
   async function loadCalendar() {
     setBusy('טוען יומן…')

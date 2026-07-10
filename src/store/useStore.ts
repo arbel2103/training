@@ -88,6 +88,50 @@ export interface Checkup {
   fileType?: string
 }
 
+/* ---------------- AI Coach: profile & structured plan ---------------- */
+export interface Race {
+  name?: string
+  type?: string // sprint | olympic | 70.3 | full …
+  date?: string // yyyy-mm-dd
+}
+export interface CoachProfile {
+  races?: Race[]
+  goals?: string
+  weeklyHours?: number
+  availableDays?: string[]
+  equipment?: string[]
+  constraints?: string
+  currentLevel?: string
+  notes?: string
+}
+export type PlanSport = Sport | 'strength' | 'other'
+export interface PlanSession {
+  id: ID
+  day: number // 0=Sun … 6=Sat
+  sport: PlanSport
+  label?: string // e.g. "ארוכה", "אינטרוולים"
+  distance?: number
+  durationMin?: number
+  note?: string
+}
+export interface PlanWeek {
+  id: ID
+  weekStart: string // yyyy-mm-dd (Sunday)
+  label?: string
+  focus?: string
+  sessions: PlanSession[]
+}
+export interface TrainingPlan {
+  raceName?: string
+  raceDate?: string
+  weeks: PlanWeek[]
+}
+export interface ChatMessage {
+  id: ID
+  role: 'user' | 'assistant'
+  text: string
+}
+
 function adjustReps(reps: number[], sets: number): number[] {
   const next = reps.slice(0, sets)
   const fill = reps.length ? reps[reps.length - 1] : 10
@@ -102,6 +146,9 @@ interface State {
   planned: PlannedWorkout[]
   weighIns: WeighIn[]
   checkups: Checkup[]
+  coachProfile: CoachProfile | null
+  trainingPlan: TrainingPlan | null
+  coachMessages: ChatMessage[]
 
   // strength categories
   addCategory: (name: string) => void
@@ -136,6 +183,14 @@ interface State {
   addCheckup: (c: Omit<Checkup, 'id'>) => void
   updateCheckup: (id: ID, patch: Partial<Checkup>) => void
   removeCheckup: (id: ID) => void
+
+  // AI coach
+  updateCoachProfile: (patch: Partial<CoachProfile>) => void
+  setTrainingPlan: (plan: TrainingPlan) => void
+  upsertPlanWeek: (week: PlanWeek) => void
+  clearPlan: () => void
+  addChatMessage: (role: 'user' | 'assistant', text: string) => void
+  clearCoachChat: () => void
 }
 
 export const useStore = create<State>()(
@@ -147,6 +202,9 @@ export const useStore = create<State>()(
       planned: [],
       weighIns: [],
       checkups: [],
+      coachProfile: null,
+      trainingPlan: null,
+      coachMessages: [],
 
       addCategory: (name) =>
         set((s) => ({
@@ -266,6 +324,24 @@ export const useStore = create<State>()(
         })),
       removeCheckup: (id) =>
         set((s) => ({ checkups: s.checkups.filter((c) => c.id !== id) })),
+
+      updateCoachProfile: (patch) =>
+        set((s) => ({ coachProfile: { ...(s.coachProfile ?? {}), ...patch } })),
+      setTrainingPlan: (plan) => set({ trainingPlan: plan }),
+      upsertPlanWeek: (week) =>
+        set((s) => {
+          const plan: TrainingPlan = s.trainingPlan ?? { weeks: [] }
+          const weeks = plan.weeks.some((w) => w.weekStart === week.weekStart)
+            ? plan.weeks.map((w) => (w.weekStart === week.weekStart ? week : w))
+            : [...plan.weeks, week]
+          return { trainingPlan: { ...plan, weeks } }
+        }),
+      clearPlan: () => set({ trainingPlan: null }),
+      addChatMessage: (role, text) =>
+        set((s) => ({
+          coachMessages: [...s.coachMessages, { id: uid(), role, text }],
+        })),
+      clearCoachChat: () => set({ coachMessages: [] }),
     }),
     { name: 'training-app-v1' },
   ),

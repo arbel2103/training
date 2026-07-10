@@ -10,13 +10,14 @@ import {
 } from '../../lib/dates'
 import { describeEntry } from '../../lib/describe'
 import { compareToTargets } from '../../lib/analysis'
+import { targetsForWeek } from '../../lib/planMatch'
 import WorkoutFormModal from './WorkoutFormModal'
 import GoalFeedback from '../../components/GoalFeedback'
 import Modal from '../../components/ui/Modal'
 
 export default function EntryTab() {
   const log = useStore((s) => s.log)
-  const targets = useStore((s) => s.aerobicTargets)
+  const plan = useStore((s) => s.trainingPlan)
   const removeEntry = useStore((s) => s.removeEntry)
 
   const [weekRef, setWeekRef] = useState(() => new Date())
@@ -28,7 +29,7 @@ export default function EntryTab() {
   const weekEnd = toISODate(days[6])
   const isCurrentWeek = weekStart === toISODate(weekDays(new Date())[0])
   const weekEntries = log.filter((e) => e.date >= weekStart && e.date <= weekEnd)
-  const results = compareToTargets(weekEntries, targets)
+  const results = compareToTargets(weekEntries, targetsForWeek(plan, weekStart))
 
   return (
     <div>

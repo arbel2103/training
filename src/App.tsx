@@ -3,6 +3,7 @@ import TrackingPage from './pages/Tracking/TrackingPage'
 import ProgramPage from './pages/Program/ProgramPage'
 import PlanningPage from './pages/Planning/PlanningPage'
 import HealthPage from './pages/Health/HealthPage'
+import CoachFab from './components/CoachFab'
 
 const PAGES = [
   { key: 'tracking', icon: '📋', label: 'מעקב אימונים', short: 'מעקב', el: <TrackingPage /> },
@@ -79,6 +80,8 @@ export default function App() {
           </section>
         ))}
       </div>
+
+      <CoachFab />
     </div>
   )
 }
