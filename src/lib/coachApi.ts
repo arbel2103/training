@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Google Gemini (free tier) — called directly from the browser with the user's key.
-// tried in order — if a model is overloaded (503) or unavailable (404),
-// the next one is tried automatically, so the coach keeps working when
-// Google retires versions or a model spikes in demand
+// tried in order — gemini-2.0-flash has the most generous FREE-tier quota;
+// each model has a separate quota, so on 429/404/503 we fall through to the
+// next. (Preview/gemini-3 models require billing → avoided here.)
 const MODELS = [
-  'gemini-flash-latest',
-  'gemini-3-flash-preview',
-  'gemini-2.5-flash-lite',
+  'gemini-flash-lite-latest',
   'gemini-2.0-flash',
+  'gemini-flash-latest',
 ]
-const endpoint = (model: string, apiKey: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
-    apiKey,
-  )}`
+// per Google AI Studio's quickstart: auth via the x-goog-api-key header
+const endpoint = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
 export interface ApiMessage {
   role: 'user' | 'assistant'
@@ -47,9 +45,12 @@ export async function runCoach({
   async function generate(): Promise<any> {
     let lastErr = ''
     for (const model of MODELS) {
-      const res = await fetch(endpoint(model, apiKey), {
+      const res = await fetch(endpoint(model), {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents,
@@ -75,7 +76,7 @@ export async function runCoach({
       throw new Error(`שגיאת API (${res.status}): ${msg.slice(0, 200)}`)
     }
     throw new Error(
-      `כל המודלים עמוסים או לא זמינים כרגע — נסה שוב בעוד דקה. ${lastErr}`,
+      `הגעת למכסה החינמית של Gemini כרגע — המתן דקה ונסה שוב. אם זה חוזר, ייתכן שהמכסה היומית נגמרה ותתאפס מחר. ${lastErr}`,
     )
   }
 
