@@ -1,23 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_URL = 'https://api.anthropic.com/v1/messages'
-const MODEL = 'claude-opus-4-8'
+// Google Gemini (free tier) — called directly from the browser with the user's key.
+const MODEL = 'gemini-2.5-flash'
+const endpoint = (apiKey: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(
+    apiKey,
+  )}`
 
 export interface ApiMessage {
   role: 'user' | 'assistant'
-  content: any // string or content-block array
+  content: string
 }
 
 interface RunArgs {
   apiKey: string
   system: string
   messages: ApiMessage[]
-  tools: any[]
-  onToolCall: (name: string, input: any) => string | Promise<string>
+  tools: any[] // Gemini functionDeclarations
+  onToolCall: (name: string, args: any) => string | Promise<string>
 }
 
 /**
- * Runs one coach turn: calls the Messages API, executes any tool_use blocks,
- * loops until a final text answer. Returns the assistant's text.
+ * Runs one coach turn against Gemini: sends the conversation, executes any
+ * functionCall parts, loops until a final text answer. Returns the text.
  */
 export async function runCoach({
   apiKey,
@@ -26,57 +30,68 @@ export async function runCoach({
   tools,
   onToolCall,
 }: RunArgs): Promise<string> {
-  const msgs: ApiMessage[] = [...messages]
+  const contents: any[] = messages.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }))
 
   for (let i = 0; i < 6; i++) {
-    const res = await fetch(API_URL, {
+    const res = await fetch(endpoint(apiKey), {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 8000,
-        system,
-        tools,
-        messages: msgs,
+        systemInstruction: { parts: [{ text: system }] },
+        contents,
+        tools: [{ functionDeclarations: tools }],
+        generationConfig: { maxOutputTokens: 8000, temperature: 0.7 },
       }),
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      if (res.status === 401) throw new Error('מפתח ה-API לא תקין (401).')
-      if (res.status === 429) throw new Error('חריגה ממכסת השימוש (429) — נסה שוב מאוחר יותר.')
-      throw new Error(`שגיאת API (${res.status}): ${text.slice(0, 300)}`)
+      let msg = ''
+      try {
+        const j = await res.json()
+        msg = j?.error?.message ?? ''
+      } catch {
+        /* ignore */
+      }
+      if (res.status === 400 && /api key/i.test(msg))
+        throw new Error('מפתח ה-API לא תקין.')
+      if (res.status === 429)
+        throw new Error('חריגה מהמכסה החינמית לרגע — נסה שוב בעוד דקה.')
+      throw new Error(`שגיאת API (${res.status}): ${msg.slice(0, 200)}`)
     }
 
     const data = await res.json()
-    msgs.push({ role: 'assistant', content: data.content })
+    const cand = data.candidates?.[0]
+    const parts: any[] = cand?.content?.parts ?? []
+    contents.push({ role: 'model', parts })
 
-    if (data.stop_reason === 'tool_use') {
-      const results: any[] = []
-      for (const block of data.content) {
-        if (block.type === 'tool_use') {
-          const out = await onToolCall(block.name, block.input)
-          results.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: out,
-          })
-        }
+    const calls = parts.filter((p) => p.functionCall)
+    if (calls.length) {
+      const respParts: any[] = []
+      for (const c of calls) {
+        const out = await onToolCall(c.functionCall.name, c.functionCall.args ?? {})
+        respParts.push({
+          functionResponse: {
+            name: c.functionCall.name,
+            response: { result: out },
+          },
+        })
       }
-      msgs.push({ role: 'user', content: results })
+      contents.push({ role: 'user', parts: respParts })
       continue
     }
 
-    return (data.content ?? [])
-      .filter((b: any) => b.type === 'text')
-      .map((b: any) => b.text)
+    const text = parts
+      .filter((p) => typeof p.text === 'string')
+      .map((p) => p.text)
       .join('\n')
       .trim()
+    if (text) return text
+    if (cand?.finishReason && cand.finishReason !== 'STOP')
+      return 'לא הצלחתי לענות על זה — נסה לנסח אחרת.'
+    return 'לא הצלחתי להשלים את הפעולה — נסה שוב.'
   }
 
   return 'לא הצלחתי להשלים את הפעולה — נסה שוב.'

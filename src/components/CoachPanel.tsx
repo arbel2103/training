@@ -149,36 +149,37 @@ export default function CoachPanel({
           <div className="flex-1 overflow-auto p-6">
             <h3 className="font-display text-xl font-bold mb-2">חיבור המאמן</h3>
             <p className="text-sm text-muted mb-4 leading-relaxed">
-              המאמן פועל עם <b>מפתח Claude API משלך</b> (BYOK) — נשמר מקומית בדפדפן
-              בלבד, ונשלח ישירות ל-Anthropic. אין שרת ואין עלות אירוח.
+              המאמן פועל עם <b>מפתח Google Gemini API משלך</b> (BYOK) —{' '}
+              <b>חינם</b>, נשמר מקומית בדפדפן בלבד, ונשלח ישירות ל-Google. אין שרת
+              ואין עלות.
             </p>
             <ol className="text-sm text-muted list-decimal pr-5 space-y-1 mb-4">
               <li>
                 היכנס ל-{' '}
                 <a
-                  href="https://console.anthropic.com/settings/keys"
+                  href="https://aistudio.google.com/apikey"
                   target="_blank"
                   rel="noreferrer"
                   className="text-accent underline"
                 >
-                  console.anthropic.com
+                  aistudio.google.com/apikey
                 </a>{' '}
-                → API Keys → Create Key.
+                → התחבר עם גוגל → <b>Create API key</b> (בלי כרטיס אשראי).
               </li>
-              <li>העתק את המפתח (מתחיל ב-<code>sk-ant-</code>) והדבק כאן.</li>
+              <li>העתק את המפתח (מתחיל ב-<code>AIza</code>) והדבק כאן.</li>
             </ol>
             <input
               type="password"
               dir="ltr"
               className="input mb-3"
-              placeholder="sk-ant-..."
+              placeholder="AIza..."
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
             />
             <button
               onClick={() => {
-                if (!keyInput.trim().startsWith('sk-ant-')) {
-                  setError('המפתח אמור להתחיל ב-sk-ant-')
+                if (!keyInput.trim().startsWith('AIza')) {
+                  setError('המפתח של Gemini אמור להתחיל ב-AIza')
                   return
                 }
                 setApiKey(keyInput)

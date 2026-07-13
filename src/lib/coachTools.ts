@@ -28,12 +28,39 @@ export const SYSTEM_PERSONA = `אתה מאמן טריאתלון אישי, מקצ
 - דבר בעברית. תן תשובה ישירה ומקצועית; אל תנתח את ההיגיון הפנימי שלך בקול.
 - למטה תמונת מצב עדכנית של הנתונים (פרופיל, תוכנית, אימונים שבוצעו לאחרונה, ואימונים מתוכננים ביומן). התבסס עליה.`
 
+const sessionSchema = {
+  type: 'object',
+  properties: {
+    day: { type: 'integer', description: '0=ראשון … 6=שבת' },
+    sport: {
+      type: 'string',
+      enum: ['run', 'bike', 'swim', 'strength', 'other'],
+    },
+    label: { type: 'string', description: 'למשל "ארוכה", "אינטרוולים"' },
+    distance: { type: 'number' },
+    durationMin: { type: 'number' },
+    note: { type: 'string' },
+  },
+  required: ['day', 'sport'],
+}
+
+const weekSchema = {
+  type: 'object',
+  properties: {
+    weekStart: { type: 'string', description: 'yyyy-mm-dd של יום ראשון' },
+    label: { type: 'string' },
+    focus: { type: 'string' },
+    sessions: { type: 'array', items: sessionSchema },
+  },
+  required: ['weekStart', 'sessions'],
+}
+
+// Gemini functionDeclarations (OpenAPI-subset schema with lowercase types).
 export const COACH_TOOLS = [
   {
     name: 'save_athlete_profile',
-    description:
-      'שמור או עדכן את פרופיל הספורטאי (מיזוג — שלח רק שדות שהשתנו).',
-    input_schema: {
+    description: 'שמור או עדכן את פרופיל הספורטאי (מיזוג — שלח רק שדות שהשתנו).',
+    parameters: {
       type: 'object',
       properties: {
         races: {
@@ -60,41 +87,12 @@ export const COACH_TOOLS = [
   {
     name: 'set_training_plan',
     description: 'קובע תוכנית אימונים מלאה (מחליף את הקיימת), מחולקת לשבועות.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         raceName: { type: 'string' },
         raceDate: { type: 'string' },
-        weeks: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              weekStart: { type: 'string', description: 'yyyy-mm-dd של יום ראשון' },
-              label: { type: 'string' },
-              focus: { type: 'string' },
-              sessions: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    day: { type: 'integer', description: '0=ראשון … 6=שבת' },
-                    sport: {
-                      type: 'string',
-                      enum: ['run', 'bike', 'swim', 'strength', 'other'],
-                    },
-                    label: { type: 'string' },
-                    distance: { type: 'number' },
-                    durationMin: { type: 'number' },
-                    note: { type: 'string' },
-                  },
-                  required: ['day', 'sport'],
-                },
-              },
-            },
-            required: ['weekStart', 'sessions'],
-          },
-        },
+        weeks: { type: 'array', items: weekSchema },
       },
       required: ['weeks'],
     },
@@ -102,39 +100,13 @@ export const COACH_TOOLS = [
   {
     name: 'upsert_plan_week',
     description: 'מעדכן או מוסיף שבוע בודד בתוכנית (לשינויים דינמיים).',
-    input_schema: {
-      type: 'object',
-      properties: {
-        weekStart: { type: 'string', description: 'yyyy-mm-dd של יום ראשון' },
-        label: { type: 'string' },
-        focus: { type: 'string' },
-        sessions: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              day: { type: 'integer' },
-              sport: {
-                type: 'string',
-                enum: ['run', 'bike', 'swim', 'strength', 'other'],
-              },
-              label: { type: 'string' },
-              distance: { type: 'number' },
-              durationMin: { type: 'number' },
-              note: { type: 'string' },
-            },
-            required: ['day', 'sport'],
-          },
-        },
-      },
-      required: ['weekStart', 'sessions'],
-    },
+    parameters: weekSchema,
   },
   {
     name: 'add_planned_workout',
     description:
       'מוסיף אימון מתוכנן ליום ספציפי בלוח "תכנון האימונים" (המשתמש יאשר וישלח ליומן).',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: {
         date: { type: 'string', description: 'yyyy-mm-dd' },
@@ -156,7 +128,7 @@ export const COACH_TOOLS = [
   {
     name: 'remove_planned_workout',
     description: 'מסיר אימון מתוכנן לפי id (ראה רשימת המתוכננים במצב הנוכחי).',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: { id: { type: 'string' } },
       required: ['id'],
