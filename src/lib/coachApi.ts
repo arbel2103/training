@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Google Gemini (free tier) — called directly from the browser with the user's key.
-const MODEL = 'gemini-2.5-flash'
-const endpoint = (apiKey: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(
+// tried in order — if a model is overloaded (503) or unavailable (404),
+// the next one is tried automatically, so the coach keeps working when
+// Google retires versions or a model spikes in demand
+const MODELS = [
+  'gemini-flash-latest',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+]
+const endpoint = (model: string, apiKey: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
     apiKey,
   )}`
 
@@ -35,19 +43,22 @@ export async function runCoach({
     parts: [{ text: m.content }],
   }))
 
-  for (let i = 0; i < 6; i++) {
-    const res = await fetch(endpoint(apiKey), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents,
-        tools: [{ functionDeclarations: tools }],
-        generationConfig: { maxOutputTokens: 8000, temperature: 0.7 },
-      }),
-    })
+  // request one turn, falling through the model list on 404/429/503
+  async function generate(): Promise<any> {
+    let lastErr = ''
+    for (const model of MODELS) {
+      const res = await fetch(endpoint(model, apiKey), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents,
+          tools: [{ functionDeclarations: tools }],
+          generationConfig: { maxOutputTokens: 8000, temperature: 0.7 },
+        }),
+      })
+      if (res.ok) return res.json()
 
-    if (!res.ok) {
       let msg = ''
       try {
         const j = await res.json()
@@ -57,12 +68,19 @@ export async function runCoach({
       }
       if (res.status === 400 && /api key/i.test(msg))
         throw new Error('מפתח ה-API לא תקין.')
-      if (res.status === 429)
-        throw new Error('חריגה מהמכסה החינמית לרגע — נסה שוב בעוד דקה.')
+      if (res.status === 404 || res.status === 429 || res.status === 503) {
+        lastErr = `(${res.status}) ${msg.slice(0, 160)}`
+        continue // try the next model
+      }
       throw new Error(`שגיאת API (${res.status}): ${msg.slice(0, 200)}`)
     }
+    throw new Error(
+      `כל המודלים עמוסים או לא זמינים כרגע — נסה שוב בעוד דקה. ${lastErr}`,
+    )
+  }
 
-    const data = await res.json()
+  for (let i = 0; i < 6; i++) {
+    const data = await generate()
     const cand = data.candidates?.[0]
     const parts: any[] = cand?.content?.parts ?? []
     contents.push({ role: 'model', parts })

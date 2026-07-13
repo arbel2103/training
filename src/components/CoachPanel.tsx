@@ -166,20 +166,20 @@ export default function CoachPanel({
                 </a>{' '}
                 → התחבר עם גוגל → <b>Create API key</b> (בלי כרטיס אשראי).
               </li>
-              <li>העתק את המפתח (מתחיל ב-<code>AIza</code>) והדבק כאן.</li>
+              <li>העתק את המפתח (מתחיל ב-<code>AQ.</code> או <code>AIza</code>) והדבק כאן.</li>
             </ol>
             <input
               type="password"
               dir="ltr"
               className="input mb-3"
-              placeholder="AIza..."
+              placeholder="AQ...."
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
             />
             <button
               onClick={() => {
-                if (!keyInput.trim().startsWith('AIza')) {
-                  setError('המפתח של Gemini אמור להתחיל ב-AIza')
+                if (keyInput.trim().length < 20) {
+                  setError('המפתח קצר מדי — ודא שהעתקת את כולו (Copy key).')
                   return
                 }
                 setApiKey(keyInput)
