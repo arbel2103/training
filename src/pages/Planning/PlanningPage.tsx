@@ -26,8 +26,6 @@ import GoalFeedback from '../../components/GoalFeedback'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
 
-const ALBATROSS_NAME = 'אלבטרוס'
-
 function addMinutes(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number)
   const total = h * 60 + m + mins
@@ -53,6 +51,8 @@ export default function PlanningPage() {
   const plan = useStore((s) => s.trainingPlan)
   const removePlanned = useStore((s) => s.removePlanned)
   const updatePlanned = useStore((s) => s.updatePlanned)
+  const calendarQuery = useStore((s) => s.calendarQuery)
+  const setCalendarQuery = useStore((s) => s.setCalendarQuery)
 
   const [weekRef, setWeekRef] = useState(() => new Date())
   const days = useMemo(() => weekDays(weekRef), [weekRef])
@@ -80,8 +80,21 @@ export default function PlanningPage() {
       setConnected(true)
       const cals = await listCalendars()
       setAccount(cals.find((c) => c.primary)?.id ?? null)
-      const albatross = cals.find((c) => (c.summary || '').includes(ALBATROSS_NAME))
-      const calId = albatross?.id ?? 'primary'
+      const q = calendarQuery.trim()
+      const match = q
+        ? cals.find((c) => (c.summary || '').includes(q))
+        : cals.find((c) => c.primary)
+      if (q && !match) {
+        setCalEvents({})
+        setError(
+          `לא נמצא יומן שמכיל "${q}". היומנים הזמינים: ${cals
+            .map((c) => c.summary)
+            .filter(Boolean)
+            .join(' · ')}`,
+        )
+        return
+      }
+      const calId = match?.id ?? 'primary'
       const events = await listEvents(
         calId,
         `${weekStart}T00:00:00Z`,
@@ -151,15 +164,32 @@ export default function PlanningPage() {
           </div>
         ) : (
           <>
-            <button onClick={loadCalendar} disabled={!!busy} className="btn-soft">
-              {connected ? '↻ רענן יומן' : '🔗 התחבר וטען יומן אלבטרוס'}
+            <div>
+              <label className="label">שם היומן לחיפוש</label>
+              <input
+                className="input w-48"
+                value={calendarQuery}
+                onChange={(e) => setCalendarQuery(e.target.value)}
+                placeholder="למשל: אלבטרוס / עבודה / ספינה"
+                title="שם היומן או מילת מפתח לחיפוש (נשמר)"
+              />
+            </div>
+            <button
+              onClick={loadCalendar}
+              disabled={!!busy}
+              className="btn-soft mb-px self-end"
+            >
+              {connected ? '↻ רענן יומן' : '🔗 התחבר וטען יומן'}
             </button>
-            {busy && <span className="text-sm text-muted">{busy}</span>}
+            {busy && <span className="text-sm text-muted self-end mb-2">{busy}</span>}
             {connected && !busy && (
-              <span className="text-sm text-bike">מחובר ליומן ✓</span>
+              <span className="text-sm text-bike self-end mb-2">מחובר ✓</span>
             )}
             {account && (
-              <span className="chip text-sm" title="חשבון Google המחובר">
+              <span
+                className="chip text-sm self-end mb-1"
+                title="חשבון Google המחובר"
+              >
                 👤 {account}
               </span>
             )}

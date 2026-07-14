@@ -66,6 +66,7 @@ export default function CoachPanel({
       addChatMessage('assistant', reply)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      kickedOff.current = false // allow retry
     } finally {
       setLoading(false)
     }
@@ -197,9 +198,21 @@ export default function CoachPanel({
           <>
             <div ref={scrollRef} className="flex-1 overflow-auto p-4 flex flex-col gap-3">
               {messages.length === 0 && !loading && (
-                <p className="text-muted text-sm text-center mt-6">
-                  המאמן מתחיל שיחה…
-                </p>
+                <div className="text-center mt-8">
+                  <div className="text-4xl mb-3">🏋️</div>
+                  <p className="text-muted text-sm mb-4">
+                    המאמן האישי שלך לטריאתלון — מוכן להתחיל.
+                  </p>
+                  <button
+                    onClick={() => {
+                      kickedOff.current = true
+                      void kickoff()
+                    }}
+                    className="btn-primary"
+                  >
+                    התחל שיחה 👋
+                  </button>
+                </div>
               )}
               {messages.map((m) => (
                 <div

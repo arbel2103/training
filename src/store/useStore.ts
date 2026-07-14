@@ -149,6 +149,7 @@ interface State {
   coachProfile: CoachProfile | null
   trainingPlan: TrainingPlan | null
   coachMessages: ChatMessage[]
+  calendarQuery: string
 
   // strength categories
   addCategory: (name: string) => void
@@ -191,6 +192,9 @@ interface State {
   clearPlan: () => void
   addChatMessage: (role: 'user' | 'assistant', text: string) => void
   clearCoachChat: () => void
+
+  // calendar
+  setCalendarQuery: (q: string) => void
 }
 
 export const useStore = create<State>()(
@@ -205,6 +209,7 @@ export const useStore = create<State>()(
       coachProfile: null,
       trainingPlan: null,
       coachMessages: [],
+      calendarQuery: 'אלבטרוס',
 
       addCategory: (name) =>
         set((s) => ({
@@ -342,6 +347,8 @@ export const useStore = create<State>()(
           coachMessages: [...s.coachMessages, { id: uid(), role, text }],
         })),
       clearCoachChat: () => set({ coachMessages: [] }),
+
+      setCalendarQuery: (q) => set({ calendarQuery: q }),
     }),
     { name: 'training-app-v1' },
   ),
