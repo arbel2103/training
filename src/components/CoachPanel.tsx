@@ -227,8 +227,10 @@ export default function CoachPanel({
                 </div>
               ))}
               {loading && (
-                <div className="bg-bg border border-line rounded-2xl px-4 py-2.5 text-muted text-sm w-fit">
-                  המאמן כותב…
+                <div className="bg-bg border border-line rounded-2xl px-4 py-3 w-fit flex items-center gap-1.5">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
                 </div>
               )}
               {error && <p className="text-run text-sm">{error}</p>}
