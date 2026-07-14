@@ -1,0 +1,26 @@
+{
+  "name": "fitness — מערכת אימונים",
+  "short_name": "fitness",
+  "description": "מעקב אימונים, תוכנית, תכנון מול היומן ומאמן AI",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/training/",
+  "scope": "/training/",
+  "display": "standalone",
+  "background_color": "#f6f4f1",
+  "theme_color": "#b5654a",
+  "icons": [
+    {
+      "src": "/training/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/training/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

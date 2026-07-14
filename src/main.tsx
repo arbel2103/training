@@ -8,3 +8,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// offline support (PWA) — production only, so it never interferes with dev HMR
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register(import.meta.env.BASE_URL + 'sw.js')
+      .catch(() => {})
+  })
+}

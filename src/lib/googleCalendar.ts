@@ -7,7 +7,9 @@
  */
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
-const SCOPE = 'https://www.googleapis.com/auth/calendar'
+// calendar for the planning page + drive.appdata for cloud backup/sync
+const SCOPE =
+  'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.appdata'
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 export const TIME_ZONE = 'Asia/Jerusalem'
 
@@ -66,6 +68,21 @@ export async function connect(): Promise<void> {
       },
     })
     tokenClient.requestAccessToken({ prompt: '' })
+  })
+}
+
+/** Authenticated fetch to any Google API (connects first if needed). */
+export async function authFetch(
+  url: string,
+  opts: RequestInit = {},
+): Promise<Response> {
+  if (!isConnected()) await connect()
+  return fetch(url, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(opts.headers || {}),
+    },
   })
 }
 

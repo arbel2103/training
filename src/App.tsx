@@ -4,6 +4,7 @@ import ProgramPage from './pages/Program/ProgramPage'
 import PlanningPage from './pages/Planning/PlanningPage'
 import HealthPage from './pages/Health/HealthPage'
 import CoachFab from './components/CoachFab'
+import SyncModal from './components/SyncModal'
 
 const PAGES = [
   { key: 'tracking', icon: '📋', label: 'מעקב אימונים', short: 'מעקב', el: <TrackingPage /> },
@@ -14,6 +15,7 @@ const PAGES = [
 
 export default function App() {
   const [index, setIndex] = useState(0)
+  const [syncOpen, setSyncOpen] = useState(false)
   const scrollerRef = useRef<HTMLDivElement>(null)
 
   // derive the active page from the horizontal scroll position
@@ -61,6 +63,14 @@ export default function App() {
               )
             })}
           </nav>
+          <button
+            onClick={() => setSyncOpen(true)}
+            className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
+            title="גיבוי וסנכרון"
+            aria-label="גיבוי וסנכרון"
+          >
+            ☁️
+          </button>
         </div>
       </header>
 
@@ -82,6 +92,7 @@ export default function App() {
       </div>
 
       <CoachFab />
+      <SyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
     </div>
   )
 }
