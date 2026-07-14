@@ -161,6 +161,13 @@ interface State {
   updateExercise: (categoryId: ID, exerciseId: ID, patch: Partial<Exercise>) => void
   removeExercise: (categoryId: ID, exerciseId: ID) => void
 
+  // coach-built strength workout (create/replace a category by name, with exercises)
+  upsertStrengthWorkout: (
+    name: string,
+    exercises: { name: string; sets?: number; reps?: number[]; weight?: string }[],
+  ) => void
+  removeStrengthWorkout: (name: string) => void
+
   // aerobic targets
   addTarget: (sport: Sport, distance: number) => void
   updateTarget: (sport: Sport, id: ID, patch: Partial<WeeklyTarget>) => void
@@ -267,6 +274,32 @@ export const useStore = create<State>()(
               }),
             }
           }),
+        })),
+      upsertStrengthWorkout: (name, exercises) =>
+        set((s) => {
+          const built: Exercise[] = (exercises ?? []).map((e) => {
+            const sets = e.sets ?? e.reps?.length ?? 3
+            return {
+              id: uid(),
+              name: e.name ?? '',
+              sets,
+              reps: adjustReps(e.reps ?? [], sets),
+              weight: e.weight ?? '',
+              updatedAt: new Date().toISOString(),
+            }
+          })
+          const exists = s.strengthCategories.some((c) => c.name === name)
+          return {
+            strengthCategories: exists
+              ? s.strengthCategories.map((c) =>
+                  c.name === name ? { ...c, exercises: built } : c,
+                )
+              : [...s.strengthCategories, { id: uid(), name, exercises: built }],
+          }
+        }),
+      removeStrengthWorkout: (name) =>
+        set((s) => ({
+          strengthCategories: s.strengthCategories.filter((c) => c.name !== name),
         })),
       removeExercise: (categoryId, exerciseId) =>
         set((s) => ({
