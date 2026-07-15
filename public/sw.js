@@ -1,7 +1,7 @@
 /* Offline support: network-first for pages (so updates arrive), cache-first
    for hashed assets, icons, and fonts. API calls (Google/Gemini) are never
    cached. Bump the version to invalidate old caches. */
-const CACHE = 'fitness-v1'
+const CACHE = 'fitness-v2'
 const SHELL = '/training/'
 
 self.addEventListener('install', (e) => {

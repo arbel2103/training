@@ -18,8 +18,8 @@ export default {
         other: 'rgb(var(--c-other) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Assistant', 'system-ui', 'sans-serif'],
-        display: ['"Frank Ruhl Libre"', 'Georgia', 'serif'],
+        sans: ['Heebo', 'system-ui', 'sans-serif'],
+        display: ['Rubik', 'Heebo', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '14px',

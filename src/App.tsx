@@ -116,15 +116,15 @@ export default function App() {
               <button
                 key={p.key}
                 onClick={() => goTo(i)}
-                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-2 pb-1.5 text-[11px] font-semibold transition ${
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-semibold transition ${
                   active ? 'text-accent' : 'text-muted'
                 }`}
                 aria-label={p.label}
                 aria-current={active ? 'page' : undefined}
               >
                 <span
-                  className={`text-xl leading-none transition-transform ${
-                    active ? '-translate-y-0.5 scale-110' : ''
+                  className={`text-xl leading-none px-4 py-1 rounded-full transition ${
+                    active ? 'bg-accent-soft' : ''
                   }`}
                 >
                   {p.icon}
