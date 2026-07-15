@@ -17,6 +17,14 @@
       rel="stylesheet"
     />
     <title>fitness</title>
+    <script>
+      // apply theme before first paint (saved choice, else system preference)
+      try {
+        var t = localStorage.getItem('fitness-theme')
+        if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark'
+        if (t === 'dark') document.documentElement.dataset.theme = 'dark'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -21,6 +21,24 @@
   --c-other: 122 117 110;
 }
 
+/* dark palette — same warm character, flipped values; applied by a small
+   script in index.html (saved preference or system setting) */
+:root[data-theme='dark'] {
+  --bg: 24 22 20;
+  --surface: 35 32 29;
+  --ink: 237 232 226;
+  --muted: 160 152 143;
+  --line: 58 53 48;
+  --accent: 209 126 94;
+  --accent-soft: 66 47 39;
+
+  --c-strength: 186 132 92;
+  --c-run: 228 130 88;
+  --c-bike: 104 176 152;
+  --c-swim: 118 166 218;
+  --c-other: 160 152 143;
+}
+
 * {
   box-sizing: border-box;
 }

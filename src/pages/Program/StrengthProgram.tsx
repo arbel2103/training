@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import Modal from '../../components/ui/Modal'
+import RestTimer from '../../components/RestTimer'
 import ExerciseRow from './ExerciseRow'
 
 export default function StrengthProgram() {
@@ -13,6 +14,7 @@ export default function StrengthProgram() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [showTimer, setShowTimer] = useState(false)
 
   const active =
     categories.find((c) => c.id === activeId) ?? categories[0] ?? null
@@ -93,12 +95,26 @@ export default function StrengthProgram() {
         </div>
       ) : (
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="font-display text-2xl font-bold">{active.name}</h2>
-            <button onClick={() => addExercise(active.id)} className="btn-accent">
-              + הוסף תרגיל
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowTimer((v) => !v)}
+                className={showTimer ? 'btn-soft' : 'btn-ghost'}
+                title="טיימר מנוחה בין סטים"
+              >
+                ⏱️ טיימר
+              </button>
+              <button
+                onClick={() => addExercise(active.id)}
+                className="btn-accent"
+              >
+                + הוסף תרגיל
+              </button>
+            </div>
           </div>
+
+          {showTimer && <RestTimer />}
 
           {active.exercises.length === 0 ? (
             <div className="card p-8 text-center text-muted">

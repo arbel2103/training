@@ -13,6 +13,11 @@ import { getApiKey, setApiKey } from './apiKey'
 
 const STORE_KEY = 'training-app-v1'
 const FILE_NAME = 'fitness-backup.json'
+const LAST_BACKUP_KEY = 'fitness-last-backup'
+
+/** When this device last uploaded/restored a cloud backup (ISO), if ever. */
+export const lastBackupAt = (): string | null =>
+  localStorage.getItem(LAST_BACKUP_KEY)
 const DRIVE = 'https://www.googleapis.com/drive/v3'
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
 
@@ -57,6 +62,7 @@ export function restoreBackup(payload: BackupPayload): void {
     throw new Error('קובץ הגיבוי לא תקין או ריק.')
   localStorage.setItem(STORE_KEY, JSON.stringify(payload.store))
   if (payload.geminiKey) setApiKey(payload.geminiKey)
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
   window.location.reload()
 }
 
@@ -97,6 +103,7 @@ export async function uploadBackup(existingId: string | null): Promise<string> {
       },
     )
     await readJson(res)
+    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
     return existingId
   }
   const boundary = 'fitness-backup-boundary'
@@ -114,6 +121,7 @@ export async function uploadBackup(existingId: string | null): Promise<string> {
     body,
   })
   const created = await readJson(res)
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
   return created.id
 }
 

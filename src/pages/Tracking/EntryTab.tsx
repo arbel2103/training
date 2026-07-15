@@ -10,10 +10,14 @@ import {
 } from '../../lib/dates'
 import { describeEntry } from '../../lib/describe'
 import { compareToTargets } from '../../lib/analysis'
-import { targetsForWeek } from '../../lib/planMatch'
+import { targetsForWeek, weekCompletion } from '../../lib/planMatch'
 import WorkoutFormModal from './WorkoutFormModal'
 import GoalFeedback from '../../components/GoalFeedback'
 import Modal from '../../components/ui/Modal'
+import QuickCompleteModal from '../../components/QuickCompleteModal'
+import type { PlanSession } from '../../store/useStore'
+import { sportIcon, sportLabel } from '../../lib/labels'
+import { sportUnit } from '../../lib/calc'
 
 export default function EntryTab() {
   const log = useStore((s) => s.log)
@@ -24,12 +28,25 @@ export default function EntryTab() {
   const days = useMemo(() => weekDays(weekRef), [weekRef])
   const [formDate, setFormDate] = useState<string | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
+  const [quick, setQuick] = useState<{ session: PlanSession; date: string } | null>(
+    null,
+  )
 
   const weekStart = toISODate(days[0])
   const weekEnd = toISODate(days[6])
   const isCurrentWeek = weekStart === toISODate(weekDays(new Date())[0])
   const weekEntries = log.filter((e) => e.date >= weekStart && e.date <= weekEnd)
   const results = compareToTargets(weekEntries, targetsForWeek(plan, weekStart))
+
+  // planned-but-not-yet-done sessions of the displayed week, for quick-complete
+  const planWeek = plan?.weeks.find((w) => w.weekStart === weekStart) ?? null
+  const completion = planWeek ? weekCompletion(planWeek, log) : {}
+  const pendingForDay = (dayIdx: number): PlanSession[] =>
+    planWeek
+      ? planWeek.sessions.filter(
+          (s) => s.day === dayIdx && !completion[s.id]?.done,
+        )
+      : []
 
   return (
     <div>
@@ -82,8 +99,8 @@ export default function EntryTab() {
                 <div className="text-sm text-muted">{formatDayMonth(d)}</div>
               </div>
 
-              <div className="flex-1 flex flex-wrap gap-2 min-w-0">
-                {dayEntries.length === 0 ? (
+              <div className="flex-1 flex flex-wrap gap-2 min-w-0 items-center">
+                {dayEntries.length === 0 && pendingForDay(d.getDay()).length === 0 ? (
                   <span className="text-muted text-sm">אין אימונים</span>
                 ) : (
                   dayEntries.map((e) => {
@@ -112,6 +129,32 @@ export default function EntryTab() {
                     )
                   })
                 )}
+                {pendingForDay(d.getDay()).map((s) => (
+                  <span
+                    key={s.id}
+                    className="inline-flex items-center gap-2 rounded-full border border-dashed border-accent/50 px-3 py-1.5"
+                  >
+                    <span className="text-sm">
+                      {s.sport === 'strength'
+                        ? '💪'
+                        : s.sport === 'other'
+                          ? '✨'
+                          : sportIcon[s.sport]}
+                    </span>
+                    <span className="text-sm text-muted">
+                      {s.sport === 'strength' || s.sport === 'other'
+                        ? s.label || 'אימון'
+                        : `${sportLabel[s.sport]}${s.distance ? ` ${s.distance} ${sportUnit(s.sport)}` : ''}`}
+                      {' · מתוכנן'}
+                    </span>
+                    <button
+                      onClick={() => setQuick({ session: s, date: iso })}
+                      className="text-sm font-semibold text-accent hover:underline"
+                    >
+                      בצעתי ✓
+                    </button>
+                  </span>
+                ))}
               </div>
 
               <button
@@ -130,6 +173,14 @@ export default function EntryTab() {
         date={formDate ?? toISODate(new Date())}
         onClose={() => setFormDate(null)}
       />
+
+      {quick && (
+        <QuickCompleteModal
+          session={quick.session}
+          date={quick.date}
+          onClose={() => setQuick(null)}
+        />
+      )}
 
       <Modal
         open={showAnalysis}
