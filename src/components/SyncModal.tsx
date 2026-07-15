@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Modal from './ui/Modal'
-import { isConfigured } from '../lib/googleCalendar'
+import { isConfigured, preloadGis } from '../lib/googleCalendar'
 import {
   downloadBackup,
   exportToFile,
   findCloudBackup,
+  getAccountEmail,
   importFromFile,
   restoreBackup,
   uploadBackup,
@@ -30,10 +31,17 @@ export default function SyncModal({
   onClose: () => void
 }) {
   const [cloud, setCloud] = useState<CloudInfo | null>(null)
+  const [account, setAccount] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // load Google's script before the user clicks connect, so the OAuth popup
+  // opens inside the click gesture (mobile browsers block it otherwise)
+  useEffect(() => {
+    if (open && isConfigured()) void preloadGis().catch(() => {})
+  }, [open])
 
   async function run(label: string, fn: () => Promise<void>) {
     setBusy(label)
@@ -52,6 +60,7 @@ export default function SyncModal({
     run('בודק…', async () => {
       const info = await findCloudBackup()
       setCloud(info)
+      setAccount(await getAccountEmail())
     })
 
   const backupNow = () =>
@@ -97,10 +106,17 @@ export default function SyncModal({
                 </button>
               ) : (
                 <div className="grid gap-3">
-                  <div className="chip w-fit text-sm">
-                    {cloud.modifiedTime
-                      ? `גיבוי אחרון בענן: ${formatTime(cloud.modifiedTime)}`
-                      : 'אין עדיין גיבוי בענן'}
+                  <div className="flex flex-wrap gap-2">
+                    {account && (
+                      <span className="chip text-sm" title="החשבון המחובר">
+                        👤 {account}
+                      </span>
+                    )}
+                    <span className="chip text-sm">
+                      {cloud.modifiedTime
+                        ? `גיבוי אחרון בענן: ${formatTime(cloud.modifiedTime)}`
+                        : 'אין גיבוי בחשבון הזה — ודא שזה אותו חשבון גוגל כמו במכשיר שגיבית בו'}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button

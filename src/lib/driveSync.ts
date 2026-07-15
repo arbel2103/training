@@ -60,6 +60,18 @@ export function restoreBackup(payload: BackupPayload): void {
   window.location.reload()
 }
 
+/** The email of the connected Google account (to catch wrong-account syncs). */
+export async function getAccountEmail(): Promise<string | null> {
+  try {
+    const data = await readJson(
+      await authFetch(`${DRIVE}/about?fields=user(emailAddress)`),
+    )
+    return data.user?.emailAddress ?? null
+  } catch {
+    return null
+  }
+}
+
 /** Locate the backup file in the appDataFolder, if one exists. */
 export async function findCloudBackup(): Promise<CloudInfo> {
   const q = new URLSearchParams({

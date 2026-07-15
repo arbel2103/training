@@ -39,32 +39,76 @@ let tokenExpiry = 0
 export const isConfigured = () => !!CLIENT_ID
 export const isConnected = () => !!accessToken && Date.now() < tokenExpiry
 
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) return resolve()
-    const s = document.createElement('script')
-    s.src = src
-    s.async = true
-    s.onload = () => resolve()
-    s.onerror = () => reject(new Error('failed to load ' + src))
-    document.head.appendChild(s)
-  })
+let gisPromise: Promise<void> | null = null
+
+/**
+ * Load Google's sign-in script ahead of time. Calling this when a screen
+ * opens (before the user clicks "connect") keeps the OAuth popup inside the
+ * click's user-gesture window — otherwise mobile browsers block it.
+ */
+export function preloadGis(): Promise<void> {
+  if (!gisPromise) {
+    gisPromise = new Promise((resolve, reject) => {
+      if (window.google?.accounts?.oauth2) return resolve()
+      const s = document.createElement('script')
+      s.src = GIS_SRC
+      s.async = true
+      s.onload = () => resolve()
+      s.onerror = () => {
+        gisPromise = null
+        reject(new Error('טעינת הסקריפט של גוגל נכשלה — בדוק חיבור לאינטרנט.'))
+      }
+      document.head.appendChild(s)
+    })
+  }
+  return gisPromise
 }
 
 /** Trigger the OAuth consent / token flow. */
 export async function connect(): Promise<void> {
   if (!CLIENT_ID) throw new Error('missing-client-id')
-  await loadScript(GIS_SRC)
+  await preloadGis()
   await new Promise<void>((resolve, reject) => {
+    let settled = false
+    const done = (fn: () => void) => {
+      if (!settled) {
+        settled = true
+        clearTimeout(timer)
+        fn()
+      }
+    }
+    const timer = setTimeout(
+      () =>
+        done(() =>
+          reject(
+            new Error(
+              'ההתחברות לגוגל לא הושלמה. ודא שחלון ההתחברות לא נחסם ונסה שוב.',
+            ),
+          ),
+        ),
+      120_000,
+    )
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPE,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (resp: any) => {
-        if (resp.error) return reject(new Error(resp.error))
+        if (resp.error) return done(() => reject(new Error(resp.error)))
         accessToken = resp.access_token
         tokenExpiry = Date.now() + (Number(resp.expires_in) - 60) * 1000
-        resolve()
+        done(resolve)
+      },
+      // fires when the popup is blocked or closed before finishing —
+      // without it the promise hangs forever with no visible error
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error_callback: (err: any) => {
+        const msg =
+          err?.type === 'popup_closed'
+            ? 'חלון ההתחברות נסגר לפני האישור — נסה שוב.'
+            : err?.type === 'popup_failed_to_open'
+              ? 'חלון ההתחברות נחסם על ידי הדפדפן — אפשר חלונות קופצים לאתר ונסה שוב.'
+              : 'שגיאה בחיבור לגוגל: ' + (err?.type ?? 'לא ידוע')
+        done(() => reject(new Error(msg)))
       },
     })
     tokenClient.requestAccessToken({ prompt: '' })

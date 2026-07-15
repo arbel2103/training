@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore, type PlannedWorkout } from '../../store/useStore'
 import {
   addDays,
@@ -18,6 +18,7 @@ import {
   isConfigured,
   listCalendars,
   listEvents,
+  preloadGis,
   TIME_ZONE,
   type GCalEvent,
 } from '../../lib/googleCalendar'
@@ -71,6 +72,11 @@ export default function PlanningPage() {
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
   const checkResults = compareToTargets(weekPlanned, targetsForWeek(plan, weekStart))
+
+  // preload Google's script so the OAuth popup opens inside the click gesture
+  useEffect(() => {
+    if (isConfigured()) void preloadGis().catch(() => {})
+  }, [])
 
   async function loadCalendar() {
     setBusy('טוען יומן…')
