@@ -40,33 +40,34 @@ export default function App() {
   return (
     <div className="flex flex-col h-[100dvh]">
       <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
-        <div className="max-w-6xl mx-auto px-2 sm:px-6 h-16 flex items-center gap-1.5 sm:gap-3">
-          <div className="hidden md:flex items-center gap-3 shrink-0">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className="font-display text-2xl font-black leading-none tracking-tight">
               fitness
             </span>
-            <span className="h-6 w-px bg-line" />
+            <span className="hidden md:block h-6 w-px bg-line" />
           </div>
-          <nav className="flex-1 flex gap-0.5 sm:gap-2 min-w-0">
+          {/* top nav — desktop only; on phones navigation moves to the bottom bar */}
+          <nav className="hidden md:flex flex-1 gap-2 min-w-0">
             {PAGES.map((p, i) => {
               const active = i === index
               return (
                 <button
                   key={p.key}
                   onClick={() => goTo(i)}
-                  className={`flex-1 md:flex-none min-w-0 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 rounded-xl px-1 sm:px-3 py-1.5 sm:py-2 font-semibold transition ${
+                  className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active
                       ? 'bg-ink text-white shadow-card'
                       : 'text-muted hover:text-ink hover:bg-ink/5'
                   }`}
                 >
                   <span className="text-lg leading-none">{p.icon}</span>
-                  <span className="sm:hidden text-[11px] leading-tight">{p.short}</span>
-                  <span className="hidden sm:inline text-base">{p.label}</span>
+                  <span>{p.label}</span>
                 </button>
               )
             })}
           </nav>
+          <div className="flex-1 md:hidden" />
           <button
             onClick={() => setTheme(toggleTheme())}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
@@ -102,6 +103,38 @@ export default function App() {
           </section>
         ))}
       </div>
+
+      {/* bottom tab bar — phones only, like a native app */}
+      <nav
+        className="md:hidden bg-surface/95 backdrop-blur border-t border-line"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex">
+          {PAGES.map((p, i) => {
+            const active = i === index
+            return (
+              <button
+                key={p.key}
+                onClick={() => goTo(i)}
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-2 pb-1.5 text-[11px] font-semibold transition ${
+                  active ? 'text-accent' : 'text-muted'
+                }`}
+                aria-label={p.label}
+                aria-current={active ? 'page' : undefined}
+              >
+                <span
+                  className={`text-xl leading-none transition-transform ${
+                    active ? '-translate-y-0.5 scale-110' : ''
+                  }`}
+                >
+                  {p.icon}
+                </span>
+                <span>{p.short}</span>
+              </button>
+            )
+          })}
+        </div>
+      </nav>
 
       <CoachFab />
       <SyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
