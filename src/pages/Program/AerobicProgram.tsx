@@ -19,68 +19,117 @@ const planSportMeta: Record<PlanSport, { icon: string; label: string }> = {
   other: { icon: '✨', label: 'אחר' },
 }
 
+// full class strings (not built dynamically) so Tailwind keeps them
+const sportTint: Record<PlanSport, string> = {
+  run: 'bg-run/10 text-run',
+  bike: 'bg-bike/10 text-bike',
+  swim: 'bg-swim/10 text-swim',
+  strength: 'bg-strength/10 text-strength',
+  other: 'bg-other/10 text-other',
+}
+
+// rightmost first (RTL): run, bike, swim, strength, other
+const SPORT_ORDER: PlanSport[] = ['run', 'bike', 'swim', 'strength', 'other']
+
+function unitFor(sport: PlanSport): string {
+  return sport === 'run' || sport === 'bike' || sport === 'swim'
+    ? sportUnit(sport)
+    : ''
+}
+
 function WeekCard({ week, isCurrent }: { week: PlanWeek; isCurrent: boolean }) {
   const log = useStore((s) => s.log)
   const completion = weekCompletion(week, log)
   const start = fromISO(week.weekStart)
-  const sessions = [...week.sessions].sort((a, b) => a.day - b.day)
+
+  // one column per sport that actually has sessions this week
+  const columns = SPORT_ORDER.map((sport) => ({
+    sport,
+    sessions: week.sessions
+      .filter((s) => s.sport === sport)
+      .sort((a, b) => a.day - b.day),
+  })).filter((c) => c.sessions.length > 0)
 
   return (
     <div className={`card p-4 ${isCurrent ? 'ring-2 ring-accent/40' : ''}`}>
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex items-baseline justify-between gap-2 mb-3">
         <h3 className="font-display text-lg font-bold">
           {week.label || 'שבוע'}
           {isCurrent && (
             <span className="text-accent text-sm font-semibold mr-2">· השבוע</span>
           )}
         </h3>
-        <span className="text-sm text-muted">
+        <span className="text-sm text-muted shrink-0">
           {formatDayMonth(start)} – {formatDayMonth(addDays(start, 6))}
         </span>
       </div>
       {week.focus && <p className="text-sm text-muted mb-3">{week.focus}</p>}
 
-      {sessions.length === 0 ? (
+      {columns.length === 0 ? (
         <p className="text-sm text-muted">מנוחה / אין אימונים מתוכננים.</p>
       ) : (
-        <div className="grid gap-2">
-          {sessions.map((s) => {
-            const m = completion[s.id]
-            const meta = planSportMeta[s.sport]
-            const unit = s.sport === 'run' || s.sport === 'bike' || s.sport === 'swim'
-              ? sportUnit(s.sport)
-              : ''
+        <div
+          className="grid gap-2"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          }}
+        >
+          {columns.map(({ sport, sessions }) => {
+            const meta = planSportMeta[sport]
+            const unit = unitFor(sport)
             return (
               <div
-                key={s.id}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
-                  m?.done ? 'border-bike/40 bg-bike/5' : 'border-line'
-                }`}
+                key={sport}
+                className="rounded-xl border border-line overflow-hidden flex flex-col"
               >
-                <span
-                  className={`w-6 h-6 shrink-0 rounded-full grid place-items-center text-sm ${
-                    m?.done ? 'bg-bike text-white' : 'border border-line text-muted'
-                  }`}
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 ${sportTint[sport]}`}
                 >
-                  {m?.done ? '✓' : ''}
-                </span>
-                <span className="w-8 text-sm font-semibold text-muted shrink-0">
-                  {HEB_DAYS_SHORT[s.day]}
-                </span>
-                <span className="text-lg shrink-0">{meta.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="font-semibold">{meta.label}</span>
-                  {s.label && <span className="text-sm text-muted"> · {s.label}</span>}
-                  <span className="text-sm text-muted">
-                    {s.distance ? ` · ${s.distance} ${unit}` : ''}
-                    {s.durationMin ? ` · ${formatDuration(s.durationMin)}` : ''}
+                  <span className="text-base leading-none">{meta.icon}</span>
+                  <span className="font-bold text-sm">{meta.label}</span>
+                  <span className="text-xs font-semibold opacity-70 mr-auto">
+                    {sessions.length}
                   </span>
                 </div>
-                {m?.done && m.entry?.distance != null && (
-                  <span className="text-sm text-bike font-semibold shrink-0">
-                    בוצע {m.entry.distance} {unit}
-                  </span>
-                )}
+                <div className="p-1.5 grid gap-1.5">
+                  {sessions.map((s) => {
+                    const m = completion[s.id]
+                    return (
+                      <div
+                        key={s.id}
+                        className={`rounded-lg border px-2 py-1.5 ${
+                          m?.done ? 'border-bike/40 bg-bike/5' : 'border-line'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-bold text-muted">
+                            {HEB_DAYS_SHORT[s.day]}
+                          </span>
+                          {m?.done && (
+                            <span className="w-4 h-4 rounded-full bg-bike text-white grid place-items-center text-[10px] leading-none">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm font-semibold leading-tight mt-0.5">
+                          {s.distance ? `${s.distance} ${unit}` : meta.label}
+                        </div>
+                        {(s.label || s.durationMin) && (
+                          <div className="text-xs text-muted leading-tight">
+                            {[s.label, s.durationMin ? formatDuration(s.durationMin) : '']
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </div>
+                        )}
+                        {m?.done && m.entry?.distance != null && (
+                          <div className="text-xs text-bike font-semibold leading-tight mt-0.5">
+                            בוצע {m.entry.distance} {unit}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
