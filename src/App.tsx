@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/Home/HomePage'
 import TrackingPage from './pages/Tracking/TrackingPage'
 import ProgramPage from './pages/Program/ProgramPage'
@@ -6,7 +6,10 @@ import PlanningPage from './pages/Planning/PlanningPage'
 import HealthPage from './pages/Health/HealthPage'
 import CoachFab from './components/CoachFab'
 import SyncModal from './components/SyncModal'
+import GuideOverlay from './components/GuideOverlay'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
+
+const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
 const PAGES = [
   { key: 'home', icon: '🏠', label: 'היום', short: 'היום', el: <HomePage /> },
@@ -19,8 +22,19 @@ const PAGES = [
 export default function App() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const scrollerRef = useRef<HTMLDivElement>(null)
+
+  // show the walkthrough automatically on the very first visit
+  useEffect(() => {
+    if (!localStorage.getItem(GUIDE_SEEN_KEY)) setGuideOpen(true)
+  }, [])
+
+  const closeGuide = () => {
+    localStorage.setItem(GUIDE_SEEN_KEY, '1')
+    setGuideOpen(false)
+  }
 
   // derive the active page from the horizontal scroll position
   // (Math.abs handles RTL, where scrollLeft is negative)
@@ -31,11 +45,12 @@ export default function App() {
     setIndex(Math.min(PAGES.length - 1, Math.max(0, i)))
   }
 
-  const goTo = (i: number) => {
+  // stable identity so GuideOverlay's navigation effect doesn't refire each render
+  const goTo = useCallback((i: number) => {
     const panel = scrollerRef.current?.children[i] as HTMLElement | undefined
     panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
     setIndex(i)
-  }
+  }, [])
 
   return (
     <div className="flex flex-col h-[100dvh]">
@@ -68,6 +83,14 @@ export default function App() {
             })}
           </nav>
           <div className="flex-1 md:hidden" />
+          <button
+            onClick={() => setGuideOpen(true)}
+            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
+            title="מדריך שימוש"
+            aria-label="מדריך שימוש"
+          >
+            ❓
+          </button>
           <button
             onClick={() => setTheme(toggleTheme())}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
@@ -138,6 +161,7 @@ export default function App() {
 
       <CoachFab />
       <SyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
+      <GuideOverlay open={guideOpen} onClose={closeGuide} onNavigate={goTo} />
     </div>
   )
 }
