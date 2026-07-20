@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  useStore,
-  type AerobicIntensity,
-  type PlannedWorkout,
-} from '../../store/useStore'
+import { useStore, type PlannedWorkout } from '../../store/useStore'
 import {
   addDays,
   formatDayMonth,
@@ -31,15 +27,6 @@ import GoalFeedback from '../../components/GoalFeedback'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
 
-function intensityFromLabel(label?: string): AerobicIntensity {
-  if (!label) return 'easy'
-  if (label.includes('טכניק')) return 'technique'
-  if (label.includes('ארוכ')) return 'long'
-  if (label.includes('עצימ') || label.includes('אינטרוול') || label.includes('מהיר'))
-    return 'intense'
-  return 'easy'
-}
-
 function addMinutes(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number)
   const total = h * 60 + m + mins
@@ -63,7 +50,6 @@ function planToEvent(p: PlannedWorkout): GCalEvent {
 export default function PlanningPage() {
   const planned = useStore((s) => s.planned)
   const plan = useStore((s) => s.trainingPlan)
-  const addPlanned = useStore((s) => s.addPlanned)
   const removePlanned = useStore((s) => s.removePlanned)
   const updatePlanned = useStore((s) => s.updatePlanned)
   const calendarQuery = useStore((s) => s.calendarQuery)
@@ -86,36 +72,6 @@ export default function PlanningPage() {
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
   const checkResults = compareToTargets(weekPlanned, targetsForWeek(plan, weekStart))
-
-  // coach-plan sessions for this week that were not scheduled here yet
-  const planWeek = plan?.weeks.find((w) => w.weekStart === weekStart) ?? null
-  const unscheduled = planWeek
-    ? planWeek.sessions.filter(
-        (s) => !planned.some((p) => p.planSessionId === s.id),
-      )
-    : []
-
-  /** Pull the coach's week into the board — one item per session, editable times. */
-  function importPlanWeek() {
-    for (const s of unscheduled) {
-      addPlanned({
-        date: toISODate(addDays(days[0], s.day)),
-        time: '18:00',
-        planSessionId: s.id,
-        durationMin: s.durationMin,
-        ...(s.sport === 'strength'
-          ? { category: 'strength' as const, strengthName: s.label }
-          : s.sport === 'other'
-            ? { category: 'other' as const, otherName: s.label || 'אימון' }
-            : {
-                category: 'aerobic' as const,
-                sport: s.sport,
-                distance: s.distance,
-                aerobicIntensity: intensityFromLabel(s.label),
-              }),
-      })
-    }
-  }
 
   // preload Google's script so the OAuth popup opens inside the click gesture
   useEffect(() => {
@@ -247,22 +203,6 @@ export default function PlanningPage() {
         )}
         {error && <span className="text-sm text-run">שגיאה: {error}</span>}
       </div>
-
-      {/* pull the coach's plan for this week onto the board */}
-      {unscheduled.length > 0 && (
-        <div
-          className="card p-4 mb-5 flex flex-wrap items-center justify-between gap-3 bg-accent-soft/40"
-          style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
-        >
-          <span className="text-sm">
-            📥 יש <b>{unscheduled.length} אימונים</b> בתוכנית של המאמן שטרם שובצו
-            לשבוע זה.
-          </span>
-          <button onClick={importPlanWeek} className="btn-accent">
-            שבץ את התוכנית לשבוע
-          </button>
-        </div>
-      )}
 
       {/* week navigation */}
       <div className="flex items-center justify-between mb-4">
