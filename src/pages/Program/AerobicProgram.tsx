@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore, type PlanSport, type PlanWeek } from '../../store/useStore'
 import { sportIcon, sportLabel } from '../../lib/labels'
 import { formatDuration, sportUnit } from '../../lib/calc'
@@ -37,10 +38,22 @@ function unitFor(sport: PlanSport): string {
     : ''
 }
 
-function WeekCard({ week, isCurrent }: { week: PlanWeek; isCurrent: boolean }) {
+function WeekCard({
+  week,
+  isCurrent,
+  isPast,
+}: {
+  week: PlanWeek
+  isCurrent: boolean
+  isPast: boolean
+}) {
   const log = useStore((s) => s.log)
   const completion = weekCompletion(week, log)
   const start = fromISO(week.weekStart)
+  // past weeks fold to a one-line summary; click the header to expand
+  const [collapsed, setCollapsed] = useState(isPast)
+
+  const doneCount = week.sessions.filter((s) => completion[s.id]?.done).length
 
   // one column per sport that actually has sessions this week
   const columns = SPORT_ORDER.map((sport) => ({
@@ -52,17 +65,36 @@ function WeekCard({ week, isCurrent }: { week: PlanWeek; isCurrent: boolean }) {
 
   return (
     <div className={`card p-4 ${isCurrent ? 'ring-2 ring-accent/40' : ''}`}>
-      <div className="flex items-baseline justify-between gap-2 mb-3">
-        <h3 className="font-display text-lg font-bold">
+      <button
+        onClick={() => setCollapsed((v) => !v)}
+        className="w-full flex items-baseline justify-between gap-2 text-right"
+        title={collapsed ? 'הרחב שבוע' : 'קפל שבוע'}
+      >
+        <h3 className="font-display text-lg font-bold flex items-center gap-2">
+          <span className="text-muted text-sm">{collapsed ? '◂' : '▾'}</span>
           {week.label || 'שבוע'}
           {isCurrent && (
-            <span className="text-accent text-sm font-semibold mr-2">· השבוע</span>
+            <span className="text-accent text-sm font-semibold">· השבוע</span>
           )}
         </h3>
-        <span className="text-sm text-muted shrink-0">
-          {formatDayMonth(start)} – {formatDayMonth(addDays(start, 6))}
+        <span className="flex items-center gap-2 shrink-0">
+          {week.sessions.length > 0 && (
+            <span
+              className={`text-sm font-semibold ${
+                doneCount === week.sessions.length ? 'text-bike' : 'text-muted'
+              }`}
+            >
+              {doneCount}/{week.sessions.length} ✓
+            </span>
+          )}
+          <span className="text-sm text-muted">
+            {formatDayMonth(start)} – {formatDayMonth(addDays(start, 6))}
+          </span>
         </span>
-      </div>
+      </button>
+
+      {collapsed ? null : (
+        <div className="mt-3">
       {week.focus && <p className="text-sm text-muted mb-3">{week.focus}</p>}
 
       {columns.length === 0 ? (
@@ -135,6 +167,8 @@ function WeekCard({ week, isCurrent }: { week: PlanWeek; isCurrent: boolean }) {
           })}
         </div>
       )}
+        </div>
+      )}
     </div>
   )
 }
@@ -174,7 +208,12 @@ export default function AerobicProgram() {
       </div>
       <div className="grid gap-3">
         {weeks.map((w) => (
-          <WeekCard key={w.id} week={w} isCurrent={w.weekStart === currentWeekStart} />
+          <WeekCard
+            key={w.id}
+            week={w}
+            isCurrent={w.weekStart === currentWeekStart}
+            isPast={w.weekStart < currentWeekStart}
+          />
         ))}
       </div>
     </div>

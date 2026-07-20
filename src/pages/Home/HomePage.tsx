@@ -13,6 +13,9 @@ import { sportIcon, sportLabel } from '../../lib/labels'
 import { formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
+import TabBar from '../../components/ui/TabBar'
+import EntryTab from '../Tracking/EntryTab'
+import HistoryTab from '../Tracking/HistoryTab'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -39,6 +42,7 @@ export default function HomePage() {
   const log = useStore((s) => s.log)
   const weighIns = useStore((s) => s.weighIns)
 
+  const [tab, setTab] = useState<'today' | 'history'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
 
   const now = new Date()
@@ -77,7 +81,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="mb-7">
+      <div className="mb-5">
         <h1 className="font-display text-3xl md:text-4xl font-black tracking-tight">
           {greeting()} 👋
         </h1>
@@ -86,6 +90,21 @@ export default function HomePage() {
         </p>
       </div>
 
+      <div className="mb-6">
+        <TabBar
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: 'today', label: 'היום והשבוע' },
+            { value: 'history', label: 'היסטוריה' },
+          ]}
+        />
+      </div>
+
+      {tab === 'history' ? (
+        <HistoryTab />
+      ) : (
+        <>
       {backupStale && (
         <div
           className="card p-3.5 mb-5 text-sm flex items-center gap-2 bg-accent-soft/40"
@@ -224,6 +243,14 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* week entry — the old tracking page, now right under the dashboard */}
+      <div className="mt-8">
+        <h2 className="font-display text-xl font-bold mb-4">הזנת אימונים</h2>
+        <EntryTab />
+      </div>
+        </>
+      )}
 
       {quick && (
         <QuickCompleteModal

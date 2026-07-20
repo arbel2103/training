@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/Home/HomePage'
-import TrackingPage from './pages/Tracking/TrackingPage'
 import ProgramPage from './pages/Program/ProgramPage'
 import PlanningPage from './pages/Planning/PlanningPage'
 import HealthPage from './pages/Health/HealthPage'
@@ -13,9 +12,8 @@ const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
 const PAGES = [
   { key: 'home', icon: '🏠', label: 'היום', short: 'היום', el: <HomePage /> },
-  { key: 'tracking', icon: '📋', label: 'מעקב אימונים', short: 'מעקב', el: <TrackingPage /> },
   { key: 'program', icon: '🗂️', label: 'תוכנית אימונים', short: 'תוכנית', el: <ProgramPage /> },
-  { key: 'planning', icon: '🗓️', label: 'תכנון האימונים', short: 'תכנון', el: <PlanningPage /> },
+  { key: 'planning', icon: '🗓️', label: 'שיבוץ ליומן', short: 'יומן', el: <PlanningPage /> },
   { key: 'health', icon: '🩺', label: 'מעקב בריאות', short: 'בריאות', el: <HealthPage /> },
 ]
 

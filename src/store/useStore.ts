@@ -71,6 +71,8 @@ export interface PlannedWorkout {
   otherName?: string
   durationMin?: number
   syncedEventId?: string
+  /** links back to the coach-plan session it was imported from (dedup) */
+  planSessionId?: string
 }
 
 /* ---------------- Health: weight & checkups ---------------- */

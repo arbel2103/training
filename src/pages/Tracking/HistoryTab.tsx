@@ -1,26 +1,15 @@
-import { useState } from 'react'
-import TabBar from '../../components/ui/TabBar'
 import AnalysisView from './AnalysisView'
 import ListView from './ListView'
 
-type Sub = 'analysis' | 'list'
-
+/** History as one screen: period analysis on top, the full list below. */
 export default function HistoryTab() {
-  const [sub, setSub] = useState<Sub>('analysis')
   return (
     <div>
-      <div className="mb-6">
-        <TabBar
-          variant="pill"
-          value={sub}
-          onChange={setSub}
-          tabs={[
-            { value: 'analysis', label: 'ניתוח' },
-            { value: 'list', label: 'רשימה' },
-          ]}
-        />
+      <AnalysisView />
+      <div className="mt-10">
+        <h2 className="font-display text-xl font-bold mb-4">כל האימונים</h2>
+        <ListView />
       </div>
-      {sub === 'analysis' ? <AnalysisView /> : <ListView />}
     </div>
   )
 }
