@@ -10,8 +10,6 @@ import {
   weekDays,
 } from '../../lib/dates'
 import { describePlanned } from '../../lib/describe'
-import { compareToTargets } from '../../lib/analysis'
-import { targetsForWeek } from '../../lib/planMatch'
 import {
   connect,
   insertEvent,
@@ -23,7 +21,6 @@ import {
   type GCalEvent,
 } from '../../lib/googleCalendar'
 import PageHeader from '../../components/ui/PageHeader'
-import GoalFeedback from '../../components/GoalFeedback'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
 
@@ -49,7 +46,6 @@ function planToEvent(p: PlannedWorkout): GCalEvent {
 
 export default function PlanningPage() {
   const planned = useStore((s) => s.planned)
-  const plan = useStore((s) => s.trainingPlan)
   const removePlanned = useStore((s) => s.removePlanned)
   const updatePlanned = useStore((s) => s.updatePlanned)
   const calendarQuery = useStore((s) => s.calendarQuery)
@@ -62,7 +58,6 @@ export default function PlanningPage() {
 
   const [formDate, setFormDate] = useState<string | null>(null)
   const [detailDate, setDetailDate] = useState<string | null>(null)
-  const [showCheck, setShowCheck] = useState(false)
 
   const [connected, setConnected] = useState(false)
   const [account, setAccount] = useState<string | null>(null)
@@ -71,7 +66,6 @@ export default function PlanningPage() {
   const [calEvents, setCalEvents] = useState<Record<string, GCalEvent[]>>({})
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
-  const checkResults = compareToTargets(weekPlanned, targetsForWeek(plan, weekStart))
 
   // preload Google's script so the OAuth popup opens inside the click gesture
   useEffect(() => {
@@ -146,18 +140,13 @@ export default function PlanningPage() {
         title="שיבוץ ליומן"
         subtitle="טוענים את שבוע התוכנית, קובעים שעות מול היומן, ושולחים ליומן האישי."
         actions={
-          <>
-            <button onClick={() => setShowCheck(true)} className="btn-ghost">
-              בדוק מול יעדים
-            </button>
-            <button
-              onClick={approve}
-              disabled={!!busy || weekPlanned.length === 0}
-              className="btn-primary"
-            >
-              אשר ושלח ליומן
-            </button>
-          </>
+          <button
+            onClick={approve}
+            disabled={!!busy || weekPlanned.length === 0}
+            className="btn-primary"
+          >
+            אשר ושלח ליומן
+          </button>
         }
       />
 
@@ -331,17 +320,6 @@ export default function PlanningPage() {
         date={formDate ?? toISODate(new Date())}
         onClose={() => setFormDate(null)}
       />
-
-      <Modal
-        open={showCheck}
-        onClose={() => setShowCheck(false)}
-        title="בדיקת התכנון מול היעדים"
-      >
-        <p className="text-sm text-muted mb-4">
-          השוואת המרחקים המתוכננים לשבוע זה למול היעדים השבועיים.
-        </p>
-        <GoalFeedback results={checkResults} />
-      </Modal>
 
       <Modal
         open={detailDate !== null}
