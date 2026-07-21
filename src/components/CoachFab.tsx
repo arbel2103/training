@@ -7,6 +7,7 @@ export default function CoachFab() {
     <>
       {!open && (
         <button
+          data-guide="fab"
           onClick={() => setOpen(true)}
           className="fixed z-40 bottom-20 md:bottom-5 left-4 md:left-5 h-14 px-4 rounded-full bg-accent text-white font-semibold shadow-pop flex items-center gap-2 hover:opacity-90 active:scale-95 transition"
           title="המאמן שלי"

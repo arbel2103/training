@@ -67,6 +67,7 @@ export default function App() {
               return (
                 <button
                   key={p.key}
+                  data-guide={`nav-${p.key}`}
                   onClick={() => goTo(i)}
                   className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active
@@ -90,6 +91,7 @@ export default function App() {
             ❓
           </button>
           <button
+            data-guide="theme"
             onClick={() => setTheme(toggleTheme())}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
             title={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
@@ -98,6 +100,7 @@ export default function App() {
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
           <button
+            data-guide="sync"
             onClick={() => setSyncOpen(true)}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
             title="גיבוי וסנכרון"
@@ -136,6 +139,7 @@ export default function App() {
             return (
               <button
                 key={p.key}
+                data-guide={`nav-${p.key}`}
                 onClick={() => goTo(i)}
                 className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-semibold transition ${
                   active ? 'text-accent' : 'text-muted'
