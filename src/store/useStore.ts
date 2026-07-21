@@ -56,6 +56,8 @@ export interface WorkoutEntry {
   otherName?: string
   // common
   durationMin?: number // entered (strength/other) or computed (aerobic)
+  rpe?: number // perceived exertion 1–10 (post-workout debrief)
+  note?: string // how it felt / free note
 }
 
 /* ---------------- Planning ---------------- */
@@ -73,6 +75,14 @@ export interface PlannedWorkout {
   syncedEventId?: string
   /** links back to the coach-plan session it was imported from (dedup) */
   planSessionId?: string
+}
+
+/** A busy slot loaded from the user's calendar, shared with the coach. */
+export interface CalendarBusy {
+  date: string // yyyy-mm-dd
+  start?: string // HH:MM
+  end?: string // HH:MM
+  title: string
 }
 
 /* ---------------- Health: weight & checkups ---------------- */
@@ -152,6 +162,7 @@ interface State {
   trainingPlan: TrainingPlan | null
   coachMessages: ChatMessage[]
   calendarQuery: string
+  calendarBusy: CalendarBusy[]
 
   // strength categories
   addCategory: (name: string) => void
@@ -204,6 +215,7 @@ interface State {
 
   // calendar
   setCalendarQuery: (q: string) => void
+  setCalendarBusy: (events: CalendarBusy[]) => void
 }
 
 export const useStore = create<State>()(
@@ -219,6 +231,7 @@ export const useStore = create<State>()(
       trainingPlan: null,
       coachMessages: [],
       calendarQuery: 'אלבטרוס',
+      calendarBusy: [],
 
       addCategory: (name) =>
         set((s) => ({
@@ -384,6 +397,7 @@ export const useStore = create<State>()(
       clearCoachChat: () => set({ coachMessages: [] }),
 
       setCalendarQuery: (q) => set({ calendarQuery: q }),
+      setCalendarBusy: (events) => set({ calendarBusy: events }),
     }),
     { name: 'training-app-v1' },
   ),

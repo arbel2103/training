@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useStore, type PlannedWorkout } from '../../store/useStore'
+import {
+  useStore,
+  type CalendarBusy,
+  type PlannedWorkout,
+} from '../../store/useStore'
 import {
   addDays,
   formatDayMonth,
@@ -50,6 +54,7 @@ export default function PlanningPage() {
   const updatePlanned = useStore((s) => s.updatePlanned)
   const calendarQuery = useStore((s) => s.calendarQuery)
   const setCalendarQuery = useStore((s) => s.setCalendarQuery)
+  const setCalendarBusy = useStore((s) => s.setCalendarBusy)
 
   const [weekRef, setWeekRef] = useState(() => new Date())
   const days = useMemo(() => weekDays(weekRef), [weekRef])
@@ -95,18 +100,29 @@ export default function PlanningPage() {
         return
       }
       const calId = match?.id ?? 'primary'
+      // fetch a 2-week window so the coach sees upcoming commitments too;
+      // the grid still renders only the 7 displayed days
+      const busyEnd = toISODate(addDays(days[0], 13))
       const events = await listEvents(
         calId,
         `${weekStart}T00:00:00Z`,
-        `${weekEnd}T23:59:59Z`,
+        `${busyEnd}T23:59:59Z`,
       )
       const byDay: Record<string, GCalEvent[]> = {}
+      const busy: CalendarBusy[] = []
       for (const ev of events) {
         const d = ev.start?.dateTime?.slice(0, 10) ?? ev.start?.date
         if (!d) continue
         ;(byDay[d] ??= []).push(ev)
+        busy.push({
+          date: d,
+          start: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : undefined,
+          end: ev.end?.dateTime ? ev.end.dateTime.slice(11, 16) : undefined,
+          title: ev.summary || '(ללא כותרת)',
+        })
       }
       setCalEvents(byDay)
+      setCalendarBusy(busy) // share commitments with the coach
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {

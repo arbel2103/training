@@ -22,6 +22,7 @@ import { formatFullDate } from '../lib/dates'
 import Modal from './ui/Modal'
 import Segmented from './ui/Segmented'
 import PaceInput from './ui/PaceInput'
+import RpeSelector from './ui/RpeSelector'
 
 function intensityFromLabel(label?: string): AerobicIntensity {
   if (!label) return 'easy'
@@ -61,6 +62,8 @@ export default function QuickCompleteModal({
   const [intensity, setIntensity] = useState<StrengthIntensity>('medium')
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('evening')
   const [durationMin, setDurationMin] = useState<number | ''>('')
+  const [rpe, setRpe] = useState<number | undefined>(undefined)
+  const [note, setNote] = useState('')
 
   useEffect(() => {
     if (session) {
@@ -71,6 +74,8 @@ export default function QuickCompleteModal({
       setIntensity('medium')
       setTimeOfDay(defaultTimeOfDay())
       setDurationMin(session.durationMin ?? '')
+      setRpe(undefined)
+      setNote('')
     }
   }, [session])
 
@@ -96,6 +101,7 @@ export default function QuickCompleteModal({
       : undefined
 
   const save = () => {
+    const debrief = { rpe, note: note.trim() || undefined }
     if (isAerobic && sport) {
       addEntry({
         date,
@@ -107,6 +113,7 @@ export default function QuickCompleteModal({
         speedKmh:
           sport === 'bike' && typeof speedKmh === 'number' ? speedKmh : undefined,
         durationMin: computedDuration,
+        ...debrief,
       })
     } else if (session.sport === 'strength') {
       addEntry({
@@ -116,6 +123,7 @@ export default function QuickCompleteModal({
         intensity,
         timeOfDay,
         durationMin: typeof durationMin === 'number' ? durationMin : undefined,
+        ...debrief,
       })
     } else {
       addEntry({
@@ -123,6 +131,7 @@ export default function QuickCompleteModal({
         category: 'other',
         otherName: session.label || 'אימון',
         durationMin: typeof durationMin === 'number' ? durationMin : undefined,
+        ...debrief,
       })
     }
     onClose()
@@ -236,6 +245,23 @@ export default function QuickCompleteModal({
           </div>
         </div>
       )}
+
+      {/* post-workout debrief — optional, feeds the coach */}
+      <div className="mt-5 pt-5 border-t border-line grid gap-3">
+        <div>
+          <label className="label">איך היה? (עצימות מאמץ)</label>
+          <RpeSelector value={rpe} onChange={setRpe} />
+        </div>
+        <div>
+          <label className="label">הערה למאמן (אופציונלי)</label>
+          <input
+            className="input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="למשל: הרגליים היו כבדות, כאב קל בברך…"
+          />
+        </div>
+      </div>
 
       <div className="flex justify-end gap-2 mt-7">
         <button onClick={onClose} className="btn-ghost">

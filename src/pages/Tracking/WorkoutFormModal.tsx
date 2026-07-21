@@ -24,6 +24,7 @@ import { computeAerobicDuration, formatDuration, sportUnit } from '../../lib/cal
 import Modal from '../../components/ui/Modal'
 import Segmented from '../../components/ui/Segmented'
 import PaceInput from '../../components/ui/PaceInput'
+import RpeSelector from '../../components/ui/RpeSelector'
 import { formatFullDate } from '../../lib/dates'
 
 export default function WorkoutFormModal({
@@ -51,6 +52,8 @@ export default function WorkoutFormModal({
   const [speedKmh, setSpeedKmh] = useState<number | ''>('')
 
   const [otherName, setOtherName] = useState('')
+  const [rpe, setRpe] = useState<number | undefined>(undefined)
+  const [note, setNote] = useState('')
 
   // reset when reopened
   useEffect(() => {
@@ -66,6 +69,8 @@ export default function WorkoutFormModal({
       setPaceSec(undefined)
       setSpeedKmh('')
       setOtherName('')
+      setRpe(undefined)
+      setNote('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -81,7 +86,12 @@ export default function WorkoutFormModal({
       : undefined
 
   const save = () => {
-    const base = { date, category } as WorkoutEntry
+    const base = {
+      date,
+      category,
+      rpe,
+      note: note.trim() || undefined,
+    } as WorkoutEntry
     let entry: Omit<WorkoutEntry, 'id'>
     if (category === 'strength') {
       entry = {
@@ -283,6 +293,22 @@ export default function WorkoutFormModal({
           </div>
         </div>
       )}
+
+      <div className="mt-5 pt-5 border-t border-line grid gap-3">
+        <div>
+          <label className="label">איך היה? (עצימות מאמץ)</label>
+          <RpeSelector value={rpe} onChange={setRpe} />
+        </div>
+        <div>
+          <label className="label">הערה למאמן (אופציונלי)</label>
+          <input
+            className="input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="למשל: הרגליים היו כבדות, כאב קל בברך…"
+          />
+        </div>
+      </div>
 
       <div className="flex justify-end gap-2 mt-7">
         <button onClick={onClose} className="btn-ghost">

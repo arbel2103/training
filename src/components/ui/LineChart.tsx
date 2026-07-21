@@ -5,12 +5,21 @@ interface Point {
 
 /**
  * Minimal dependency-free SVG line chart, styled with the app's design tokens.
- * Scales to the container width via viewBox.
+ * Scales to the container width via viewBox. `format` controls how y-values
+ * are shown (e.g. m:ss for pace); defaults to a rounded number.
  */
-export default function LineChart({ data }: { data: Point[] }) {
+export default function LineChart({
+  data,
+  format,
+}: {
+  data: Point[]
+  format?: (v: number) => string
+}) {
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
   }
+
+  const fmt = format ?? ((n: number) => String(Math.round(n * 10) / 10))
 
   const W = 640
   const H = 190
@@ -41,7 +50,6 @@ export default function LineChart({ data }: { data: Point[] }) {
   const pts = data.map((d, i) => `${x(i)},${y(d.value)}`).join(' ')
   const areaPts = `${padL},${padT + plotH} ${pts} ${x(data.length - 1)},${padT + plotH}`
 
-  const round = (n: number) => Math.round(n * 10) / 10
   const labelStep = Math.max(1, Math.ceil(data.length / 6))
 
   return (
@@ -71,7 +79,7 @@ export default function LineChart({ data }: { data: Point[] }) {
               fontSize="13"
               fill="rgb(var(--muted))"
             >
-              {round(v)}
+              {fmt(v)}
             </text>
           </g>
         )
@@ -115,7 +123,7 @@ export default function LineChart({ data }: { data: Point[] }) {
         fontWeight="700"
         fill="rgb(var(--ink))"
       >
-        {round(data[data.length - 1].value)}
+        {fmt(data[data.length - 1].value)}
       </text>
     </svg>
   )
