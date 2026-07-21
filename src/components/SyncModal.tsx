@@ -6,8 +6,10 @@ import {
   exportToFile,
   findCloudBackup,
   getAccountEmail,
+  getDeviceName,
   importFromFile,
   restoreBackup,
+  setDeviceName,
   uploadBackup,
   type CloudInfo,
 } from '../lib/driveSync'
@@ -32,6 +34,7 @@ export default function SyncModal({
 }) {
   const [cloud, setCloud] = useState<CloudInfo | null>(null)
   const [account, setAccount] = useState<string | null>(null)
+  const [deviceName, setDeviceNameLocal] = useState(getDeviceName())
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +70,13 @@ export default function SyncModal({
     run('מגבה…', async () => {
       const info = cloud ?? (await findCloudBackup())
       const id = await uploadBackup(info.fileId)
-      setCloud({ fileId: id, modifiedTime: new Date().toISOString() })
+      const now = new Date().toISOString()
+      setCloud({
+        fileId: id,
+        modifiedTime: now,
+        savedAt: now,
+        deviceName: getDeviceName(),
+      })
       setMsg('הגיבוי לענן הושלם ✓')
     })
 
@@ -94,6 +103,18 @@ export default function SyncModal({
             הגיבוי נשמר באזור פרטי של האפליקציה ב-Google Drive שלך. כדי לסנכרן
             בין מכשירים: <b>גבה</b> במכשיר אחד ← <b>שחזר</b> במכשיר השני.
           </p>
+          <label className="block mb-3">
+            <span className="label">שם המכשיר הזה (מופיע ליד הגיבוי)</span>
+            <input
+              className="input text-sm max-w-xs"
+              value={deviceName}
+              onChange={(e) => {
+                setDeviceNameLocal(e.target.value)
+                setDeviceName(e.target.value)
+              }}
+              placeholder="למשל: אייפון של ארבל / מחשב בבית"
+            />
+          </label>
           {!isConfigured() ? (
             <p className="text-sm text-muted">
               🔌 סנכרון ענן דורש את חיבור Google (מוגדר באתר החי).
@@ -112,11 +133,26 @@ export default function SyncModal({
                         👤 {account}
                       </span>
                     )}
-                    <span className="chip text-sm">
-                      {cloud.modifiedTime
-                        ? `גיבוי אחרון בענן: ${formatTime(cloud.modifiedTime)}`
-                        : 'אין גיבוי בחשבון הזה — ודא שזה אותו חשבון גוגל כמו במכשיר שגיבית בו'}
-                    </span>
+                    {cloud.modifiedTime || cloud.savedAt ? (
+                      <>
+                        <span className="chip text-sm">
+                          🕒 {formatTime(cloud.savedAt || cloud.modifiedTime!)}
+                        </span>
+                        {cloud.deviceName && (
+                          <span
+                            className="chip text-sm"
+                            title="המכשיר שממנו בוצע הגיבוי האחרון"
+                          >
+                            📱 {cloud.deviceName}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="chip text-sm">
+                        אין גיבוי בחשבון הזה — ודא שזה אותו חשבון גוגל כמו במכשיר
+                        שגיבית בו
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button

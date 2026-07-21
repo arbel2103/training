@@ -14,6 +14,7 @@ import { getApiKey, setApiKey } from './apiKey'
 const STORE_KEY = 'training-app-v1'
 const FILE_NAME = 'fitness-backup.json'
 const LAST_BACKUP_KEY = 'fitness-last-backup'
+const DEVICE_KEY = 'fitness-device-name'
 
 /** When this device last uploaded/restored a cloud backup (ISO), if ever. */
 export const lastBackupAt = (): string | null =>
@@ -21,9 +22,39 @@ export const lastBackupAt = (): string | null =>
 const DRIVE = 'https://www.googleapis.com/drive/v3'
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
 
+/** A short, human label for the browser/OS, used as a default device name. */
+function defaultDeviceName(): string {
+  const ua = navigator.userAgent
+  let os = 'מכשיר'
+  if (/iPhone/i.test(ua)) os = 'אייפון'
+  else if (/iPad/i.test(ua)) os = 'אייפד'
+  else if (/Android/i.test(ua)) os = 'אנדרואיד'
+  else if (/Windows/i.test(ua)) os = 'מחשב Windows'
+  else if (/Macintosh|Mac OS/i.test(ua)) os = 'Mac'
+  else if (/Linux/i.test(ua)) os = 'Linux'
+  let br = ''
+  if (/Edg\//i.test(ua)) br = 'Edge'
+  else if (/OPR\//i.test(ua)) br = 'Opera'
+  else if (/Chrome\//i.test(ua)) br = 'Chrome'
+  else if (/Firefox\//i.test(ua)) br = 'Firefox'
+  else if (/Safari\//i.test(ua)) br = 'Safari'
+  return br ? `${os} · ${br}` : os
+}
+
+/** This device's label (editable, defaults from the browser/OS). */
+export function getDeviceName(): string {
+  return localStorage.getItem(DEVICE_KEY) || defaultDeviceName()
+}
+export function setDeviceName(name: string): void {
+  const v = name.trim()
+  if (v) localStorage.setItem(DEVICE_KEY, v)
+  else localStorage.removeItem(DEVICE_KEY)
+}
+
 export interface BackupPayload {
   version: 1
   savedAt: string
+  deviceName?: string
   store: unknown
   geminiKey?: string
 }
@@ -31,6 +62,9 @@ export interface BackupPayload {
 export interface CloudInfo {
   fileId: string | null
   modifiedTime: string | null
+  /** device + time the cloud backup was made (from Drive appProperties) */
+  deviceName?: string | null
+  savedAt?: string | null
 }
 
 async function readJson(res: Response): Promise<any> {
@@ -51,6 +85,7 @@ export function buildBackup(includeKey: boolean): BackupPayload {
   return {
     version: 1,
     savedAt: new Date().toISOString(),
+    deviceName: getDeviceName(),
     store: raw ? JSON.parse(raw) : null,
     ...(includeKey && getApiKey() ? { geminiKey: getApiKey() } : {}),
   }
@@ -83,46 +118,56 @@ export async function findCloudBackup(): Promise<CloudInfo> {
   const q = new URLSearchParams({
     spaces: 'appDataFolder',
     q: `name='${FILE_NAME}'`,
-    fields: 'files(id,name,modifiedTime)',
+    fields: 'files(id,name,modifiedTime,appProperties)',
   })
   const data = await readJson(await authFetch(`${DRIVE}/files?${q}`))
   const f = data.files?.[0]
-  return { fileId: f?.id ?? null, modifiedTime: f?.modifiedTime ?? null }
+  return {
+    fileId: f?.id ?? null,
+    modifiedTime: f?.modifiedTime ?? null,
+    deviceName: f?.appProperties?.deviceName ?? null,
+    savedAt: f?.appProperties?.savedAt ?? null,
+  }
 }
 
-/** Upload (create or overwrite) the backup in Drive. Returns the file id. */
+/**
+ * Upload (create or overwrite) the backup in Drive. Returns the file id.
+ * The device name + timestamp are stored as Drive appProperties so any device
+ * can see who made the latest backup without downloading the whole file.
+ */
 export async function uploadBackup(existingId: string | null): Promise<string> {
-  const content = JSON.stringify(buildBackup(true))
-  if (existingId) {
-    const res = await authFetch(
-      `${UPLOAD}/files/${existingId}?uploadType=media`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: content,
-      },
-    )
-    await readJson(res)
-    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
-    return existingId
+  const payload = buildBackup(true)
+  const content = JSON.stringify(payload)
+  const metadata: Record<string, unknown> = {
+    appProperties: {
+      deviceName: payload.deviceName ?? '',
+      savedAt: payload.savedAt,
+    },
+  }
+  if (!existingId) {
+    metadata.name = FILE_NAME
+    metadata.parents = ['appDataFolder']
   }
   const boundary = 'fitness-backup-boundary'
   const body =
     `--${boundary}\r\n` +
     'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] }) +
+    JSON.stringify(metadata) +
     `\r\n--${boundary}\r\n` +
     'Content-Type: application/json\r\n\r\n' +
     content +
     `\r\n--${boundary}--`
-  const res = await authFetch(`${UPLOAD}/files?uploadType=multipart`, {
-    method: 'POST',
+  const url = existingId
+    ? `${UPLOAD}/files/${existingId}?uploadType=multipart`
+    : `${UPLOAD}/files?uploadType=multipart`
+  const res = await authFetch(url, {
+    method: existingId ? 'PATCH' : 'POST',
     headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   })
-  const created = await readJson(res)
+  const result = await readJson(res)
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
-  return created.id
+  return existingId ?? result.id
 }
 
 /** Download the cloud backup payload. */
