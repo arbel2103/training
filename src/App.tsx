@@ -7,11 +7,8 @@ import CoachFab from './components/CoachFab'
 import SyncModal from './components/SyncModal'
 import GuideOverlay from './components/GuideOverlay'
 import ErrorBoundary from './components/ErrorBoundary'
-import PageSection from './components/PageSection'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
-import { hasGarminSetup } from './lib/garmin/pat'
-import { smartRefresh } from './lib/garmin/sync'
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -32,17 +29,6 @@ export default function App() {
 
   // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
   useGarminRefreshOnMount()
-
-  // pull-to-refresh: read the latest committed data and, if it's stale, kick
-  // off a real Garmin sync in the background (no-op if not set up)
-  const refresh = useCallback(async () => {
-    if (!hasGarminSetup()) return
-    try {
-      await smartRefresh()
-    } catch {
-      /* errors surface via garminSyncStatus */
-    }
-  }, [])
 
   // show the walkthrough automatically on the very first visit
   useEffect(() => {
@@ -144,9 +130,14 @@ export default function App() {
         className="flex-1 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar"
       >
         {PAGES.map((p) => (
-          <PageSection key={p.key} onRefresh={refresh}>
-            <ErrorBoundary>{p.el}</ErrorBoundary>
-          </PageSection>
+          <section
+            key={p.key}
+            className="min-w-full h-full overflow-y-auto snap-start no-scrollbar"
+          >
+            <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
+              <ErrorBoundary>{p.el}</ErrorBoundary>
+            </div>
+          </section>
         ))}
       </div>
 

@@ -114,28 +114,6 @@ async function waitForRun(sinceMs: number): Promise<WorkflowRun | null> {
   return run
 }
 
-/** Data older than this is considered stale enough to re-pull from Garmin. */
-const STALE_MS = 30 * 60 * 1000
-
-/**
- * What "refresh" should mean to the user: read anything already committed
- * (fast), and if the server-side data is stale, kick off a real Garmin sync in
- * the background. Reading the repo alone never brings *new* watch data — only
- * the workflow does that.
- */
-export async function smartRefresh(): Promise<void> {
-  await refreshFromRepo()
-
-  const st = useStore.getState().garminSyncStatus
-  if (st.state === 'dispatching' || st.state === 'running') return
-
-  const last = st.lastGarminSyncAt ? Date.parse(st.lastGarminSyncAt) : 0
-  if (Number.isFinite(last) && Date.now() - last < STALE_MS) return
-
-  // don't block the caller — progress shows through garminSyncStatus
-  void manualSync()
-}
-
 /** Trigger a sync run, poll until done, then refresh local data. */
 export async function manualSync(mfaCode?: string): Promise<void> {
   const { setGarminSyncStatus } = useStore.getState()

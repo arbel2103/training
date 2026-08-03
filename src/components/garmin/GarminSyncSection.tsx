@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import { clearPat, hasGarminSetup } from '../../lib/garmin/pat'
 import { clearCache } from '../../lib/garmin/cache'
-import { manualSync, refreshFromRepo } from '../../lib/garmin/sync'
+import { manualSync } from '../../lib/garmin/sync'
 import GarminSetupWizard from './GarminSetupWizard'
 
 function formatTime(iso?: string): string | null {
@@ -24,8 +24,6 @@ export default function GarminSyncSection() {
     open: false,
     step: 1,
   })
-  const [refreshing, setRefreshing] = useState(false)
-
   const connected = hasGarminSetup()
   const busy = status.state === 'dispatching' || status.state === 'running'
   const lastSync = formatTime(status.lastGarminSyncAt)
@@ -36,15 +34,6 @@ export default function GarminSyncSection() {
     clearPat()
     setGarminSettings({ connected: false })
     void clearCache()
-  }
-
-  async function refresh() {
-    setRefreshing(true)
-    try {
-      await refreshFromRepo()
-    } finally {
-      setRefreshing(false)
-    }
   }
 
   return (
@@ -89,9 +78,8 @@ export default function GarminSyncSection() {
             </p>
           )}
           <p className="text-xs text-muted leading-relaxed">
-            נתוני גרמין מתעדכנים אוטומטית כל יום ב-12:00. כדי לקבל נתונים
-            עדכניים <b>עכשיו</b> — לחץ "משוך נתונים חדשים מגרמין" (מריץ סנכרון
-            בשרת). "טען מהשרת" רק קורא מה שכבר סונכרן.
+            הנתונים מתעדכנים אוטומטית כל יום ב-12:00. כדי למשוך נתונים עדכניים
+            מגרמין <b>עכשיו</b> — לחץ "סנכרן עכשיו".
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -100,14 +88,7 @@ export default function GarminSyncSection() {
               disabled={busy}
               className="btn-primary"
             >
-              {busy ? 'מסנכרן…' : '🔄 משוך נתונים חדשים מגרמין'}
-            </button>
-            <button
-              onClick={() => void refresh()}
-              disabled={refreshing || busy}
-              className="btn-soft"
-            >
-              {refreshing ? 'טוען…' : '⬇️ טען מהשרת'}
+              {busy ? 'מסנכרן…' : '🔄 סנכרן עכשיו'}
             </button>
             <button
               onClick={() => setWizard({ open: true, step: 2 })}

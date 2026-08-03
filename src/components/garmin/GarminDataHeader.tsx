@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
-import { smartRefresh } from '../../lib/garmin/sync'
 import GarminSetupWizard from './GarminSetupWizard'
 
 /** Shown on data tabs when Garmin isn't connected yet. */
@@ -21,10 +20,12 @@ export function GarminConnectPrompt() {
   )
 }
 
-/** Compact "last synced · refresh" chip row for the top of a data tab. */
+/**
+ * Read-only "last synced" line for the top of a data tab. Syncing itself is
+ * done from one place only — the ☁️ button in the header.
+ */
 export function GarminRefreshChip() {
   const status = useStore((s) => s.garminSyncStatus)
-  const [busy, setBusy] = useState(false)
   const last = status.lastGarminSyncAt
     ? new Date(status.lastGarminSyncAt).toLocaleDateString('he-IL', {
         day: 'numeric',
@@ -33,31 +34,13 @@ export function GarminRefreshChip() {
         minute: '2-digit',
       })
     : null
-
-  async function refresh() {
-    setBusy(true)
-    try {
-      await smartRefresh()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const syncing = status.state === 'dispatching' || status.state === 'running'
 
   return (
     <div className="flex items-center gap-2 mb-4 text-sm text-muted flex-wrap">
       <span>⌚ {last ? `סונכרן ${last}` : 'טרם סונכרן'}</span>
-      {syncing ? (
+      {syncing && (
         <span className="text-accent font-semibold">מושך נתונים מגרמין…</span>
-      ) : (
-        <button
-          onClick={() => void refresh()}
-          disabled={busy}
-          className="text-accent font-semibold hover:underline disabled:opacity-50"
-        >
-          {busy ? 'מרענן…' : 'רענן'}
-        </button>
       )}
       {status.state === 'error' && status.error && (
         <span className="text-run">{status.error}</span>
