@@ -16,7 +16,7 @@ import {
 } from '../../lib/labels'
 import { sportUnit } from '../../lib/calc'
 import { formatFullDate } from '../../lib/dates'
-import { conflictsFor, findFreeSlot } from '../../lib/scheduling'
+import { conflictsFor } from '../../lib/scheduling'
 import Modal from '../../components/ui/Modal'
 import Segmented from '../../components/ui/Segmented'
 
@@ -24,12 +24,15 @@ export default function PlanFormModal({
   open,
   date,
   plan: editing,
+  prefill,
   onClose,
 }: {
   open: boolean
   date: string
   /** when provided, the form edits this planned workout instead of adding one */
   plan?: PlannedWorkout | null
+  /** seed a new workout (used when scheduling a session from the plan) */
+  prefill?: Partial<PlannedWorkout> | null
   onClose: () => void
 }) {
   const categories = useStore((s) => s.strengthCategories)
@@ -61,28 +64,30 @@ export default function PlanFormModal({
       setDurationMin(editing.durationMin || 60)
       return
     }
-    setDay(date)
-    setCategory('strength')
-    setStrengthName(categories[0]?.name ?? '')
-    setSport('run')
-    setAerobicIntensity('easy')
-    setDistance('')
-    setOtherName('')
-    setTime('18:00')
-    setDurationMin(60)
+    setDay(prefill?.date ?? date)
+    setCategory(prefill?.category ?? 'strength')
+    setStrengthName(prefill?.strengthName ?? categories[0]?.name ?? '')
+    setSport(prefill?.sport ?? 'run')
+    setAerobicIntensity(prefill?.aerobicIntensity ?? 'easy')
+    setDistance(prefill?.distance ?? '')
+    setOtherName(prefill?.otherName ?? '')
+    setTime(prefill?.time ?? '18:00')
+    setDurationMin(prefill?.durationMin ?? 60)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editing, date])
+  }, [open, editing, date, prefill])
 
   const dayEvents = calendarBusy.filter((b) => b.date === day)
   const clashes = conflictsFor(time, durationMin, dayEvents)
 
-  function suggestTime() {
-    const slot = findFreeSlot(dayEvents, durationMin, time)
-    if (slot) setTime(slot)
-  }
-
   const save = () => {
-    const base = { date: day, time, durationMin, category }
+    const base = {
+      date: day,
+      time,
+      durationMin,
+      category,
+      // keep the link back to the plan session so the pool knows it's scheduled
+      ...(editing ? {} : { planSessionId: prefill?.planSessionId }),
+    }
     const payload =
       category === 'strength'
         ? {
@@ -245,9 +250,6 @@ export default function PlanFormModal({
               onChange={(e) => setDurationMin(Number(e.target.value) || 0)}
             />
           </div>
-          <button onClick={suggestTime} className="btn-soft text-sm mb-px">
-            🔎 מצא לי שעה
-          </button>
         </div>
 
         {clashes.length > 0 && (

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   useStore,
   type CalendarBusy,
+  type PlanSession,
   type PlannedWorkout,
 } from '../../store/useStore'
+import { sportIcon, sportLabel } from '../../lib/labels'
 import {
   addDays,
   formatDayMonth,
@@ -41,6 +43,31 @@ function addMinutes(time: string, mins: number): string {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
 }
 
+/** A plan session as the fields a planned workout needs. */
+function sessionToPlanned(s: PlanSession, date: string): Partial<PlannedWorkout> {
+  const base = {
+    date,
+    time: '18:00',
+    durationMin: s.durationMin || 60,
+    planSessionId: s.id,
+  }
+  if (s.sport === 'strength')
+    return { ...base, category: 'strength', strengthName: s.label || undefined }
+  if (s.sport === 'other')
+    return { ...base, category: 'other', otherName: s.label || 'אימון' }
+  return { ...base, category: 'aerobic', sport: s.sport, distance: s.distance }
+}
+
+function sessionChip(s: PlanSession): { icon: string; text: string } {
+  if (s.sport === 'strength')
+    return { icon: '💪', text: s.label || 'כוח' }
+  if (s.sport === 'other') return { icon: '✨', text: s.label || 'אימון' }
+  return {
+    icon: sportIcon[s.sport],
+    text: s.distance ? `${sportLabel[s.sport]} ${s.distance}` : sportLabel[s.sport],
+  }
+}
+
 function planToEvent(p: PlannedWorkout): GCalEvent {
   const v = describePlanned(p)
   const time = p.time || '18:00'
@@ -70,9 +97,26 @@ export default function PlanningPage() {
 
   const [formDate, setFormDate] = useState<string | null>(null)
   const [editing, setEditing] = useState<PlannedWorkout | null>(null)
+  const [prefill, setPrefill] = useState<Partial<PlannedWorkout> | null>(null)
   const [detailDate, setDetailDate] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState(todayISO)
   const [dragId, setDragId] = useState<string | null>(null)
+  const [dragSession, setDragSession] = useState<PlanSession | null>(null)
+
+  const trainingPlan = useStore((s) => s.trainingPlan)
+  const addPlanned = useStore((s) => s.addPlanned)
+
+  // sessions the plan prescribes for this week that aren't on the board yet
+  const unscheduled = useMemo(() => {
+    const week = trainingPlan?.weeks.find((w) => w.weekStart === weekStart)
+    if (!week) return []
+    const taken = new Set(
+      planned
+        .filter((p) => p.date >= weekStart && p.date <= weekEnd && p.planSessionId)
+        .map((p) => p.planSessionId),
+    )
+    return week.sessions.filter((s) => !taken.has(s.id))
+  }, [trainingPlan, planned, weekStart, weekEnd])
 
   const [connected, setConnected] = useState(false)
   const [account, setAccount] = useState<string | null>(null)
@@ -243,9 +287,15 @@ export default function PlanningPage() {
       <div
         onClick={() => setDetailDate(iso)}
         onDragOver={(e) => {
-          if (dragId) e.preventDefault()
+          if (dragId || dragSession) e.preventDefault()
         }}
         onDrop={() => {
+          if (dragSession) {
+            addPlanned(
+              sessionToPlanned(dragSession, iso) as Omit<PlannedWorkout, 'id'>,
+            )
+            setDragSession(null)
+          }
           const p = planned.find((x) => x.id === dragId)
           if (p) void moveTo(p, iso)
           setDragId(null)
@@ -253,7 +303,7 @@ export default function PlanningPage() {
         title="לחץ להגדלה וצפייה בלו״ז המלא"
         className={`card p-3 flex flex-col gap-2 min-h-[180px] cursor-pointer transition hover:shadow-pop ${
           isToday ? 'ring-2 ring-accent/30' : ''
-        } ${dragId ? 'outline-dashed outline-1 outline-accent/40' : ''}`}
+        } ${dragId || dragSession ? 'outline-dashed outline-1 outline-accent/40' : ''}`}
       >
         <div className="flex items-baseline justify-between">
           <span className="font-bold">{HEB_DAYS_SHORT[index]}</span>
@@ -440,6 +490,29 @@ export default function PlanningPage() {
         </button>
       </div>
 
+      {/* what the plan still owes this week — one compact scrollable row */}
+      {unscheduled.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar">
+          <span className="text-xs text-muted shrink-0">מהתוכנית:</span>
+          {unscheduled.map((s) => {
+            const chip = sessionChip(s)
+            return (
+              <button
+                key={s.id}
+                draggable
+                onDragStart={() => setDragSession(s)}
+                onDragEnd={() => setDragSession(null)}
+                onClick={() => setPrefill(sessionToPlanned(s, selectedDay))}
+                className="chip text-xs shrink-0 hover:border-accent hover:text-accent transition"
+                title="לחץ לשיבוץ ליום — או גרור ליום בלוח"
+              >
+                {chip.icon} {chip.text}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* phones: pick a day, see just that day — no endless scrolling */}
       <div className="lg:hidden">
         <div className="flex gap-1.5 mb-3">
@@ -486,6 +559,13 @@ export default function PlanningPage() {
         open={formDate !== null}
         date={formDate ?? todayISO}
         onClose={() => setFormDate(null)}
+      />
+
+      <PlanFormModal
+        open={prefill !== null}
+        date={prefill?.date ?? selectedDay}
+        prefill={prefill}
+        onClose={() => setPrefill(null)}
       />
 
       <PlanFormModal
