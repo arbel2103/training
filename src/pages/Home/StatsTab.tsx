@@ -8,7 +8,7 @@ import {
   summarizeStrength,
   trend,
 } from '../../lib/garmin/activityStats'
-import { sportLabel, strengthIntensityLabel } from '../../lib/labels'
+import { sportLabel } from '../../lib/labels'
 import BarChart from '../../components/ui/BarChart'
 import { formatDayMonth, startOfWeek } from '../../lib/dates'
 import Segmented from '../../components/ui/Segmented'
@@ -228,10 +228,6 @@ function StrengthStats({
     )
   }
 
-  const intensityTotal =
-    s.byIntensity.light + s.byIntensity.medium + s.byIntensity.heavy
-  const maxName = s.byName[0]?.count ?? 1
-
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -255,43 +251,6 @@ function StrengthStats({
         </ChartCard>
       )}
 
-      <div className="card p-5">
-        <h4 className="font-semibold mb-3">לפי סוג אימון</h4>
-        <div className="grid gap-2">
-          {s.byName.map((n) => (
-            <div key={n.name} className="flex items-center gap-2 text-sm">
-              <span className="w-28 shrink-0 truncate">{n.name}</span>
-              <div className="flex-1 h-3 rounded-full bg-ink/5 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-strength"
-                  style={{ width: `${(n.count / maxName) * 100}%` }}
-                />
-              </div>
-              <span className="w-8 text-left tabular-nums font-semibold">
-                {n.count}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {intensityTotal > 0 && (
-        <div className="card p-5">
-          <h4 className="font-semibold mb-3">לפי עצימות</h4>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {(['light', 'medium', 'heavy'] as const).map((i) => (
-              <div key={i} className="rounded-xl bg-ink/5 px-2 py-2">
-                <div className="font-display text-2xl font-black leading-none">
-                  {s.byIntensity[i]}
-                </div>
-                <div className="text-xs text-muted mt-1">
-                  {strengthIntensityLabel[i]}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )
 }
