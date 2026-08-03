@@ -17,6 +17,7 @@ import {
 } from '../../lib/dates'
 import { describePlanned } from '../../lib/describe'
 import { conflictsFor } from '../../lib/scheduling'
+import { unscheduledSessions } from '../../lib/planMatch'
 import {
   connect,
   deleteEvent,
@@ -110,12 +111,10 @@ export default function PlanningPage() {
   const unscheduled = useMemo(() => {
     const week = trainingPlan?.weeks.find((w) => w.weekStart === weekStart)
     if (!week) return []
-    const taken = new Set(
-      planned
-        .filter((p) => p.date >= weekStart && p.date <= weekEnd && p.planSessionId)
-        .map((p) => p.planSessionId),
+    return unscheduledSessions(
+      week,
+      planned.filter((p) => p.date >= weekStart && p.date <= weekEnd),
     )
-    return week.sessions.filter((s) => !taken.has(s.id))
   }, [trainingPlan, planned, weekStart, weekEnd])
 
   const [connected, setConnected] = useState(false)

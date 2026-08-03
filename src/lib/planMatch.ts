@@ -1,7 +1,9 @@
 import type {
   AerobicTargets,
+  ID,
   PlanSession,
   PlanWeek,
+  PlannedWorkout,
   Sport,
   TrainingPlan,
   WorkoutEntry,
@@ -50,6 +52,54 @@ export function weekCompletion(
     }
   }
   return result
+}
+
+function sessionMatchesPlanned(session: PlanSession, p: PlannedWorkout): boolean {
+  if (session.sport === 'strength') return p.category === 'strength'
+  if (session.sport === 'other') return p.category === 'other'
+  return p.category === 'aerobic' && p.sport === session.sport
+}
+
+/**
+ * Plan sessions for a week that aren't on the planning board yet.
+ *
+ * Matching is by sport, not by day — the day a session lands on is decided
+ * week by week. A workout scheduled by the coach (or added by hand) carries no
+ * link back to its session, so an explicit planSessionId is honoured first and
+ * everything else falls back to a greedy sport match, each planned workout
+ * being consumed at most once.
+ */
+export function unscheduledSessions(
+  week: PlanWeek,
+  plannedInWeek: PlannedWorkout[],
+): PlanSession[] {
+  const used = new Set<ID>()
+  const scheduled = new Set<ID>()
+
+  // pass 1: sessions explicitly linked to a planned workout
+  for (const session of week.sessions) {
+    const linked = plannedInWeek.find(
+      (p) => p.planSessionId === session.id && !used.has(p.id),
+    )
+    if (linked) {
+      used.add(linked.id)
+      scheduled.add(session.id)
+    }
+  }
+
+  // pass 2: match the rest by sport
+  for (const session of week.sessions) {
+    if (scheduled.has(session.id)) continue
+    const match = plannedInWeek.find(
+      (p) => !used.has(p.id) && sessionMatchesPlanned(session, p),
+    )
+    if (match) {
+      used.add(match.id)
+      scheduled.add(session.id)
+    }
+  }
+
+  return week.sessions.filter((s) => !scheduled.has(s.id))
 }
 
 /** Weekly aerobic targets derived from the plan week whose weekStart matches. */
