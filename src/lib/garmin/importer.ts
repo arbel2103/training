@@ -17,7 +17,9 @@ function sameKind(a: Omit<WorkoutEntry, 'id'>, e: WorkoutEntry): boolean {
 
 /** When merging into a manual entry, keep the user's own naming. */
 function mergePatch(entry: Omit<WorkoutEntry, 'id'>): Partial<WorkoutEntry> {
-  const { strengthName: _s, otherName: _o, ...rest } = entry
+  const rest: Partial<WorkoutEntry> = { ...entry }
+  delete rest.strengthName
+  delete rest.otherName
   return rest
 }
 

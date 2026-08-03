@@ -338,12 +338,33 @@ export function buildContext(): string {
       if (e.aerobicIntensity) bits.push(aerobicIntensityLabel[e.aerobicIntensity])
       const d = entryDuration(e)
       if (d) bits.push(formatDuration(d))
+      if (e.avgHr) bits.push(`דופק ${e.avgHr}${e.maxHr ? `/${e.maxHr}` : ''}`)
       if (e.rpe) bits.push(`תחושה RPE ${e.rpe}/10`)
+      if (e.source === 'garmin') bits.push('(גרמין)')
       if (e.note) bits.push(`"${e.note}"`)
       parts.push('  - ' + bits.join(' · '))
     }
   } else {
     parts.push('אין אימונים שבוצעו לאחרונה.')
+  }
+
+  // Garmin wellness — sleep & recovery signals for smarter coaching
+  const garminDays = [...s.garminDaily]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 14)
+  if (garminDays.length) {
+    parts.push('נתוני שינה ובריאות מגרמין (14 יום אחרונים):')
+    for (const g of garminDays) {
+      const bits: string[] = [g.date]
+      if (g.sleepScore != null) bits.push(`שינה ${g.sleepScore}`)
+      if (g.sleepMin != null)
+        bits.push(`${Math.floor(g.sleepMin / 60)}:${String(Math.round(g.sleepMin % 60)).padStart(2, '0')} שע׳`)
+      if (g.steps != null) bits.push(`${g.steps} צעדים`)
+      if (g.restingHr != null) bits.push(`דופק מנוחה ${g.restingHr}`)
+      if (g.hrvLastNight != null) bits.push(`HRV ${g.hrvLastNight}`)
+      if (g.bodyBatteryHigh != null) bits.push(`סוללת גוף ${g.bodyBatteryLow ?? '?'}-${g.bodyBatteryHigh}`)
+      parts.push('  - ' + bits.join(' · '))
+    }
   }
 
   // calendar commitments the coach should plan around

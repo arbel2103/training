@@ -10,6 +10,7 @@
  */
 import { authFetch } from './googleCalendar'
 import { getApiKey, setApiKey } from './apiKey'
+import { getPat, setPat } from './garmin/pat'
 
 const STORE_KEY = 'training-app-v1'
 const FILE_NAME = 'fitness-backup.json'
@@ -57,6 +58,7 @@ export interface BackupPayload {
   deviceName?: string
   store: unknown
   geminiKey?: string
+  githubPat?: string
 }
 
 export interface CloudInfo {
@@ -88,6 +90,7 @@ export function buildBackup(includeKey: boolean): BackupPayload {
     deviceName: getDeviceName(),
     store: raw ? JSON.parse(raw) : null,
     ...(includeKey && getApiKey() ? { geminiKey: getApiKey() } : {}),
+    ...(includeKey && getPat() ? { githubPat: getPat() } : {}),
   }
 }
 
@@ -97,6 +100,7 @@ export function restoreBackup(payload: BackupPayload): void {
     throw new Error('קובץ הגיבוי לא תקין או ריק.')
   localStorage.setItem(STORE_KEY, JSON.stringify(payload.store))
   if (payload.geminiKey) setApiKey(payload.geminiKey)
+  if (payload.githubPat) setPat(payload.githubPat)
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
   window.location.reload()
 }
