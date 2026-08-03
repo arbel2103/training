@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SvgTooltip from './SvgTooltip'
+import ChartTooltip from './SvgTooltip'
 
 export interface StackSegment {
   value: number
@@ -65,6 +65,7 @@ export default function StackedBarChart({
           ))}
         </div>
       )}
+      <div className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="select-none" role="img">
         {[max, max / 2, 0].map((v, i) => {
           const yy = padT + (1 - v / max) * plotH
@@ -107,11 +108,13 @@ export default function StackedBarChart({
           )
         })}
 
+      </svg>
         {active !== null && (
-          <SvgTooltip
-            x={padL + step * active + step / 2}
-            y={padT + plotH - scale(data[active].segments.reduce((s, x) => s + x.value, 0))}
-            width={W}
+          <ChartTooltip
+            xPct={((padL + step * active + step / 2) / W) * 100}
+            yPct={
+              ((padT + plotH - scale(data[active].segments.reduce((s, x) => s + x.value, 0))) / H) * 100
+            }
             title={`${data[active].label} · ${fmt(data[active].segments.reduce((s, x) => s + x.value, 0))}`}
             lines={data[active].segments.map((seg, j) => ({
               text: `${legend?.[j]?.label ?? ''} ${fmt(seg.value)}`.trim(),
@@ -119,7 +122,7 @@ export default function StackedBarChart({
             }))}
           />
         )}
-      </svg>
+      </div>
     </div>
   )
 }

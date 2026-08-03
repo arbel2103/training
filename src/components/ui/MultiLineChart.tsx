@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SvgTooltip from './SvgTooltip'
+import ChartTooltip from './SvgTooltip'
 
 export interface Series {
   name: string
@@ -81,6 +81,7 @@ export default function MultiLineChart({
           </span>
         ))}
       </div>
+      <div className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="select-none" role="img">
         {[max, (max + min) / 2, min].map((v, i) => {
           const yy = y(v)
@@ -140,23 +141,27 @@ export default function MultiLineChart({
           />
         ))}
 
+      </svg>
         {active !== null && (
-          <SvgTooltip
-            x={x(active)}
-            y={Math.min(
-              ...series
-                .map((s) => s.values[active])
-                .filter((v): v is number => v != null)
-                .map((v) => y(v)),
-            )}
-            width={W}
+          <ChartTooltip
+            xPct={(x(active) / W) * 100}
+            yPct={
+              (Math.min(
+                ...series
+                  .map((s) => s.values[active])
+                  .filter((v): v is number => v != null)
+                  .map((v) => y(v)),
+              ) /
+                H) *
+              100
+            }
             title={labels[active]}
             lines={series
               .filter((s) => s.values[active] != null)
               .map((s) => ({ text: `${s.name}: ${fmt(s.values[active] as number)}`, color: s.color }))}
           />
         )}
-      </svg>
+      </div>
     </div>
   )
 }

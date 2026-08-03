@@ -4,60 +4,58 @@ export interface TooltipLine {
 }
 
 /**
- * A small in-SVG tooltip (dark bubble) positioned near (x, y) and clamped
- * inside the chart's viewBox width so it never clips. Shared by all charts.
+ * Chart tooltip rendered as an HTML overlay (not inside the SVG), so the text
+ * stays at native pixel size and fully readable even when the chart's viewBox
+ * is scaled down on small screens. Position is given in percentages of the
+ * chart area; the parent must be `position: relative`.
  */
-export default function SvgTooltip({
-  x,
-  y,
-  width,
+export default function ChartTooltip({
+  xPct,
+  yPct,
   title,
   lines,
 }: {
-  x: number
-  y: number
-  width: number
+  xPct: number // 0–100, horizontal anchor within the chart
+  yPct: number // 0–100, vertical anchor (tooltip sits above this point)
   title?: string
   lines: TooltipLine[]
 }) {
-  const pad = 8
-  const lineH = 18
-  const charW = 7.4
-  const hasDots = lines.some((l) => l.color)
-  const dotW = hasDots ? 15 : 0
-  const titleH = title ? 17 : 0
-
-  const longest = Math.max(
-    title ? title.length : 0,
-    ...lines.map((l) => l.text.length),
-  )
-  const boxW = Math.max(64, Math.min(width - 8, longest * charW + pad * 2 + dotW))
-  const boxH = pad * 2 + titleH + lines.length * lineH
-
-  let bx = x - boxW / 2
-  bx = Math.max(4, Math.min(width - boxW - 4, bx))
-  let by = y - boxH - 12
-  if (by < 4) by = y + 14
+  // near the edges, grow inward instead of centering (so we never clip)
+  const align: 'start' | 'center' | 'end' =
+    xPct < 22 ? 'start' : xPct > 78 ? 'end' : 'center'
+  const translateX =
+    align === 'center' ? '-50%' : align === 'start' ? '0%' : '-100%'
+  // above the point when there's room, below it otherwise
+  const above = yPct > 38
 
   return (
-    <g pointerEvents="none">
-      <rect x={bx} y={by} width={boxW} height={boxH} rx={8} fill="rgb(var(--ink))" opacity={0.93} />
-      {title && (
-        <text x={bx + pad} y={by + pad + 12} fontSize="12" fontWeight="700" fill="rgb(var(--surface))">
-          {title}
-        </text>
-      )}
-      {lines.map((l, i) => {
-        const ly = by + pad + titleH + i * lineH + 12
-        return (
-          <g key={i}>
-            {l.color && <circle cx={bx + pad + 4} cy={ly - 4} r={4} fill={`rgb(${l.color})`} />}
-            <text x={bx + pad + dotW} y={ly} fontSize="13" fill="rgb(var(--surface))">
-              {l.text}
-            </text>
-          </g>
-        )
-      })}
-    </g>
+    <div
+      className="absolute z-10 pointer-events-none"
+      style={{
+        left: `${xPct}%`,
+        top: `${yPct}%`,
+        transform: `translate(${translateX}, ${above ? 'calc(-100% - 10px)' : '10px'})`,
+      }}
+    >
+      <div
+        className="rounded-xl px-3 py-2 shadow-pop whitespace-nowrap"
+        style={{ background: 'rgb(var(--ink) / 0.94)', color: 'rgb(var(--surface))' }}
+      >
+        {title && (
+          <div className="text-xs font-semibold opacity-75 mb-0.5">{title}</div>
+        )}
+        {lines.map((l, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-sm font-bold leading-snug">
+            {l.color && (
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ background: `rgb(${l.color})` }}
+              />
+            )}
+            <span>{l.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

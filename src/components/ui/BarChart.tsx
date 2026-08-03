@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SvgTooltip from './SvgTooltip'
+import ChartTooltip from './SvgTooltip'
 
 interface Bar {
   label: string
@@ -42,6 +42,7 @@ export default function BarChart({
   const labelStep = Math.max(1, Math.ceil(data.length / 8))
 
   return (
+    <div className="relative">
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="select-none" role="img">
       {[max, max / 2, 0].map((v, i) => {
         const yy = y(v)
@@ -78,15 +79,15 @@ export default function BarChart({
         )
       })}
 
+    </svg>
       {active !== null && (
-        <SvgTooltip
-          x={padL + step * active + step / 2}
-          y={y(data[active].value)}
-          width={W}
+        <ChartTooltip
+          xPct={((padL + step * active + step / 2) / W) * 100}
+          yPct={(y(data[active].value) / H) * 100}
           title={data[active].label}
           lines={[{ text: fmt(data[active].value) }]}
         />
       )}
-    </svg>
+    </div>
   )
 }

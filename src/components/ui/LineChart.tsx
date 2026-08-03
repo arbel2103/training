@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import SvgTooltip from './SvgTooltip'
+import ChartTooltip from './SvgTooltip'
 
 interface Point {
   label: string
@@ -59,6 +59,7 @@ export default function LineChart({
   const colW = data.length > 1 ? plotW / (data.length - 1) : plotW
 
   return (
+    <div className="relative">
     <svg
       viewBox={`0 0 ${W} ${H}`}
       width="100%"
@@ -153,15 +154,15 @@ export default function LineChart({
         />
       ))}
 
+    </svg>
       {active !== null && (
-        <SvgTooltip
-          x={x(active)}
-          y={y(data[active].value)}
-          width={W}
+        <ChartTooltip
+          xPct={(x(active) / W) * 100}
+          yPct={(y(data[active].value) / H) * 100}
           title={data[active].label}
           lines={[{ text: fmt(data[active].value) }]}
         />
       )}
-    </svg>
+    </div>
   )
 }
