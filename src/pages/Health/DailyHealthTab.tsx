@@ -40,18 +40,11 @@ export default function DailyHealthTab() {
   const steps = days.filter((d) => d.steps != null).map((d) => ({ label: dayLabel(d.date), value: d.steps! }))
   const rhr = days.filter((d) => d.restingHr != null).map((d) => ({ label: dayLabel(d.date), value: d.restingHr! }))
 
-  const bbStress = [
-    { name: 'סוללת גוף (מקס׳)', color: 'var(--c-bike)', values: days.map((d) => d.bodyBatteryHigh ?? null) },
-    { name: 'סוללת גוף (מינ׳)', color: 'var(--c-swim)', values: days.map((d) => d.bodyBatteryLow ?? null) },
-    { name: 'לחץ ממוצע', color: 'var(--c-run)', values: days.map((d) => d.stressAvg ?? null) },
-  ]
-
   const hrv = [
-    { name: 'HRV אחרון', color: 'var(--c-bike)', values: days.map((d) => d.hrvLastNight ?? null) },
-    { name: 'בסיס שבועי', color: 'var(--muted)', values: days.map((d) => d.hrvWeeklyAvg ?? null) },
+    { name: 'HRV בלילה', color: 'var(--accent)', values: days.map((d) => d.hrvLastNight ?? null) },
+    { name: 'בסיס שבועי', color: 'var(--muted)', dashed: true, values: days.map((d) => d.hrvWeeklyAvg ?? null) },
   ]
 
-  const hasBbStress = bbStress.some((s) => s.values.some((v) => v != null))
   const hasHrv = hrv.some((s) => s.values.some((v) => v != null))
 
   return (
@@ -78,13 +71,6 @@ export default function DailyHealthTab() {
         <h4 className="font-semibold mb-3">❤️ דופק מנוחה</h4>
         <LineChart data={rhr} />
       </div>
-
-      {hasBbStress && (
-        <div className="card p-5">
-          <h4 className="font-semibold mb-3">🔋 סוללת גוף ולחץ</h4>
-          <MultiLineChart labels={labels} series={bbStress} />
-        </div>
-      )}
 
       {hasHrv && (
         <div className="card p-5">

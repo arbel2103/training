@@ -137,7 +137,15 @@ export default function SleepTab() {
               className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${severityClass[ins.severity]}`}
             >
               <span className="leading-none text-base">{ins.icon}</span>
-              <span className="leading-relaxed">{ins.text}</span>
+              <div className="leading-relaxed">
+                <span>{ins.text}</span>
+                {ins.tip && (
+                  <div className="mt-1 flex items-start gap-1.5 text-xs opacity-80">
+                    <span>💡</span>
+                    <span>{ins.tip}</span>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>

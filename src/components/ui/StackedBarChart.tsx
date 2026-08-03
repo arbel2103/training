@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import SvgTooltip from './SvgTooltip'
+
 export interface StackSegment {
   value: number
   color: string // 'r g b'
@@ -24,6 +27,8 @@ export default function StackedBarChart({
   legend?: StackLegend[]
   format?: (v: number) => string
 }) {
+  const [active, setActive] = useState<number | null>(null)
+
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
   }
@@ -76,7 +81,8 @@ export default function StackedBarChart({
           const cx = padL + step * i + step / 2
           let cursor = padT + plotH
           return (
-            <g key={i}>
+            <g key={i} style={{ cursor: 'pointer' }} onClick={() => setActive((c) => (c === i ? null : i))}>
+              <rect x={padL + step * i} y={padT} width={step} height={plotH} fill="transparent" />
               {bar.segments.map((seg, j) => {
                 const h = scale(seg.value)
                 cursor -= h
@@ -88,6 +94,7 @@ export default function StackedBarChart({
                     width={barW}
                     height={Math.max(0, h)}
                     fill={`rgb(${seg.color})`}
+                    opacity={active === null || active === i ? 1 : 0.55}
                   />
                 )
               })}
@@ -99,6 +106,19 @@ export default function StackedBarChart({
             </g>
           )
         })}
+
+        {active !== null && (
+          <SvgTooltip
+            x={padL + step * active + step / 2}
+            y={padT + plotH - scale(data[active].segments.reduce((s, x) => s + x.value, 0))}
+            width={W}
+            title={`${data[active].label} · ${fmt(data[active].segments.reduce((s, x) => s + x.value, 0))}`}
+            lines={data[active].segments.map((seg, j) => ({
+              text: `${legend?.[j]?.label ?? ''} ${fmt(seg.value)}`.trim(),
+              color: seg.color,
+            }))}
+          />
+        )}
       </svg>
     </div>
   )

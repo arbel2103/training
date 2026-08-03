@@ -1,7 +1,11 @@
+import { useState } from 'react'
+import SvgTooltip from './SvgTooltip'
+
 export interface Series {
   name: string
   color: string // a CSS var name like 'var(--c-run)' or raw 'r g b'
   values: (number | null)[]
+  dashed?: boolean // render as a dashed reference line (e.g. a baseline)
 }
 
 /**
@@ -17,6 +21,7 @@ export default function MultiLineChart({
   series: Series[]
   format?: (v: number) => string
 }) {
+  const [active, setActive] = useState<number | null>(null)
   const allValues = series.flatMap((s) => s.values.filter((v): v is number => v != null))
   if (allValues.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
@@ -47,6 +52,7 @@ export default function MultiLineChart({
   const x = (i: number) => (n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW)
   const y = (v: number) => padT + (1 - (v - min) / span) * plotH
   const labelStep = Math.max(1, Math.ceil(n / 6))
+  const colW = n > 1 ? plotW / (n - 1) : plotW
 
   function pathFor(values: (number | null)[]): string {
     let d = ''
@@ -96,6 +102,7 @@ export default function MultiLineChart({
             strokeWidth={2.5}
             strokeLinejoin="round"
             strokeLinecap="round"
+            strokeDasharray={s.dashed ? '6 5' : undefined}
           />
         ))}
         {labels.map((label, i) =>
@@ -104,6 +111,50 @@ export default function MultiLineChart({
               {label}
             </text>
           ) : null,
+        )}
+
+        {/* selected marker + dots */}
+        {active !== null && (
+          <>
+            <line x1={x(active)} x2={x(active)} y1={padT} y2={padT + plotH} stroke="rgb(var(--muted))" strokeWidth={1} strokeDasharray="3 3" />
+            {series.map((s) => {
+              const v = s.values[active]
+              return v == null ? null : (
+                <circle key={s.name} cx={x(active)} cy={y(v)} r={4.5} fill={`rgb(${s.color})`} />
+              )
+            })}
+          </>
+        )}
+
+        {/* transparent per-column tap targets */}
+        {labels.map((_, i) => (
+          <rect
+            key={`hit-${i}`}
+            x={x(i) - colW / 2}
+            y={padT}
+            width={colW}
+            height={plotH}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setActive((c) => (c === i ? null : i))}
+          />
+        ))}
+
+        {active !== null && (
+          <SvgTooltip
+            x={x(active)}
+            y={Math.min(
+              ...series
+                .map((s) => s.values[active])
+                .filter((v): v is number => v != null)
+                .map((v) => y(v)),
+            )}
+            width={W}
+            title={labels[active]}
+            lines={series
+              .filter((s) => s.values[active] != null)
+              .map((s) => ({ text: `${s.name}: ${fmt(s.values[active] as number)}`, color: s.color }))}
+          />
         )}
       </svg>
     </div>

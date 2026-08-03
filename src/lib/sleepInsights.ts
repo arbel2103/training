@@ -9,6 +9,7 @@ export interface Insight {
   icon: string
   severity: Severity
   text: string
+  tip?: string // actionable suggestion, shown for problems
 }
 
 function sortedByDate(days: DailyHealth[]): DailyHealth[] {
@@ -74,6 +75,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
       icon: '⏰',
       severity: 'warn',
       text: `ממוצע השינה בשבוע האחרון ${hoursLabel(avgDur)} שעות — פחות מ-7 שעות מומלצות.`,
+      tip: 'לך לישון 30–45 דקות מוקדם יותר, וכוון ל-7–9 שעות. הימנע ממסכים ומקפאין בשעות שלפני השינה.',
     })
   } else if (avgDur >= 450) {
     out.push({
@@ -92,6 +94,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
       icon: '🕰️',
       severity: 'warn',
       text: 'שעת השינה משתנה מאוד מלילה ללילה — שעת שינה קבועה תשפר את איכות השינה.',
+      tip: 'קבע שעת שינה ושעת קימה קבועות, גם בסופי שבוע. חלון של ±30 דקות מספיק כדי לייצב את השעון הביולוגי.',
     })
   }
 
@@ -102,10 +105,20 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     const deepPct = (deep / avgDur) * 100
     const remPct = (rem / avgDur) * 100
     if (deepPct > 0 && deepPct < 13) {
-      out.push({ icon: '🧩', severity: 'warn', text: `שינה עמוקה נמוכה (${Math.round(deepPct)}%) — חשובה להתאוששות הגוף.` })
+      out.push({
+        icon: '🧩',
+        severity: 'warn',
+        text: `שינה עמוקה נמוכה (${Math.round(deepPct)}%) — חשובה להתאוששות הגוף.`,
+        tip: 'חדר קריר וחשוך, הימנעות מאלכוהול ומארוחות כבדות בערב, ופעילות גופנית סדירה מגבירים שינה עמוקה.',
+      })
     }
     if (remPct > 0 && remPct < 18) {
-      out.push({ icon: '💭', severity: 'warn', text: `שנת REM נמוכה (${Math.round(remPct)}%) — חשובה לריכוז ולזיכרון.` })
+      out.push({
+        icon: '💭',
+        severity: 'warn',
+        text: `שנת REM נמוכה (${Math.round(remPct)}%) — חשובה לריכוז ולזיכרון.`,
+        tip: 'REM מגיע בעיקר לקראת הבוקר — הארך את זמן השינה הכולל ושמור על שעת קימה קבועה. הפחת אלכוהול בערב.',
+      })
     }
     if (deepPct >= 13 && remPct >= 18) {
       out.push({ icon: '✅', severity: 'good', text: 'הרכב שלבי השינה (עמוקה + REM) בטווח בריא.' })
@@ -130,6 +143,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
       icon: '❤️',
       severity: 'warn',
       text: `דופק המנוחה גבוה מהרגיל (${latest.restingHr} מול ${Math.round(rhrBaseline)}) — ייתכן עומס, חוסר שינה או תחילת מחלה.`,
+      tip: 'שקול יום קל או מנוחה, הקפד על שתייה מרובה ושינה מספקת. אם זה נמשך כמה ימים — ייתכן שגופך נלחם במחלה.',
     })
   }
 
@@ -138,7 +152,12 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     latest.hrvStatus === 'LOW' ||
     (latest.hrvLastNight != null && latest.hrvWeeklyAvg != null && latest.hrvLastNight < latest.hrvWeeklyAvg * 0.85)
   if (hrvLow) {
-    out.push({ icon: '🫀', severity: 'warn', text: 'ה-HRV נמוך מהבסיס שלך — סימן לעייפות. שקול יום קל או מנוחה.' })
+    out.push({
+      icon: '🫀',
+      severity: 'warn',
+      text: 'ה-HRV נמוך מהבסיס שלך — סימן לעייפות או עומס.',
+      tip: 'העדף אימון קל או מנוחה היום, הקפד על שינה, שתייה וניהול לחץ. HRV מגיב חזק לאלכוהול ולאימון קשה בערב.',
+    })
   }
 
   // training-context note: hard day + poor recovery

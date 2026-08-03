@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import SvgTooltip from './SvgTooltip'
+
 interface Point {
   label: string
   value: number
@@ -15,6 +18,8 @@ export default function LineChart({
   data: Point[]
   format?: (v: number) => string
 }) {
+  const [active, setActive] = useState<number | null>(null)
+
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
   }
@@ -51,6 +56,7 @@ export default function LineChart({
   const areaPts = `${padL},${padT + plotH} ${pts} ${x(data.length - 1)},${padT + plotH}`
 
   const labelStep = Math.max(1, Math.ceil(data.length / 6))
+  const colW = data.length > 1 ? plotW / (data.length - 1) : plotW
 
   return (
     <svg
@@ -99,7 +105,12 @@ export default function LineChart({
       {/* points + x labels */}
       {data.map((d, i) => (
         <g key={i}>
-          <circle cx={x(i)} cy={y(d.value)} r={3.5} fill="rgb(var(--accent))" />
+          <circle
+            cx={x(i)}
+            cy={y(d.value)}
+            r={active === i ? 5.5 : 3.5}
+            fill="rgb(var(--accent))"
+          />
           {(i % labelStep === 0 || i === data.length - 1) && (
             <text
               x={x(i)}
@@ -114,17 +125,43 @@ export default function LineChart({
         </g>
       ))}
 
-      {/* last value callout */}
-      <text
-        x={x(data.length - 1)}
-        y={y(data[data.length - 1].value) - 10}
-        textAnchor="middle"
-        fontSize="13"
-        fontWeight="700"
-        fill="rgb(var(--ink))"
-      >
-        {fmt(data[data.length - 1].value)}
-      </text>
+      {/* last value callout (hidden while a point is selected) */}
+      {active === null && (
+        <text
+          x={x(data.length - 1)}
+          y={y(data[data.length - 1].value) - 10}
+          textAnchor="middle"
+          fontSize="13"
+          fontWeight="700"
+          fill="rgb(var(--ink))"
+        >
+          {fmt(data[data.length - 1].value)}
+        </text>
+      )}
+
+      {/* transparent per-column tap targets */}
+      {data.map((_, i) => (
+        <rect
+          key={`hit-${i}`}
+          x={x(i) - colW / 2}
+          y={padT}
+          width={colW}
+          height={plotH}
+          fill="transparent"
+          style={{ cursor: 'pointer' }}
+          onClick={() => setActive((cur) => (cur === i ? null : i))}
+        />
+      ))}
+
+      {active !== null && (
+        <SvgTooltip
+          x={x(active)}
+          y={y(data[active].value)}
+          width={W}
+          title={data[active].label}
+          lines={[{ text: fmt(data[active].value) }]}
+        />
+      )}
     </svg>
   )
 }

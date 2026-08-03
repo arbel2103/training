@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import SvgTooltip from './SvgTooltip'
+
 interface Bar {
   label: string
   value: number
@@ -16,6 +19,8 @@ export default function BarChart({
   format?: (v: number) => string
   color?: string
 }) {
+  const [active, setActive] = useState<number | null>(null)
+
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
   }
@@ -53,14 +58,16 @@ export default function BarChart({
         const cx = padL + step * i + step / 2
         const yy = y(d.value)
         return (
-          <g key={i}>
+          <g key={i} style={{ cursor: 'pointer' }} onClick={() => setActive((c) => (c === i ? null : i))}>
+            {/* full-column transparent hit target */}
+            <rect x={padL + step * i} y={padT} width={step} height={plotH} fill="transparent" />
             <rect
               x={cx - barW / 2}
               y={yy}
               width={barW}
               height={padT + plotH - yy}
               rx={4}
-              fill={`rgb(${color} / 0.85)`}
+              fill={`rgb(${color} / ${active === i ? 1 : 0.85})`}
             />
             {(i % labelStep === 0 || i === data.length - 1) && (
               <text x={cx} y={H - 10} textAnchor="middle" fontSize="12" fill="rgb(var(--muted))">
@@ -70,6 +77,16 @@ export default function BarChart({
           </g>
         )
       })}
+
+      {active !== null && (
+        <SvgTooltip
+          x={padL + step * active + step / 2}
+          y={y(data[active].value)}
+          width={W}
+          title={data[active].label}
+          lines={[{ text: fmt(data[active].value) }]}
+        />
+      )}
     </svg>
   )
 }
