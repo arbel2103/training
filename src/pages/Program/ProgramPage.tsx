@@ -4,10 +4,10 @@ import TabBar from '../../components/ui/TabBar'
 import StrengthProgram from './StrengthProgram'
 import AerobicProgram from './AerobicProgram'
 
-type Tab = 'strength' | 'aerobic'
+type Tab = 'aerobic' | 'strength'
 
 export default function ProgramPage() {
-  const [tab, setTab] = useState<Tab>('strength')
+  const [tab, setTab] = useState<Tab>('aerobic')
   return (
     <div>
       <PageHeader
@@ -19,12 +19,12 @@ export default function ProgramPage() {
           value={tab}
           onChange={setTab}
           tabs={[
-            { value: 'strength', label: 'כוח' },
             { value: 'aerobic', label: 'אירובי' },
+            { value: 'strength', label: 'כוח' },
           ]}
         />
       </div>
-      {tab === 'strength' ? <StrengthProgram /> : <AerobicProgram />}
+      {tab === 'aerobic' ? <AerobicProgram /> : <StrengthProgram />}
     </div>
   )
 }

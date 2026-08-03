@@ -42,17 +42,15 @@ function unitFor(sport: PlanSport): string {
 function WeekCard({
   week,
   isCurrent,
-  isPast,
 }: {
   week: PlanWeek
   isCurrent: boolean
-  isPast: boolean
 }) {
   const log = useStore((s) => s.log)
   const completion = weekCompletion(week, log)
   const start = fromISO(week.weekStart)
-  // past weeks fold to a one-line summary; click the header to expand
-  const [collapsed, setCollapsed] = useState(isPast)
+  // only the current week starts open; click a header to expand another
+  const [collapsed, setCollapsed] = useState(!isCurrent)
 
   const doneCount = week.sessions.filter((s) => completion[s.id]?.done).length
 
@@ -214,7 +212,6 @@ export default function AerobicProgram() {
             key={w.id}
             week={w}
             isCurrent={w.weekStart === currentWeekStart}
-            isPast={w.weekStart < currentWeekStart}
           />
         ))}
       </div>

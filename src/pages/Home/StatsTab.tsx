@@ -1,8 +1,16 @@
 import { useMemo, useState } from 'react'
-import { useStore, type Sport } from '../../store/useStore'
+import { useStore, type Sport, type WorkoutEntry } from '../../store/useStore'
 import { formatDuration, formatPace, sportUnit } from '../../lib/calc'
-import { sportEntries, summarize, trend } from '../../lib/garmin/activityStats'
-import { sportLabel } from '../../lib/labels'
+import {
+  sportEntries,
+  strengthEntries,
+  summarize,
+  summarizeStrength,
+  trend,
+} from '../../lib/garmin/activityStats'
+import { sportLabel, strengthIntensityLabel } from '../../lib/labels'
+import BarChart from '../../components/ui/BarChart'
+import { formatDayMonth, startOfWeek } from '../../lib/dates'
 import Segmented from '../../components/ui/Segmented'
 import LineChart from '../../components/ui/LineChart'
 import Modal from '../../components/ui/Modal'
@@ -10,6 +18,7 @@ import ListView from '../Tracking/ListView'
 import { addDays, toISODate } from '../../lib/dates'
 
 type Period = '30' | 'all' | 'custom'
+type StatKind = Sport | 'strength'
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -31,23 +40,29 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 export default function StatsTab() {
   const log = useStore((s) => s.log)
-  const [sport, setSport] = useState<Sport>('run')
+  const [kind, setKind] = useState<StatKind>('run')
   const [period, setPeriod] = useState<Period>('30')
   const [from, setFrom] = useState(() => toISODate(addDays(new Date(), -30)))
   const [to, setTo] = useState(() => toISODate(new Date()))
   const [listOpen, setListOpen] = useState(false)
 
-  const entries = useMemo(() => {
+  const inPeriod = useMemo(() => {
     const cutoff30 = toISODate(addDays(new Date(), -30))
-    const inPeriod = (date: string): boolean => {
+    return (date: string): boolean => {
       if (period === 'all') return true
-      if (period === 'custom') {
-        return (!from || date >= from) && (!to || date <= to)
-      }
+      if (period === 'custom') return (!from || date >= from) && (!to || date <= to)
       return date >= cutoff30
     }
-    return sportEntries(log, sport).filter((e) => inPeriod(e.date))
-  }, [log, sport, period, from, to])
+  }, [period, from, to])
+
+  const sport = kind === 'strength' ? 'run' : kind
+  const entries = useMemo(
+    () =>
+      kind === 'strength'
+        ? ([] as WorkoutEntry[])
+        : sportEntries(log, kind).filter((e) => inPeriod(e.date)),
+    [log, kind, inPeriod],
+  )
   const summary = useMemo(() => summarize(entries, sport), [entries, sport])
 
   const paceTrend = trend(entries, sport === 'bike' ? 'speedKmh' : 'paceSec')
@@ -58,12 +73,13 @@ export default function StatsTab() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Segmented
-          value={sport}
-          onChange={setSport}
+          value={kind}
+          onChange={setKind}
           options={[
             { value: 'run', label: `🏃 ${sportLabel.run}` },
             { value: 'bike', label: `🚴 ${sportLabel.bike}` },
             { value: 'swim', label: `🏊 ${sportLabel.swim}` },
+            { value: 'strength', label: '💪 כוח' },
           ]}
         />
         <div className="flex items-center gap-2 flex-wrap">
@@ -108,7 +124,9 @@ export default function StatsTab() {
         </div>
       )}
 
-      {entries.length === 0 ? (
+      {kind === 'strength' ? (
+        <StrengthStats log={log} inPeriod={inPeriod} />
+      ) : entries.length === 0 ? (
         <div className="card p-8 text-center text-muted">
           אין אימוני {sportLabel[sport]} בתקופה הזו. סנכרן מגרמין או הזן אימון.
         </div>
@@ -170,6 +188,111 @@ export default function StatsTab() {
         <ListView />
       </Modal>
     </div>
+  )
+}
+
+function StrengthStats({
+  log,
+  inPeriod,
+}: {
+  log: WorkoutEntry[]
+  inPeriod: (date: string) => boolean
+}) {
+  const entries = useMemo(
+    () => strengthEntries(log).filter((e) => inPeriod(e.date)),
+    [log, inPeriod],
+  )
+
+  // the calendar weeks the period actually spans, for a per-week bar chart
+  const weekStarts = useMemo(() => {
+    if (entries.length === 0) return []
+    const first = startOfWeek(new Date(entries[0].date + 'T00:00:00'))
+    const last = startOfWeek(new Date(entries[entries.length - 1].date + 'T00:00:00'))
+    const out: string[] = []
+    for (const d = new Date(first); d <= last; d.setDate(d.getDate() + 7)) {
+      out.push(toISODate(new Date(d)))
+    }
+    return out.slice(-16)
+  }, [entries])
+
+  const s = useMemo(
+    () => summarizeStrength(entries, weekStarts),
+    [entries, weekStarts],
+  )
+
+  if (entries.length === 0) {
+    return (
+      <div className="card p-8 text-center text-muted">
+        אין אימוני כוח בתקופה הזו.
+      </div>
+    )
+  }
+
+  const intensityTotal =
+    s.byIntensity.light + s.byIntensity.medium + s.byIntensity.heavy
+  const maxName = s.byName[0]?.count ?? 1
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Stat label="אימונים" value={String(s.count)} />
+        <Stat label="ממוצע לשבוע" value={String(s.perWeek)} />
+        <Stat label="זמן כולל" value={formatDuration(s.totalDurationMin)} />
+        {s.avgDurationMin != null && (
+          <Stat label="משך ממוצע" value={formatDuration(s.avgDurationMin)} />
+        )}
+      </div>
+
+      {weekStarts.length > 1 && (
+        <ChartCard title="אימוני כוח בשבוע">
+          <BarChart
+            data={s.weeks.map((w) => ({
+              label: formatDayMonth(new Date(w.weekStart + 'T00:00:00')),
+              value: w.count,
+            }))}
+            color="var(--c-strength)"
+          />
+        </ChartCard>
+      )}
+
+      <div className="card p-5">
+        <h4 className="font-semibold mb-3">לפי סוג אימון</h4>
+        <div className="grid gap-2">
+          {s.byName.map((n) => (
+            <div key={n.name} className="flex items-center gap-2 text-sm">
+              <span className="w-28 shrink-0 truncate">{n.name}</span>
+              <div className="flex-1 h-3 rounded-full bg-ink/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-strength"
+                  style={{ width: `${(n.count / maxName) * 100}%` }}
+                />
+              </div>
+              <span className="w-8 text-left tabular-nums font-semibold">
+                {n.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {intensityTotal > 0 && (
+        <div className="card p-5">
+          <h4 className="font-semibold mb-3">לפי עצימות</h4>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {(['light', 'medium', 'heavy'] as const).map((i) => (
+              <div key={i} className="rounded-xl bg-ink/5 px-2 py-2">
+                <div className="font-display text-2xl font-black leading-none">
+                  {s.byIntensity[i]}
+                </div>
+                <div className="text-xs text-muted mt-1">
+                  {strengthIntensityLabel[i]}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

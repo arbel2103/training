@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ChartTooltip from './SvgTooltip'
+import { useTapAway } from './useTapAway'
 
 interface Point {
   label: string
@@ -19,6 +20,7 @@ export default function LineChart({
   format?: (v: number) => string
 }) {
   const [active, setActive] = useState<number | null>(null)
+  useTapAway(active !== null, () => setActive(null))
 
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
@@ -150,7 +152,10 @@ export default function LineChart({
           height={plotH}
           fill="transparent"
           style={{ cursor: 'pointer' }}
-          onClick={() => setActive((cur) => (cur === i ? null : i))}
+          onClick={(e) => {
+            e.stopPropagation()
+            setActive((cur) => (cur === i ? null : i))
+          }}
         />
       ))}
 

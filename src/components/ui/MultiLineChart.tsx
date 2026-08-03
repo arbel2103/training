@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ChartTooltip from './SvgTooltip'
+import { useTapAway } from './useTapAway'
 
 export interface Series {
   name: string
@@ -22,6 +23,7 @@ export default function MultiLineChart({
   format?: (v: number) => string
 }) {
   const [active, setActive] = useState<number | null>(null)
+  useTapAway(active !== null, () => setActive(null))
   const allValues = series.flatMap((s) => s.values.filter((v): v is number => v != null))
   if (allValues.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
@@ -137,7 +139,10 @@ export default function MultiLineChart({
             height={plotH}
             fill="transparent"
             style={{ cursor: 'pointer' }}
-            onClick={() => setActive((c) => (c === i ? null : i))}
+            onClick={(e) => {
+            e.stopPropagation()
+            setActive((c) => (c === i ? null : i))
+          }}
           />
         ))}
 

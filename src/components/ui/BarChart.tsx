@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ChartTooltip from './SvgTooltip'
+import { useTapAway } from './useTapAway'
 
 interface Bar {
   label: string
@@ -20,6 +21,7 @@ export default function BarChart({
   color?: string
 }) {
   const [active, setActive] = useState<number | null>(null)
+  useTapAway(active !== null, () => setActive(null))
 
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
@@ -59,7 +61,10 @@ export default function BarChart({
         const cx = padL + step * i + step / 2
         const yy = y(d.value)
         return (
-          <g key={i} style={{ cursor: 'pointer' }} onClick={() => setActive((c) => (c === i ? null : i))}>
+          <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => {
+            e.stopPropagation()
+            setActive((c) => (c === i ? null : i))
+          }}>
             {/* full-column transparent hit target */}
             <rect x={padL + step * i} y={padT} width={step} height={plotH} fill="transparent" />
             <rect

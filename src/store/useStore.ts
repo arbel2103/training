@@ -228,6 +228,7 @@ interface State {
   addExercise: (categoryId: ID) => void
   updateExercise: (categoryId: ID, exerciseId: ID, patch: Partial<Exercise>) => void
   removeExercise: (categoryId: ID, exerciseId: ID) => void
+  moveExercise: (categoryId: ID, exerciseId: ID, dir: -1 | 1) => void
 
   // coach-built strength workout (create/replace a category by name, with exercises)
   upsertStrengthWorkout: (
@@ -400,6 +401,18 @@ export const useStore = create<State>()(
               ? { ...c, exercises: c.exercises.filter((ex) => ex.id !== exerciseId) }
               : c,
           ),
+        })),
+      moveExercise: (categoryId, exerciseId, dir) =>
+        set((s) => ({
+          strengthCategories: s.strengthCategories.map((c) => {
+            if (c.id !== categoryId) return c
+            const i = c.exercises.findIndex((ex) => ex.id === exerciseId)
+            const j = i + dir
+            if (i < 0 || j < 0 || j >= c.exercises.length) return c
+            const exercises = [...c.exercises]
+            ;[exercises[i], exercises[j]] = [exercises[j], exercises[i]]
+            return { ...c, exercises }
+          }),
         })),
 
       addTarget: (sport, distance) =>

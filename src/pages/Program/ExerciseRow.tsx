@@ -4,12 +4,17 @@ import { useStore } from '../../store/useStore'
 export default function ExerciseRow({
   categoryId,
   ex,
+  canMoveUp = false,
+  canMoveDown = false,
 }: {
   categoryId: ID
   ex: Exercise
+  canMoveUp?: boolean
+  canMoveDown?: boolean
 }) {
   const update = useStore((s) => s.updateExercise)
   const remove = useStore((s) => s.removeExercise)
+  const move = useStore((s) => s.moveExercise)
 
   const setRep = (i: number, val: number) => {
     const reps = [...ex.reps]
@@ -25,7 +30,28 @@ export default function ExerciseRow({
 
   return (
     <div className="card p-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* reorder without having to retype the whole workout */}
+        <div className="flex flex-col shrink-0">
+          <button
+            onClick={() => move(categoryId, ex.id, -1)}
+            disabled={!canMoveUp}
+            className="text-muted hover:text-accent disabled:opacity-25 disabled:hover:text-muted leading-none px-1"
+            aria-label="הזז למעלה"
+            title="הזז למעלה"
+          >
+            ▲
+          </button>
+          <button
+            onClick={() => move(categoryId, ex.id, 1)}
+            disabled={!canMoveDown}
+            className="text-muted hover:text-accent disabled:opacity-25 disabled:hover:text-muted leading-none px-1"
+            aria-label="הזז למטה"
+            title="הזז למטה"
+          >
+            ▼
+          </button>
+        </div>
         <input
           className="input flex-1 font-semibold"
           placeholder="שם התרגיל"
@@ -34,7 +60,7 @@ export default function ExerciseRow({
         />
         <button
           onClick={() => remove(categoryId, ex.id)}
-          className="text-muted hover:text-accent text-xl px-1"
+          className="text-muted hover:text-accent text-lg px-1 shrink-0"
           aria-label="מחק תרגיל"
           title="מחק תרגיל"
         >

@@ -76,3 +76,73 @@ function shortDate(date: string): string {
   const d = new Date(date + 'T00:00:00')
   return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
 }
+
+/* ---------------- strength ---------------- */
+
+export interface StrengthSummary {
+  count: number
+  totalDurationMin: number
+  avgDurationMin?: number
+  perWeek: number
+  byName: { name: string; count: number }[]
+  byIntensity: { light: number; medium: number; heavy: number }
+  weeks: { weekStart: string; count: number }[]
+}
+
+/** Strength entries in the log, oldest first. */
+export function strengthEntries(log: WorkoutEntry[]): WorkoutEntry[] {
+  return log
+    .filter((e) => e.category === 'strength')
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * How consistently strength is being trained: volume of sessions, which
+ * workouts come up most, and how the sessions split by intensity.
+ */
+export function summarizeStrength(
+  entries: WorkoutEntry[],
+  weekStarts: string[],
+): StrengthSummary {
+  const durations = entries
+    .map((e) => e.durationMin)
+    .filter((v): v is number => typeof v === 'number' && v > 0)
+  const totalDurationMin = Math.round(durations.reduce((s, n) => s + n, 0))
+
+  const nameCounts = new Map<string, number>()
+  for (const e of entries) {
+    const name = e.strengthName?.trim() || 'ללא שם'
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1)
+  }
+
+  const byIntensity = { light: 0, medium: 0, heavy: 0 }
+  for (const e of entries) {
+    if (e.intensity && e.intensity in byIntensity) byIntensity[e.intensity]++
+  }
+
+  const weeks = weekStarts.map((weekStart) => {
+    const end = new Date(weekStart + 'T00:00:00')
+    end.setDate(end.getDate() + 6)
+    const endISO = end.toISOString().slice(0, 10)
+    return {
+      weekStart,
+      count: entries.filter((e) => e.date >= weekStart && e.date <= endISO).length,
+    }
+  })
+
+  return {
+    count: entries.length,
+    totalDurationMin,
+    avgDurationMin: durations.length
+      ? Math.round(totalDurationMin / durations.length)
+      : undefined,
+    perWeek: weeks.length
+      ? Math.round((entries.length / weeks.length) * 10) / 10
+      : 0,
+    byName: [...nameCounts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count),
+    byIntensity,
+    weeks,
+  }
+}
