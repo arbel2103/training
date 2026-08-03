@@ -19,6 +19,7 @@ import TabBar from '../../components/ui/TabBar'
 import EntryTab from '../Tracking/EntryTab'
 import HistoryTab from '../Tracking/HistoryTab'
 import StatsTab from './StatsTab'
+import TodayFocus from './TodayFocus'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -116,6 +117,8 @@ export default function HomePage() {
         <StatsTab />
       ) : (
         <>
+      <TodayFocus />
+
       {showGarminBanner && (
         <div
           className="card p-3.5 mb-5 text-sm bg-accent-soft/40"

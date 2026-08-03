@@ -29,6 +29,8 @@ export default function CoachPanel({
   const messages = useStore((s) => s.coachMessages)
   const addChatMessage = useStore((s) => s.addChatMessage)
   const clearCoachChat = useStore((s) => s.clearCoachChat)
+  const memory = useStore((s) => s.coachMemory)
+  const removeMemory = useStore((s) => s.removeMemory)
 
   const [keySet, setKeySet] = useState(hasApiKey())
   const [keyInput, setKeyInput] = useState('')
@@ -124,28 +126,58 @@ export default function CoachPanel({
         </div>
 
         {showSettings && keySet && (
-          <div className="px-4 py-3 border-b border-line bg-bg text-sm flex flex-wrap gap-2 items-center">
-            <span className="text-muted">מפתח API מחובר.</span>
-            <button
-              onClick={() => {
-                clearCoachChat()
-                kickedOff.current = false
-                setShowSettings(false)
-              }}
-              className="btn-ghost text-sm"
-            >
-              נקה שיחה
-            </button>
-            <button
-              onClick={() => {
-                clearApiKey()
-                setKeySet(false)
-                setShowSettings(false)
-              }}
-              className="btn-ghost text-sm"
-            >
-              החלף/מחק מפתח
-            </button>
+          <div className="px-4 py-3 border-b border-line bg-bg text-sm grid gap-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-muted">מפתח API מחובר.</span>
+              <button
+                onClick={() => {
+                  clearCoachChat()
+                  kickedOff.current = false
+                  setShowSettings(false)
+                }}
+                className="btn-ghost text-sm"
+              >
+                נקה שיחה
+              </button>
+              <button
+                onClick={() => {
+                  clearApiKey()
+                  setKeySet(false)
+                  setShowSettings(false)
+                }}
+                className="btn-ghost text-sm"
+              >
+                החלף/מחק מפתח
+              </button>
+            </div>
+            <div>
+              <div className="font-semibold mb-1.5">🧠 מה שאני זוכר עליך</div>
+              {memory.length === 0 ? (
+                <p className="text-muted text-xs leading-relaxed">
+                  עדיין לא שמרתי עובדות. ככל שנדבר, אזכור פציעות, העדפות ושיאים —
+                  והם יופיעו כאן.
+                </p>
+              ) : (
+                <ul className="grid gap-1.5">
+                  {memory.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex items-start gap-2 rounded-lg bg-surface border border-line px-2.5 py-1.5"
+                    >
+                      <span className="flex-1 leading-relaxed">{m.text}</span>
+                      <button
+                        onClick={() => removeMemory(m.id)}
+                        className="text-muted hover:text-run shrink-0"
+                        aria-label="הסר"
+                        title="הסר מהזיכרון"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
 

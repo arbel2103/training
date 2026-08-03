@@ -22,11 +22,13 @@ export const SYSTEM_PERSONA = `אתה מאמן אישי מקצועי ומנוס�
 - בתחילת שיחה חדשה, שאל קודם כל **על מה נעבוד**: אימוני כוח, טריאתלון/אירובי, או שניהם — והתאם את ההמשך לבחירה.
 - אם עדיין אין פרופיל למשתמש (ראה "מצב נוכחי" למטה), פתח בהיכרות: הצג את עצמך בקצרה, ואז שאל בהדרגה — שאלה או שתיים בכל הודעה, לא הכל בבת אחת. לטריאתלון: תחרויות קרובות (סוג ותאריך), מטרות, שעות פנויות בשבוע, ימים פנויים, ציוד (בריכה/אופני כביש/הום-טריינר וכו'), רקע ופציעות. לכוח: מטרות (מסה/כוח/חיטוב), ניסיון, כמה אימונים בשבוע, איזה ציוד/חדר כושר יש, ופציעות.
 - שמור כל מידע שאתה לומד על המשתמש עם הכלי save_athlete_profile.
+- **זיכרון ארוך-טווח:** שמור עובדות חשובות ומתמשכות (פציעות, העדפות אימון, שיאים אישיים, אילוצים, ציוד) עם הכלי remember. עיין ב"זיכרון המאמן" שבמצב הנוכחי והתייחס אליו בעצות. אם עובדה כבר לא נכונה — הסר אותה עם forget.
 - ייעץ והתייעץ: הצע גישה לתוכנית, שאל את המשתמש על העדפות (למשל אם חשוב לשמר מסת שריר — זה דורש יותר עבודת כוח ופחות נפח אירובי; אנשים שונים רוצים דגשים שונים), והגע להסכמה איתו לפני שאתה קובע תוכנית.
 
 תוכנית טריאתלון/אירובי:
 - כשאתה בונה או מעדכן תוכנית, שמור אותה עם set_training_plan (תוכנית מלאה) או upsert_plan_week (עדכון שבוע בודד). התוכנית מחולקת לשבועות; לכל שבוע weekStart (תאריך יום ראשון), ולכל אימון: יום בשבוע (0=ראשון … 6=שבת), ספורט (run/bike/swim/strength/other), תווית (למשל "ארוכה", "אינטרוולים"), ומרחק/משך. התוכנית מוצגת בעמוד "תוכנית אימונים" → אירובי, והאימונים שהמשתמש מבצע מסומנים אוטומטית ✓ מולה.
 - התוכנית דינמית: אם המשתמש אומר שהיה עייף/חולה/עסוק — התאם ועדכן את השבוע הרלוונטי עם upsert_plan_week.
+- **המלצות להמשך התוכנית (טעונות אישור):** כשמבקשים ממך "המלצות להמשך" — או כשאתה מזהה מהנתונים (היענות נמוכה, RPE גבוה, שינה/HRV ירודים) שכדאי להתאים — **אל תשנה את התוכנית ישירות**. הצע שינוי לכל שבוע רלוונטי עם propose_plan_week וכלול rationale קצר. המשתמש יאשר או יערוך בעצמו. השתמש ב-upsert_plan_week להחלה ישירה רק כשהמשתמש ביקש במפורש לבצע את השינוי.
 
 תוכנית כוח:
 - כשסיכמתם על אימון כוח, שמור אותו עם set_strength_workout: שם האימון (למשל "חזה + יד אחורית", "רגליים", "גב") ורשימת תרגילים — לכל תרגיל: שם, מספר סטים, חזרות לכל סט (מערך באורך מספר הסטים, למשל [12,10,8]), ומשקל (טקסט, למשל "40 ק\\"ג" או "משקל גוף"). האימון מופיע בעמוד "תוכנית אימונים" → כוח כטאב עם טבלת התרגילים, והמשתמש יכול לערוך שם הכל.
@@ -192,6 +194,41 @@ export const COACH_TOOLS = [
       required: ['id'],
     },
   },
+  {
+    name: 'remember',
+    description:
+      'שומר עובדה חשובה ומתמשכת על הספורטאי לזיכרון ארוך-טווח (פציעה, העדפה, שיא אישי, אילוץ, ציוד). קצר וקונקרטי.',
+    parameters: {
+      type: 'object',
+      properties: { text: { type: 'string', description: 'העובדה לזכור' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'forget',
+    description: 'מסיר עובדה מזיכרון המאמן לפי id (ראה "זיכרון המאמן" במצב הנוכחי).',
+    parameters: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'propose_plan_week',
+    description:
+      'מציע שינוי לשבוע בתוכנית לאישור המשתמש (לא מחיל אותו!). כלול rationale קצר שמסביר למה. השתמש בזה כשמבקשים המלצות להמשך התוכנית.',
+    parameters: {
+      type: 'object',
+      properties: {
+        weekStart: { type: 'string', description: 'yyyy-mm-dd של יום ראשון' },
+        label: { type: 'string' },
+        focus: { type: 'string' },
+        rationale: { type: 'string', description: 'הסבר קצר למה מומלץ השינוי' },
+        sessions: { type: 'array', items: sessionSchema },
+      },
+      required: ['weekStart', 'rationale', 'sessions'],
+    },
+  },
 ]
 
 function withIds(week: any): PlanWeek {
@@ -253,6 +290,23 @@ export function executeTool(name: string, input: any): string {
     case 'remove_planned_workout':
       s.removePlanned(input.id)
       return 'האימון המתוכנן הוסר.'
+    case 'remember':
+      s.addMemory(input.text ?? '')
+      return 'נשמר בזיכרון המאמן.'
+    case 'forget':
+      s.removeMemory(input.id)
+      return 'הוסר מזיכרון המאמן.'
+    case 'propose_plan_week': {
+      const w = withIds(input)
+      s.addPlanProposal({
+        weekStart: input.weekStart,
+        label: input.label,
+        focus: input.focus,
+        rationale: input.rationale ?? '',
+        sessions: w.sessions,
+      })
+      return `הצעה לשבוע ${input.weekStart} נוספה — ממתינה לאישור המשתמש בעמוד התוכנית.`
+    }
     default:
       return 'כלי לא מוכר.'
   }
@@ -291,6 +345,11 @@ export function buildContext(): string {
     'פרופיל: ' +
       (s.coachProfile ? JSON.stringify(s.coachProfile) : 'לא הוגדר עדיין.'),
   )
+
+  if (s.coachMemory.length) {
+    parts.push('זיכרון המאמן (עובדות מתמשכות לזכור; id | טקסט):')
+    for (const m of s.coachMemory) parts.push(`  - ${m.id} | ${m.text}`)
+  }
 
   if (s.trainingPlan && s.trainingPlan.weeks.length) {
     const p = s.trainingPlan

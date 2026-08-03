@@ -161,6 +161,30 @@ export interface ChatMessage {
   text: string
 }
 
+/** A durable fact the coach remembers about the athlete. */
+export interface CoachMemory {
+  id: ID
+  text: string
+  createdAt: string // ISO
+}
+
+/** A coach-generated daily briefing, kept per calendar day. */
+export interface MorningBrief {
+  date: string // yyyy-mm-dd
+  text: string
+  createdAt: string // ISO
+}
+
+/** A proposed change to a plan week, awaiting the user's approval. */
+export interface PlanProposal {
+  id: ID
+  weekStart: string // yyyy-mm-dd (Sunday)
+  label?: string
+  focus?: string
+  rationale: string // why the coach suggests this
+  sessions: PlanSession[]
+}
+
 /* ---------------- Garmin integration ---------------- */
 export interface GarminSettings {
   connected: boolean
@@ -192,6 +216,9 @@ interface State {
   coachProfile: CoachProfile | null
   trainingPlan: TrainingPlan | null
   coachMessages: ChatMessage[]
+  coachMemory: CoachMemory[]
+  morningBrief: MorningBrief | null
+  planProposals: PlanProposal[]
   calendarQuery: string
   calendarBusy: CalendarBusy[]
   garminSettings: GarminSettings
@@ -247,6 +274,15 @@ interface State {
   addChatMessage: (role: 'user' | 'assistant', text: string) => void
   clearCoachChat: () => void
 
+  // coach memory / brief / plan proposals
+  addMemory: (text: string) => void
+  removeMemory: (id: ID) => void
+  setMorningBrief: (brief: MorningBrief | null) => void
+  setPlanProposals: (proposals: PlanProposal[]) => void
+  addPlanProposal: (proposal: Omit<PlanProposal, 'id'>) => void
+  removePlanProposal: (id: ID) => void
+  clearPlanProposals: () => void
+
   // calendar
   setCalendarQuery: (q: string) => void
   setCalendarBusy: (events: CalendarBusy[]) => void
@@ -273,6 +309,9 @@ export const useStore = create<State>()(
       coachProfile: null,
       trainingPlan: null,
       coachMessages: [],
+      coachMemory: [],
+      morningBrief: null,
+      planProposals: [],
       calendarQuery: 'אלבטרוס',
       calendarBusy: [],
       garminSettings: { connected: false },
@@ -441,6 +480,34 @@ export const useStore = create<State>()(
           coachMessages: [...s.coachMessages, { id: uid(), role, text }],
         })),
       clearCoachChat: () => set({ coachMessages: [] }),
+
+      addMemory: (text) =>
+        set((s) => {
+          const t = text.trim()
+          if (!t) return {}
+          // avoid exact-duplicate facts
+          if (s.coachMemory.some((m) => m.text === t)) return {}
+          return {
+            coachMemory: [
+              ...s.coachMemory,
+              { id: uid(), text: t, createdAt: new Date().toISOString() },
+            ],
+          }
+        }),
+      removeMemory: (id) =>
+        set((s) => ({ coachMemory: s.coachMemory.filter((m) => m.id !== id) })),
+      setMorningBrief: (brief) => set({ morningBrief: brief }),
+      setPlanProposals: (proposals) => set({ planProposals: proposals }),
+      addPlanProposal: (proposal) =>
+        set((s) => ({
+          planProposals: [
+            ...s.planProposals.filter((p) => p.weekStart !== proposal.weekStart),
+            { ...proposal, id: uid() },
+          ],
+        })),
+      removePlanProposal: (id) =>
+        set((s) => ({ planProposals: s.planProposals.filter((p) => p.id !== id) })),
+      clearPlanProposals: () => set({ planProposals: [] }),
 
       setCalendarQuery: (q) => set({ calendarQuery: q }),
       setCalendarBusy: (events) => set({ calendarBusy: events }),

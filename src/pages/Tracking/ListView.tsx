@@ -8,16 +8,28 @@ export default function ListView() {
   const log = useStore((s) => s.log)
   const removeEntry = useStore((s) => s.removeEntry)
   const [detail, setDetail] = useState<WorkoutEntry | null>(null)
+  const [query, setQuery] = useState('')
 
+  const q = query.trim().toLowerCase()
   const groups = useMemo(() => {
-    const byDate = new Map<string, typeof log>()
+    const match = (e: WorkoutEntry): boolean => {
+      if (!q) return true
+      const v = describeEntry(e)
+      const hay = [v.title, ...v.details, e.note, e.date, e.strengthName, e.otherName]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return q.split(/\s+/).every((t) => hay.includes(t))
+    }
+    const byDate = new Map<string, WorkoutEntry[]>()
     for (const e of log) {
+      if (!match(e)) continue
       const arr = byDate.get(e.date) ?? []
       arr.push(e)
       byDate.set(e.date, arr)
     }
     return [...byDate.entries()].sort((a, b) => b[0].localeCompare(a[0]))
-  }, [log])
+  }, [log, q])
 
   if (log.length === 0) {
     return (
@@ -29,6 +41,16 @@ export default function ListView() {
 
   return (
     <div className="grid gap-6">
+      <input
+        className="input"
+        type="search"
+        placeholder="🔍 חיפוש אימונים (ענף, תווית, הערה, תאריך…)"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {groups.length === 0 && (
+        <p className="text-sm text-muted text-center py-4">אין אימונים שתואמים לחיפוש.</p>
+      )}
       {groups.map(([date, entries]) => (
         <div key={date}>
           <h3 className="font-semibold text-muted mb-2">{formatFullDate(date)}</h3>

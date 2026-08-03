@@ -54,7 +54,7 @@ export async function runCoach({
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents,
-          tools: [{ functionDeclarations: tools }],
+          ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
           generationConfig: { maxOutputTokens: 8000, temperature: 0.7 },
         }),
       })

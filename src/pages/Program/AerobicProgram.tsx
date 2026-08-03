@@ -11,6 +11,7 @@ import {
   weekDays,
 } from '../../lib/dates'
 import { weekCompletion } from '../../lib/planMatch'
+import PlanProposals from './PlanProposals'
 
 const planSportMeta: Record<PlanSport, { icon: string; label: string }> = {
   run: { icon: sportIcon.run, label: sportLabel.run },
@@ -206,6 +207,7 @@ export default function AerobicProgram() {
           <span className="text-sm text-muted">תחרות: {plan.raceDate}</span>
         )}
       </div>
+      <PlanProposals />
       <div className="grid gap-3">
         {weeks.map((w) => (
           <WeekCard
