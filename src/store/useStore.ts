@@ -68,6 +68,13 @@ export interface WorkoutEntry {
   calories?: number
   elevationGain?: number // meters
   cadence?: number // run: spm, bike: rpm, swim: strokes/min
+  // sport-specific dynamics (Garmin)
+  gct?: number // ground contact time, ms (run)
+  verticalOscillation?: number // cm (run)
+  strideLength?: number // cm (run)
+  power?: number // watts (bike)
+  normPower?: number // watts (bike)
+  swolf?: number // swim efficiency
 }
 
 /* ---------------- Planning ---------------- */

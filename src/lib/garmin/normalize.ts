@@ -89,6 +89,7 @@ export function activityToEntry(a: GarminActivitySummary): Omit<WorkoutEntry, 'i
         a.averageSwimCadenceInStrokesPerMinute != null
           ? round(a.averageSwimCadenceInStrokesPerMinute)
           : undefined
+      if (a.averageSwolf != null) entry.swolf = round(a.averageSwolf, 1)
     } else if (kind.sport === 'bike') {
       const km = meters / 1000
       entry.distance = km ? round(km, 2) : undefined
@@ -97,6 +98,8 @@ export function activityToEntry(a: GarminActivitySummary): Omit<WorkoutEntry, 'i
         a.averageBikingCadenceInRevPerMinute != null
           ? round(a.averageBikingCadenceInRevPerMinute)
           : undefined
+      if (a.avgPower != null) entry.power = round(a.avgPower)
+      if (a.normPower != null) entry.normPower = round(a.normPower)
     } else {
       const km = meters / 1000
       entry.distance = km ? round(km, 2) : undefined
@@ -105,6 +108,10 @@ export function activityToEntry(a: GarminActivitySummary): Omit<WorkoutEntry, 'i
         a.averageRunningCadenceInStepsPerMinute != null
           ? round(a.averageRunningCadenceInStepsPerMinute)
           : undefined
+      if (a.avgGroundContactTime != null) entry.gct = round(a.avgGroundContactTime)
+      if (a.avgVerticalOscillation != null)
+        entry.verticalOscillation = round(a.avgVerticalOscillation, 1)
+      if (a.avgStrideLength != null) entry.strideLength = round(a.avgStrideLength)
     }
   } else if (kind.category === 'strength') {
     entry.strengthName = a.activityName || 'אימון כוח'

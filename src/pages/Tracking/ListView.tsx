@@ -1,11 +1,13 @@
-import { useMemo } from 'react'
-import { useStore } from '../../store/useStore'
+import { useMemo, useState } from 'react'
+import { useStore, type WorkoutEntry } from '../../store/useStore'
 import { describeEntry } from '../../lib/describe'
 import { formatFullDate } from '../../lib/dates'
+import ActivityDetailModal from '../../components/garmin/ActivityDetailModal'
 
 export default function ListView() {
   const log = useStore((s) => s.log)
   const removeEntry = useStore((s) => s.removeEntry)
+  const [detail, setDetail] = useState<WorkoutEntry | null>(null)
 
   const groups = useMemo(() => {
     const byDate = new Map<string, typeof log>()
@@ -42,11 +44,24 @@ export default function ListView() {
                     {v.icon}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold" style={{ color: v.color }}>
+                    <div className="font-semibold flex items-center gap-1.5" style={{ color: v.color }}>
                       {v.title}
+                      {e.source === 'garmin' && (
+                        <span title="נמשך מגרמין" className="text-xs">⌚</span>
+                      )}
                     </div>
                     <div className="text-sm text-muted">{v.details.join(' · ')}</div>
                   </div>
+                  {e.garminActivityId != null && (
+                    <button
+                      onClick={() => setDetail(e)}
+                      className="text-muted hover:text-accent px-1"
+                      aria-label="פירוט"
+                      title="פירוט אימון"
+                    >
+                      📊
+                    </button>
+                  )}
                   <button
                     onClick={() => removeEntry(e.id)}
                     className="text-muted hover:text-accent px-1"
@@ -60,6 +75,7 @@ export default function ListView() {
           </div>
         </div>
       ))}
+      <ActivityDetailModal entry={detail} onClose={() => setDetail(null)} />
     </div>
   )
 }
