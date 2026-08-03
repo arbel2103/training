@@ -9,6 +9,7 @@ import {
   weekDays,
 } from '../../lib/dates'
 import LineChart from '../../components/ui/LineChart'
+import InfoTip from '../../components/ui/InfoTip'
 
 export default function WeightTab() {
   const weighIns = useStore((s) => s.weighIns)
@@ -121,10 +122,10 @@ export default function WeightTab() {
 
       {/* weekly-average chart */}
       <div className="card p-5">
-        <h3 className="font-display text-xl font-bold mb-1">
+        <h3 className="font-display text-xl font-bold mb-4 flex items-center gap-1.5">
           ממוצע משקל שבועי <span className="text-muted font-normal text-base">(ק״ג)</span>
+          <InfoTip text="כל נקודה היא ממוצע השקילות של שבוע אחד — כך תנודות יומיות (מים, אוכל) לא מסתירות את המגמה האמיתית." />
         </h3>
-        <p className="text-sm text-muted mb-4">נקודה לכל שבוע (ממוצע השקילות).</p>
         <div className="max-w-xl mx-auto">
           <LineChart data={chartData} />
         </div>

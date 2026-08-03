@@ -9,6 +9,7 @@ import {
   GarminEmpty,
   GarminRefreshChip,
 } from '../../components/garmin/GarminDataHeader'
+import InfoTip from '../../components/ui/InfoTip'
 
 const STAGE_COLORS = {
   deep: 'var(--c-swim)',
@@ -153,7 +154,7 @@ export default function SleepTab() {
 
       {/* stages over time */}
       <div className="card p-5">
-        <h4 className="font-semibold mb-3">שלבי שינה (14 ימים)</h4>
+        <h4 className="font-semibold mb-3 flex items-center gap-1.5">שלבי שינה (14 ימים) <InfoTip text="כל עמודה היא לילה, מחולקת לשלבי השינה: עמוקה (התאוששות הגוף), REM (מוח וזיכרון), קלה וערות. גובה העמודה = סך שעות השינה." /></h4>
         <StackedBarChart
           data={stageBars}
           format={(m) => `${Math.round(m / 60)}ש׳`}
@@ -168,7 +169,7 @@ export default function SleepTab() {
 
       {/* score trend */}
       <div className="card p-5">
-        <h4 className="font-semibold mb-3">ציון שינה (30 ימים)</h4>
+        <h4 className="font-semibold mb-3 flex items-center gap-1.5">ציון שינה (30 ימים) <InfoTip text="ציון השינה של גרמין (0–100) המשקלל משך, איכות ושלבים. מעל 80 = מצוין, מתחת ל-60 = כדאי לשים לב." /></h4>
         <LineChart data={scoreData} />
       </div>
     </div>

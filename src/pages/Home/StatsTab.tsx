@@ -14,6 +14,7 @@ import { formatDayMonth, startOfWeek } from '../../lib/dates'
 import Segmented from '../../components/ui/Segmented'
 import LineChart from '../../components/ui/LineChart'
 import Modal from '../../components/ui/Modal'
+import InfoTip from '../../components/ui/InfoTip'
 import ListView from '../Tracking/ListView'
 import { addDays, toISODate } from '../../lib/dates'
 
@@ -29,10 +30,21 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  info,
+  children,
+}: {
+  title: string
+  info?: string
+  children: React.ReactNode
+}) {
   return (
     <div className="card p-5">
-      <h4 className="font-semibold mb-3">{title}</h4>
+      <h4 className="font-semibold mb-3 flex items-center gap-1.5">
+        {title}
+        {info && <InfoTip text={info} />}
+      </h4>
       {children}
     </div>
   )
@@ -152,7 +164,16 @@ export default function StatsTab() {
             )}
           </div>
 
-          <ChartCard title={sport === 'bike' ? 'מהירות (קמ״ש)' : 'קצב'}>
+          <ChartCard
+            title={sport === 'bike' ? 'מהירות (קמ״ש)' : 'קצב'}
+            info={
+              sport === 'bike'
+                ? 'המהירות הממוצעת בכל רכיבה לאורך התקופה. מגמת עלייה = שיפור בכושר הרכיבה.'
+                : sport === 'swim'
+                  ? 'הקצב הממוצע ל-100 מ׳ בכל שחייה. ככל שהקו יורד — אתה שוחה מהר יותר.'
+                  : 'הקצב הממוצע לק״מ בכל ריצה. ככל שהקו יורד — אתה רץ מהר יותר.'
+            }
+          >
             <LineChart
               data={paceTrend}
               format={sport === 'bike' ? undefined : formatPace}
@@ -160,13 +181,19 @@ export default function StatsTab() {
           </ChartCard>
 
           {hrTrend.length > 0 && (
-            <ChartCard title="דופק ממוצע לאימון">
+            <ChartCard
+              title="דופק ממוצע לאימון"
+              info="הדופק הממוצע בכל אימון. אם הדופק יורד באותו קצב/מהירות לאורך זמן — הלב מתייעל והכושר משתפר."
+            >
               <LineChart data={hrTrend} />
             </ChartCard>
           )}
 
           {cadenceTrend.length > 0 && (
-            <ChartCard title="קדנס">
+            <ChartCard
+              title="קדנס"
+              info="קצב התנועה: צעדים לדקה בריצה (אידיאלי ~170–180), סיבובי דוושה בדקה ברכיבה (~80–90), או משיכות בדקה בשחייה."
+            >
               <LineChart data={cadenceTrend} />
             </ChartCard>
           )}
@@ -240,7 +267,10 @@ function StrengthStats({
       </div>
 
       {weekStarts.length > 1 && (
-        <ChartCard title="אימוני כוח בשבוע">
+        <ChartCard
+          title="אימוני כוח בשבוע"
+          info="כמה אימוני כוח ביצעת בכל שבוע. עקביות של 2–3 בשבוע היא הבסיס לחיזוק ומניעת פציעות בטריאתלון."
+        >
           <BarChart
             data={s.weeks.map((w) => ({
               label: formatDayMonth(new Date(w.weekStart + 'T00:00:00')),
@@ -262,12 +292,18 @@ function RunDynamics({ entries }: { entries: ReturnType<typeof sportEntries> }) 
   return (
     <>
       {gct.length > 0 && (
-        <ChartCard title="זמן מגע עם הקרקע (ms)">
+        <ChartCard
+          title="זמן מגע עם הקרקע (ms)"
+          info="כמה מילישניות כף הרגל נוגעת בקרקע בכל צעד. זמן קצר יותר (בד״כ מתחת ל-250ms) מעיד על ריצה יעילה וקפיצית יותר."
+        >
           <LineChart data={gct} />
         </ChartCard>
       )}
       {vo.length > 0 && (
-        <ChartCard title="תנודה אנכית (ס״מ)">
+        <ChartCard
+          title="תנודה אנכית (ס״מ)"
+          info="כמה הגוף קופץ למעלה-למטה בכל צעד. פחות תנודה = יותר אנרגיה מופנית קדימה במקום למעלה. טווח טוב: 6–9 ס״מ."
+        >
           <LineChart data={vo} />
         </ChartCard>
       )}
@@ -279,7 +315,10 @@ function BikePower({ entries }: { entries: ReturnType<typeof sportEntries> }) {
   const power = trend(entries, 'power')
   if (power.length === 0) return null
   return (
-    <ChartCard title="הספק ממוצע (וואט)">
+    <ChartCard
+      title="הספק ממוצע (וואט)"
+      info="הכוח שאתה מפיק על הדוושות. המדד האובייקטיבי ביותר לרכיבה — לא מושפע מרוח או שיפוע כמו מהירות."
+    >
       <LineChart data={power} />
     </ChartCard>
   )
@@ -289,7 +328,10 @@ function SwimEfficiency({ entries }: { entries: ReturnType<typeof sportEntries> 
   const swolf = trend(entries, 'swolf')
   if (swolf.length === 0) return null
   return (
-    <ChartCard title="SWOLF (יעילות שחייה)">
+    <ChartCard
+      title="SWOLF (יעילות שחייה)"
+      info="זמן הבריכה בשניות + מספר המשיכות. מספר נמוך יותר = שחייה יעילה יותר (מתקדם רחוק יותר עם פחות משיכות)."
+    >
       <LineChart data={swolf} />
     </ChartCard>
   )

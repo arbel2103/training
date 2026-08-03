@@ -6,6 +6,7 @@ import type { GarminDetailStreams, GarminSplit } from '../../lib/garmin/types'
 import Modal from '../ui/Modal'
 import LineChart from '../ui/LineChart'
 import ZoneBars, { type Zone } from '../ui/ZoneBars'
+import InfoTip from '../ui/InfoTip'
 
 const ZONE_COLORS = ['var(--muted)', 'var(--c-swim)', 'var(--c-bike)', 'var(--accent)', 'var(--c-run)']
 
@@ -96,14 +97,14 @@ export default function ActivityDetailModal({
 
         {hrSeries.length > 0 && (
           <section>
-            <h4 className="font-semibold mb-2">דופק לאורך האימון</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-1.5">דופק לאורך האימון <InfoTip text="הדופק לאורך האימון. עלייה הדרגתית בקצב קבוע (סחיפת דופק) מעידה על עייפות, חום או התייבשות." /></h4>
             <LineChart data={hrSeries} />
           </section>
         )}
 
         {zones.length > 0 && (
           <section>
-            <h4 className="font-semibold mb-2">זמן באזורי דופק</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-1.5">זמן באזורי דופק <InfoTip text="כמה זמן היית בכל אזור מאמץ: Z1–Z2 קל (בסיס אירובי), Z3 בינוני, Z4–Z5 עצים. רוב הנפח אמור להיות באזורים הקלים." /></h4>
             <ZoneBars zones={zones} />
           </section>
         )}

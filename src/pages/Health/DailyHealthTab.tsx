@@ -10,6 +10,7 @@ import {
   GarminEmpty,
   GarminRefreshChip,
 } from '../../components/garmin/GarminDataHeader'
+import InfoTip from '../../components/ui/InfoTip'
 
 type Range = '7' | '30'
 
@@ -71,18 +72,18 @@ export default function DailyHealthTab() {
       </div>
 
       <div className="card p-5">
-        <h4 className="font-semibold mb-3">👟 צעדים</h4>
+        <h4 className="font-semibold mb-3 flex items-center gap-1.5">👟 צעדים <InfoTip text="סך הצעדים בכל יום — מדד פשוט לתנועה הכללית שלך מעבר לאימונים." /></h4>
         <BarChart data={steps} color="var(--accent)" />
       </div>
 
       <div className="card p-5">
-        <h4 className="font-semibold mb-3">❤️ דופק מנוחה</h4>
+        <h4 className="font-semibold mb-3 flex items-center gap-1.5">❤️ דופק מנוחה <InfoTip text="הדופק הנמוך ביותר במנוחה. ירידה לאורך זמן = שיפור בכושר; קפיצה פתאומית של 5+ פעימות = עומס, חוסר שינה או מחלה מתקרבת." /></h4>
         <LineChart data={rhr} />
       </div>
 
       {hasHrv && (
         <div className="card p-5">
-          <h4 className="font-semibold mb-3">🫀 HRV מול הבסיס</h4>
+          <h4 className="font-semibold mb-3 flex items-center gap-1.5">🫀 HRV מול הבסיס <InfoTip text="שונות הדופק בלילה — מדד ההתאוששות המרכזי. הקו המקווקו הוא הבסיס האישי שלך; לילה מתחת לבסיס = הגוף עדיין מתאושש, שקול יום קל." /></h4>
           <MultiLineChart labels={labels} series={hrv} />
         </div>
       )}
@@ -90,7 +91,7 @@ export default function DailyHealthTab() {
       {vo2.length > 1 && (
         <div className="card p-5">
           <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
-            <h4 className="font-semibold">🫁 VO2max (כושר אירובי)</h4>
+            <h4 className="font-semibold flex items-center gap-1.5">🫁 VO2max (כושר אירובי) <InfoTip text="צריכת החמצן המרבית — המדד המרכזי לכושר אירובי. עולה לאט (שבועות-חודשים), וכל עלייה של נקודה היא שיפור אמיתי." /></h4>
             <span className="flex items-baseline gap-2">
               <span className="font-display text-2xl font-black leading-none">
                 {vo2Latest}
