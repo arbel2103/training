@@ -5,16 +5,11 @@ import { sportEntries, summarize, trend } from '../../lib/garmin/activityStats'
 import { sportLabel } from '../../lib/labels'
 import Segmented from '../../components/ui/Segmented'
 import LineChart from '../../components/ui/LineChart'
+import Modal from '../../components/ui/Modal'
+import ListView from '../Tracking/ListView'
+import { addDays, toISODate } from '../../lib/dates'
 
-type Period = '30' | '90' | 'all'
-
-function withinPeriod(date: string, period: Period): boolean {
-  if (period === 'all') return true
-  const days = period === '30' ? 30 : 90
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - days)
-  return new Date(date + 'T00:00:00') >= cutoff
-}
+type Period = '30' | 'all' | 'custom'
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -37,12 +32,22 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 export default function StatsTab() {
   const log = useStore((s) => s.log)
   const [sport, setSport] = useState<Sport>('run')
-  const [period, setPeriod] = useState<Period>('90')
+  const [period, setPeriod] = useState<Period>('30')
+  const [from, setFrom] = useState(() => toISODate(addDays(new Date(), -30)))
+  const [to, setTo] = useState(() => toISODate(new Date()))
+  const [listOpen, setListOpen] = useState(false)
 
-  const entries = useMemo(
-    () => sportEntries(log, sport).filter((e) => withinPeriod(e.date, period)),
-    [log, sport, period],
-  )
+  const entries = useMemo(() => {
+    const cutoff30 = toISODate(addDays(new Date(), -30))
+    const inPeriod = (date: string): boolean => {
+      if (period === 'all') return true
+      if (period === 'custom') {
+        return (!from || date >= from) && (!to || date <= to)
+      }
+      return date >= cutoff30
+    }
+    return sportEntries(log, sport).filter((e) => inPeriod(e.date))
+  }, [log, sport, period, from, to])
   const summary = useMemo(() => summarize(entries, sport), [entries, sport])
 
   const paceTrend = trend(entries, sport === 'bike' ? 'speedKmh' : 'paceSec')
@@ -61,17 +66,47 @@ export default function StatsTab() {
             { value: 'swim', label: `🏊 ${sportLabel.swim}` },
           ]}
         />
-        <Segmented
-          value={period}
-          onChange={setPeriod}
-          size="sm"
-          options={[
-            { value: '30', label: '30 יום' },
-            { value: '90', label: '90 יום' },
-            { value: 'all', label: 'הכל' },
-          ]}
-        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Segmented
+            value={period}
+            onChange={setPeriod}
+            size="sm"
+            options={[
+              { value: '30', label: '30 יום' },
+              { value: 'all', label: 'הכל' },
+              { value: 'custom', label: 'מותאם' },
+            ]}
+          />
+          <button onClick={() => setListOpen(true)} className="btn-ghost text-sm py-1.5">
+            📋 כל האימונים
+          </button>
+        </div>
       </div>
+
+      {period === 'custom' && (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="label">מתאריך</span>
+            <input
+              type="date"
+              className="input text-sm"
+              value={from}
+              max={to || undefined}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="label">עד תאריך</span>
+            <input
+              type="date"
+              className="input text-sm"
+              value={to}
+              min={from || undefined}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
 
       {entries.length === 0 ? (
         <div className="card p-8 text-center text-muted">
@@ -125,6 +160,15 @@ export default function StatsTab() {
           {sport === 'swim' && <SwimEfficiency entries={entries} />}
         </>
       )}
+
+      <Modal
+        open={listOpen}
+        onClose={() => setListOpen(false)}
+        title="📋 כל האימונים"
+        maxWidth="max-w-3xl"
+      >
+        <ListView />
+      </Modal>
     </div>
   )
 }

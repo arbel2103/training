@@ -17,7 +17,6 @@ import QuickCompleteModal from '../../components/QuickCompleteModal'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import TabBar from '../../components/ui/TabBar'
 import EntryTab from '../Tracking/EntryTab'
-import HistoryTab from '../Tracking/HistoryTab'
 import StatsTab from './StatsTab'
 
 function greeting(): string {
@@ -45,7 +44,7 @@ export default function HomePage() {
   const log = useStore((s) => s.log)
   const weighIns = useStore((s) => s.weighIns)
 
-  const [tab, setTab] = useState<'today' | 'stats' | 'history'>('today')
+  const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
   const [garminWizard, setGarminWizard] = useState(false)
   const [garminDismissed, setGarminDismissed] = useState(
@@ -105,14 +104,11 @@ export default function HomePage() {
           tabs={[
             { value: 'today', label: 'היום והשבוע' },
             { value: 'stats', label: 'סטטיסטיקות' },
-            { value: 'history', label: 'היסטוריה' },
           ]}
         />
       </div>
 
-      {tab === 'history' ? (
-        <HistoryTab />
-      ) : tab === 'stats' ? (
+      {tab === 'stats' ? (
         <StatsTab />
       ) : (
         <>
