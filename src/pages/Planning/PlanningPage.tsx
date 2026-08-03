@@ -123,6 +123,8 @@ export default function PlanningPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [calEvents, setCalEvents] = useState<Record<string, GCalEvent[]>>({})
+  const [calendars, setCalendars] = useState<{ id: string; summary: string }[]>([])
+  const [calendarMissing, setCalendarMissing] = useState(false)
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
 
@@ -139,7 +141,7 @@ export default function PlanningPage() {
   }, [])
 
   const loadCalendar = useCallback(
-    async (silent = false) => {
+    async (silent = false, queryOverride?: string) => {
       if (!silent) setBusy('טוען יומן…')
       setError(null)
       try {
@@ -148,19 +150,20 @@ export default function PlanningPage() {
         localStorage.setItem(AUTO_CONNECT_KEY, '1')
         const cals = await listCalendars()
         setAccount(cals.find((c) => c.primary)?.id ?? null)
-        const q = calendarQuery.trim()
+        setCalendars(
+          cals
+            .filter((c) => c.summary)
+            .map((c) => ({ id: c.id, summary: c.summary as string })),
+        )
+        const q = (queryOverride ?? calendarQuery).trim()
         const match = q
           ? cals.find((c) => (c.summary || '').includes(q))
           : cals.find((c) => c.primary)
+        // a saved calendar that no longer exists must be visible, not silent —
+        // otherwise the board just looks empty for no apparent reason
+        setCalendarMissing(!!q && !match)
         if (q && !match) {
           setCalEvents({})
-          if (!silent)
-            setError(
-              `לא נמצא יומן שמכיל "${q}". היומנים הזמינים: ${cals
-                .map((c) => c.summary)
-                .filter(Boolean)
-                .join(' · ')}`,
-            )
           return
         }
         const calId = match?.id ?? 'primary'
@@ -433,14 +436,35 @@ export default function PlanningPage() {
         ) : (
           <>
             <div>
-              <label className="label">שם היומן לחיפוש</label>
-              <input
-                className="input w-48"
-                value={calendarQuery}
-                onChange={(e) => setCalendarQuery(e.target.value)}
-                placeholder="למשל: אלבטרוס / עבודה / ספינה"
-                title="שם היומן או מילת מפתח לחיפוש (נשמר)"
-              />
+              <label className="label">היומן שממנו נטען הלו״ז</label>
+              {calendars.length > 0 ? (
+                <select
+                  className="input w-56 text-sm"
+                  value={
+                    calendars.find((c) => c.summary.includes(calendarQuery.trim()))
+                      ?.summary ?? ''
+                  }
+                  onChange={(e) => {
+                    setCalendarQuery(e.target.value)
+                    void loadCalendar(false, e.target.value)
+                  }}
+                >
+                  <option value="">היומן הראשי</option>
+                  {calendars.map((c) => (
+                    <option key={c.id} value={c.summary}>
+                      {c.summary}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="input w-48"
+                  value={calendarQuery}
+                  onChange={(e) => setCalendarQuery(e.target.value)}
+                  placeholder="למשל: אלבטרוס / עבודה"
+                  title="אחרי חיבור תוכל לבחור מרשימת היומנים שלך"
+                />
+              )}
             </div>
             <button
               onClick={() => void loadCalendar()}
@@ -461,6 +485,15 @@ export default function PlanningPage() {
           </>
         )}
         {error && <span className="text-sm text-run">שגיאה: {error}</span>}
+        {calendarMissing && (
+          <div
+            className="w-full text-sm rounded-xl px-3 py-2 bg-run/10 text-run"
+            style={{ borderInlineStart: '3px solid rgb(var(--c-run))' }}
+          >
+            ⚠️ היומן <b>"{calendarQuery}"</b> כבר לא קיים בחשבון הזה — בחר יומן
+            אחר מהרשימה כדי לראות את הלו״ז.
+          </div>
+        )}
       </div>
 
       {/* week navigation */}
