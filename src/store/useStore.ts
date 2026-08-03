@@ -168,13 +168,6 @@ export interface CoachMemory {
   createdAt: string // ISO
 }
 
-/** A coach-generated daily briefing, kept per calendar day. */
-export interface MorningBrief {
-  date: string // yyyy-mm-dd
-  text: string
-  createdAt: string // ISO
-}
-
 /** A proposed change to a plan week, awaiting the user's approval. */
 export interface PlanProposal {
   id: ID
@@ -217,7 +210,6 @@ interface State {
   trainingPlan: TrainingPlan | null
   coachMessages: ChatMessage[]
   coachMemory: CoachMemory[]
-  morningBrief: MorningBrief | null
   planProposals: PlanProposal[]
   calendarQuery: string
   calendarBusy: CalendarBusy[]
@@ -277,7 +269,6 @@ interface State {
   // coach memory / brief / plan proposals
   addMemory: (text: string) => void
   removeMemory: (id: ID) => void
-  setMorningBrief: (brief: MorningBrief | null) => void
   setPlanProposals: (proposals: PlanProposal[]) => void
   addPlanProposal: (proposal: Omit<PlanProposal, 'id'>) => void
   removePlanProposal: (id: ID) => void
@@ -310,7 +301,6 @@ export const useStore = create<State>()(
       trainingPlan: null,
       coachMessages: [],
       coachMemory: [],
-      morningBrief: null,
       planProposals: [],
       calendarQuery: 'אלבטרוס',
       calendarBusy: [],
@@ -496,7 +486,6 @@ export const useStore = create<State>()(
         }),
       removeMemory: (id) =>
         set((s) => ({ coachMemory: s.coachMemory.filter((m) => m.id !== id) })),
-      setMorningBrief: (brief) => set({ morningBrief: brief }),
       setPlanProposals: (proposals) => set({ planProposals: proposals }),
       addPlanProposal: (proposal) =>
         set((s) => ({
