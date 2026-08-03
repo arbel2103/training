@@ -58,6 +58,15 @@ export interface WorkoutEntry {
   durationMin?: number // entered (strength/other) or computed (aerobic)
   rpe?: number // perceived exertion 1–10 (post-workout debrief)
   note?: string // how it felt / free note
+  // Garmin-sourced metrics (optional; present when source === 'garmin')
+  source?: 'manual' | 'garmin'
+  garminActivityId?: number
+  startTime?: string // HH:MM local
+  avgHr?: number
+  maxHr?: number
+  calories?: number
+  elevationGain?: number // meters
+  cadence?: number // run: spm, bike: rpm, swim: strokes/min
 }
 
 /* ---------------- Planning ---------------- */

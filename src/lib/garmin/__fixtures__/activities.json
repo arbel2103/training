@@ -1,0 +1,60 @@
+{
+  "9000000001": {
+    "activityId": 9000000001,
+    "activityName": "ריצת בוקר",
+    "activityType": { "typeKey": "running" },
+    "startTimeLocal": "2026-08-01 06:30:00",
+    "distance": 10120.5,
+    "duration": 3012.0,
+    "averageHR": 152,
+    "maxHR": 178,
+    "calories": 720,
+    "elevationGain": 85,
+    "averageSpeed": 3.36,
+    "averageRunningCadenceInStepsPerMinute": 176.4,
+    "avgGroundContactTime": 251.0,
+    "avgVerticalOscillation": 8.9,
+    "avgStrideLength": 112.0,
+    "vO2MaxValue": 52.0
+  },
+  "9000000002": {
+    "activityId": 9000000002,
+    "activityName": "רכיבת כביש",
+    "activityType": { "typeKey": "road_biking" },
+    "startTimeLocal": "2026-08-02 06:15:00",
+    "distance": 42000.0,
+    "duration": 5400.0,
+    "averageHR": 138,
+    "maxHR": 165,
+    "calories": 980,
+    "elevationGain": 320,
+    "averageSpeed": 7.777,
+    "avgPower": 195,
+    "normPower": 210,
+    "averageBikingCadenceInRevPerMinute": 86.0
+  },
+  "9000000003": {
+    "activityId": 9000000003,
+    "activityName": "שחייה בבריכה",
+    "activityType": { "typeKey": "lap_swimming" },
+    "startTimeLocal": "2026-08-03 07:00:00",
+    "distance": 2000.0,
+    "duration": 2400.0,
+    "averageHR": 128,
+    "maxHR": 150,
+    "calories": 430,
+    "averageSwolf": 38.0,
+    "averageSwimCadenceInStrokesPerMinute": 29.0,
+    "poolLength": 25
+  },
+  "9000000004": {
+    "activityId": 9000000004,
+    "activityName": "אימון כוח",
+    "activityType": { "typeKey": "strength_training" },
+    "startTimeLocal": "2026-08-04 18:00:00",
+    "duration": 3300.0,
+    "averageHR": 110,
+    "maxHR": 140,
+    "calories": 300
+  }
+}

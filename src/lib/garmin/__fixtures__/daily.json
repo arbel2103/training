@@ -1,0 +1,77 @@
+{
+  "2026-08-01": {
+    "summary": {
+      "totalSteps": 12450,
+      "totalKilocalories": 2680,
+      "activeKilocalories": 820,
+      "restingHeartRate": 48,
+      "minHeartRate": 42,
+      "maxHeartRate": 178
+    },
+    "sleep": {
+      "score": 82,
+      "totalSeconds": 26400,
+      "deepSeconds": 4800,
+      "lightSeconds": 15600,
+      "remSeconds": 6000,
+      "awakeSeconds": 900,
+      "startLocal": "2026-07-31T23:10:00",
+      "endLocal": "2026-08-01T06:40:00"
+    },
+    "hrv": {
+      "lastNightAvg": 62,
+      "weeklyAvg": 58,
+      "status": "BALANCED",
+      "baselineLow": 38,
+      "baselineHigh": 70
+    },
+    "stress": {
+      "avg": 28,
+      "max": 82,
+      "values": [[1754006400000, 25], [1754007300000, 40]]
+    },
+    "bodyBattery": {
+      "charged": 78,
+      "drained": 65,
+      "high": 92,
+      "low": 18,
+      "values": [[1754006400000, 90], [1754007300000, 85]]
+    },
+    "heartRate": {
+      "resting": 48,
+      "min": 42,
+      "max": 178,
+      "values": [[1754006400000, 55], [1754007300000, 62]]
+    },
+    "vo2max": 52.0
+  },
+  "2026-08-02": {
+    "summary": {
+      "totalSteps": 8300,
+      "totalKilocalories": 2900,
+      "restingHeartRate": 50,
+      "maxHeartRate": 165
+    },
+    "sleep": {
+      "score": 68,
+      "totalSeconds": 22200,
+      "deepSeconds": 3000,
+      "lightSeconds": 14400,
+      "remSeconds": 4200,
+      "awakeSeconds": 1800,
+      "startLocal": "2026-08-02T00:30:00",
+      "endLocal": "2026-08-02T06:50:00"
+    },
+    "hrv": {
+      "lastNightAvg": 45,
+      "weeklyAvg": 57,
+      "status": "LOW",
+      "baselineLow": 38,
+      "baselineHigh": 70
+    },
+    "stress": { "avg": 40, "max": 95, "values": [] },
+    "bodyBattery": { "charged": 55, "drained": 80, "high": 74, "low": 8, "values": [] },
+    "heartRate": { "resting": 50, "min": 45, "max": 165, "values": [] },
+    "vo2max": 52.0
+  }
+}
