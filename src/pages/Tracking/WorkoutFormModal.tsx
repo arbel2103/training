@@ -30,14 +30,18 @@ import { formatFullDate } from '../../lib/dates'
 export default function WorkoutFormModal({
   open,
   date,
+  entry: editing,
   onClose,
 }: {
   open: boolean
   date: string
+  /** when provided, the form edits this entry instead of creating a new one */
+  entry?: WorkoutEntry | null
   onClose: () => void
 }) {
   const categories = useStore((s) => s.strengthCategories)
   const addEntry = useStore((s) => s.addEntry)
+  const updateEntry = useStore((s) => s.updateEntry)
 
   const [category, setCategory] = useState<Category>('strength')
   const [strengthName, setStrengthName] = useState('')
@@ -55,25 +59,40 @@ export default function WorkoutFormModal({
   const [rpe, setRpe] = useState<number | undefined>(undefined)
   const [note, setNote] = useState('')
 
-  // reset when reopened
+  // prefill from the edited entry, or reset to defaults for a new one
   useEffect(() => {
-    if (open) {
-      setCategory('strength')
-      setStrengthName(categories[0]?.name ?? '')
-      setIntensity('medium')
-      setTimeOfDay('evening')
-      setDurationMin('')
-      setSport('run')
-      setDistance('')
-      setAerobicIntensity('easy')
-      setPaceSec(undefined)
-      setSpeedKmh('')
-      setOtherName('')
-      setRpe(undefined)
-      setNote('')
+    if (!open) return
+    if (editing) {
+      setCategory(editing.category)
+      setStrengthName(editing.strengthName ?? categories[0]?.name ?? '')
+      setIntensity(editing.intensity ?? 'medium')
+      setTimeOfDay(editing.timeOfDay ?? 'evening')
+      setDurationMin(editing.durationMin ?? '')
+      setSport(editing.sport ?? 'run')
+      setDistance(editing.distance ?? '')
+      setAerobicIntensity(editing.aerobicIntensity ?? 'easy')
+      setPaceSec(editing.paceSec)
+      setSpeedKmh(editing.speedKmh ?? '')
+      setOtherName(editing.otherName ?? '')
+      setRpe(editing.rpe)
+      setNote(editing.note ?? '')
+      return
     }
+    setCategory('strength')
+    setStrengthName(categories[0]?.name ?? '')
+    setIntensity('medium')
+    setTimeOfDay('evening')
+    setDurationMin('')
+    setSport('run')
+    setDistance('')
+    setAerobicIntensity('easy')
+    setPaceSec(undefined)
+    setSpeedKmh('')
+    setOtherName('')
+    setRpe(undefined)
+    setNote('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, editing])
 
   const computedDuration =
     category === 'aerobic'
@@ -86,12 +105,23 @@ export default function WorkoutFormModal({
       : undefined
 
   const save = () => {
-    const base = {
-      date,
+    // every form-owned field is listed so switching category clears stale ones
+    const base: Omit<WorkoutEntry, 'id'> = {
+      date: editing?.date ?? date,
       category,
       rpe,
       note: note.trim() || undefined,
-    } as WorkoutEntry
+      strengthName: undefined,
+      intensity: undefined,
+      timeOfDay: undefined,
+      sport: undefined,
+      distance: undefined,
+      aerobicIntensity: undefined,
+      paceSec: undefined,
+      speedKmh: undefined,
+      otherName: undefined,
+      durationMin: undefined,
+    }
     let entry: Omit<WorkoutEntry, 'id'>
     if (category === 'strength') {
       entry = {
@@ -118,13 +148,19 @@ export default function WorkoutFormModal({
         durationMin: typeof durationMin === 'number' ? durationMin : undefined,
       }
     }
-    addEntry(entry)
+    if (editing) updateEntry(editing.id, entry)
+    else addEntry(entry)
     onClose()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="הוספת אימון">
-      <div className="text-sm text-muted mb-4">{formatFullDate(date)}</div>
+    <Modal open={open} onClose={onClose} title={editing ? 'עריכת אימון' : 'הוספת אימון'}>
+      <div className="text-sm text-muted mb-4">
+        {formatFullDate(editing?.date ?? date)}
+        {editing?.source === 'garmin' && (
+          <span className="mr-2">· ⌚ נמשך מגרמין (נתוני הדופק נשמרים)</span>
+        )}
+      </div>
 
       <div className="mb-5">
         <label className="label">סוג אימון</label>

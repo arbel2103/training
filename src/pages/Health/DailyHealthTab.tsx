@@ -47,6 +47,14 @@ export default function DailyHealthTab() {
 
   const hasHrv = hrv.some((s) => s.values.some((v) => v != null))
 
+  // VO2max moves slowly, so always chart the full history rather than the range
+  const vo2 = sorted
+    .filter((d) => d.vo2max != null)
+    .map((d) => ({ label: dayLabel(d.date), value: d.vo2max! }))
+  const vo2Latest = vo2.length ? vo2[vo2.length - 1].value : null
+  const vo2First = vo2.length ? vo2[0].value : null
+  const vo2Delta = vo2Latest != null && vo2First != null ? vo2Latest - vo2First : null
+
   return (
     <div className="grid gap-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -76,6 +84,27 @@ export default function DailyHealthTab() {
         <div className="card p-5">
           <h4 className="font-semibold mb-3">🫀 HRV מול הבסיס</h4>
           <MultiLineChart labels={labels} series={hrv} />
+        </div>
+      )}
+
+      {vo2.length > 1 && (
+        <div className="card p-5">
+          <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
+            <h4 className="font-semibold">🫁 VO2max (כושר אירובי)</h4>
+            <span className="flex items-baseline gap-2">
+              <span className="font-display text-2xl font-black leading-none">
+                {vo2Latest}
+              </span>
+              {vo2Delta != null && Math.abs(vo2Delta) >= 0.1 && (
+                <span
+                  className={`text-sm font-semibold ${vo2Delta > 0 ? 'text-bike' : 'text-run'}`}
+                >
+                  {vo2Delta > 0 ? '▲' : '▼'} {Math.abs(vo2Delta).toFixed(1)}
+                </span>
+              )}
+            </span>
+          </div>
+          <LineChart data={vo2} />
         </div>
       )}
     </div>

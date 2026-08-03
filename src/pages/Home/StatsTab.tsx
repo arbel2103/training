@@ -5,6 +5,8 @@ import { sportEntries, summarize, trend } from '../../lib/garmin/activityStats'
 import { sportLabel } from '../../lib/labels'
 import Segmented from '../../components/ui/Segmented'
 import LineChart from '../../components/ui/LineChart'
+import TrainingLoadCard from './TrainingLoadCard'
+import ZoneDistributionCard from './ZoneDistributionCard'
 
 type Period = '30' | '90' | 'all'
 
@@ -51,7 +53,10 @@ export default function StatsTab() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <TrainingLoadCard />
+      <ZoneDistributionCard />
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
         <Segmented
           value={sport}
           onChange={setSport}
