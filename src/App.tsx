@@ -11,7 +11,7 @@ import PageSection from './components/PageSection'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 import { hasGarminSetup } from './lib/garmin/pat'
-import { refreshFromRepo } from './lib/garmin/sync'
+import { smartRefresh } from './lib/garmin/sync'
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -33,11 +33,12 @@ export default function App() {
   // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
   useGarminRefreshOnMount()
 
-  // pull-to-refresh handler: silently pull latest Garmin data (no-op if not set up)
+  // pull-to-refresh: read the latest committed data and, if it's stale, kick
+  // off a real Garmin sync in the background (no-op if not set up)
   const refresh = useCallback(async () => {
     if (!hasGarminSetup()) return
     try {
-      await refreshFromRepo()
+      await smartRefresh()
     } catch {
       /* errors surface via garminSyncStatus */
     }

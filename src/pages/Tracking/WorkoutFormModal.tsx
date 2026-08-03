@@ -121,6 +121,8 @@ export default function WorkoutFormModal({
       speedKmh: undefined,
       otherName: undefined,
       durationMin: undefined,
+      // saving from the form means the label is the user's choice from now on
+      autoTagged: editing ? false : undefined,
     }
     let entry: Omit<WorkoutEntry, 'id'>
     if (category === 'strength') {
@@ -288,7 +290,12 @@ export default function WorkoutFormModal({
             )}
           </div>
           <div>
-            <label className="label">עצימות</label>
+            <label className="label">
+              עצימות
+              {editing?.autoTagged && (
+                <span className="text-accent font-normal"> · זוהה אוטומטית, אפשר לשנות</span>
+              )}
+            </label>
             <Segmented
               value={aerobicIntensity}
               onChange={setAerobicIntensity}

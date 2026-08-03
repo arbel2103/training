@@ -3,6 +3,7 @@
 import type { ID, WorkoutEntry } from '../../store/useStore'
 import type { GarminActivitySummary } from './types'
 import { activityToEntry } from './normalize'
+import { maxHrReference } from './autoTag'
 
 export interface ImportPlan {
   creates: Omit<WorkoutEntry, 'id'>[]
@@ -15,12 +16,28 @@ function sameKind(a: Omit<WorkoutEntry, 'id'>, e: WorkoutEntry): boolean {
   return true
 }
 
-/** When merging into a manual entry, keep the user's own naming. */
+/** When merging into a manual entry, keep the user's own naming and tag. */
 function mergePatch(entry: Omit<WorkoutEntry, 'id'>): Partial<WorkoutEntry> {
   const rest: Partial<WorkoutEntry> = { ...entry }
   delete rest.strengthName
   delete rest.otherName
+  delete rest.aerobicIntensity
+  delete rest.autoTagged
   return rest
+}
+
+/** Drop the auto tag from a patch once the user has set the label themselves. */
+function keepUserTag(
+  patch: Partial<WorkoutEntry>,
+  existing: WorkoutEntry,
+): Partial<WorkoutEntry> {
+  if (existing.autoTagged === false && existing.aerobicIntensity) {
+    const next = { ...patch }
+    delete next.aerobicIntensity
+    delete next.autoTagged
+    return next
+  }
+  return patch
 }
 
 /**
@@ -45,17 +62,25 @@ export function planImport(
   for (const e of existingLog) {
     if (e.garminActivityId != null) byGarminId.set(e.garminActivityId, e)
   }
+  // reference max HR from everything we know, so the very first import (empty
+  // log) can still tag by heart rate
+  const incomingMaxes = activities
+    .map((a) => a.maxHR)
+    .filter((v): v is number => typeof v === 'number')
+  const candidates = [maxHrReference(existingLog) ?? 0, ...incomingMaxes]
+  const best = Math.max(...candidates, 0)
+  const maxHrRef = best > 120 ? best : undefined
 
   for (const a of activities) {
     if (seenActivityIds.has(a.activityId)) continue
     seenActivityIds.add(a.activityId)
 
-    const entry = activityToEntry(a)
+    const entry = activityToEntry(a, maxHrRef)
     if (!entry.date) continue
 
     const existing = byGarminId.get(a.activityId)
     if (existing) {
-      updates.push({ id: existing.id, patch: entry })
+      updates.push({ id: existing.id, patch: keepUserTag(entry, existing) })
       continue
     }
 

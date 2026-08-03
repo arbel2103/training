@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
-import { refreshFromRepo } from '../../lib/garmin/sync'
+import { smartRefresh } from '../../lib/garmin/sync'
 import GarminSetupWizard from './GarminSetupWizard'
 
 /** Shown on data tabs when Garmin isn't connected yet. */
@@ -37,22 +37,31 @@ export function GarminRefreshChip() {
   async function refresh() {
     setBusy(true)
     try {
-      await refreshFromRepo()
+      await smartRefresh()
     } finally {
       setBusy(false)
     }
   }
 
+  const syncing = status.state === 'dispatching' || status.state === 'running'
+
   return (
-    <div className="flex items-center gap-2 mb-4 text-sm text-muted">
+    <div className="flex items-center gap-2 mb-4 text-sm text-muted flex-wrap">
       <span>⌚ {last ? `סונכרן ${last}` : 'טרם סונכרן'}</span>
-      <button
-        onClick={() => void refresh()}
-        disabled={busy}
-        className="text-accent font-semibold hover:underline disabled:opacity-50"
-      >
-        {busy ? 'מרענן…' : 'רענן'}
-      </button>
+      {syncing ? (
+        <span className="text-accent font-semibold">מושך נתונים מגרמין…</span>
+      ) : (
+        <button
+          onClick={() => void refresh()}
+          disabled={busy}
+          className="text-accent font-semibold hover:underline disabled:opacity-50"
+        >
+          {busy ? 'מרענן…' : 'רענן'}
+        </button>
+      )}
+      {status.state === 'error' && status.error && (
+        <span className="text-run">{status.error}</span>
+      )}
     </div>
   )
 }

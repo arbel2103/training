@@ -39,7 +39,10 @@ async function fail(res: Response): Promise<never> {
 
 /** Validate the PAT + repo access. Returns the repo's default branch. */
 export async function getRepoOk(): Promise<string> {
-  const res = await fetch(`${API}/repos/${getDataRepo()}`, { headers: headers() })
+  const res = await fetch(`${API}/repos/${getDataRepo()}`, {
+    headers: headers(),
+    cache: 'no-store',
+  })
   if (!res.ok) await fail(res)
   const repo = (await res.json()) as { default_branch?: string }
   return repo.default_branch ?? DEFAULT_REF
@@ -56,6 +59,7 @@ export interface DirEntry {
 export async function listDir(path: string): Promise<DirEntry[]> {
   const res = await fetch(`${API}/repos/${getDataRepo()}/contents/${path}`, {
     headers: headers(),
+    cache: 'no-store',
   })
   if (res.status === 404) return []
   if (!res.ok) await fail(res)
@@ -67,6 +71,7 @@ export async function listDir(path: string): Promise<DirEntry[]> {
 export async function getRawFile(path: string): Promise<string | null> {
   const res = await fetch(`${API}/repos/${getDataRepo()}/contents/${path}`, {
     headers: headers({ Accept: 'application/vnd.github.raw+json' }),
+    cache: 'no-store',
   })
   if (res.status === 404) return null
   if (!res.ok) await fail(res)
@@ -83,10 +88,10 @@ export async function getJsonFile<T>(path: string): Promise<T | null> {
 /** Write (create/update) an Actions secret using a sealed box. */
 export async function putSecret(name: string, value: string): Promise<void> {
   const repo = getDataRepo()
-  const keyRes = await fetch(
-    `${API}/repos/${repo}/actions/secrets/public-key`,
-    { headers: headers() },
-  )
+  const keyRes = await fetch(`${API}/repos/${repo}/actions/secrets/public-key`, {
+    headers: headers(),
+    cache: 'no-store',
+  })
   if (!keyRes.ok) await fail(keyRes)
   const { key, key_id } = (await keyRes.json()) as { key: string; key_id: string }
 
@@ -125,8 +130,8 @@ export interface WorkflowRun {
 /** The most recent sync workflow run, if any. */
 export async function latestRun(): Promise<WorkflowRun | null> {
   const res = await fetch(
-    `${API}/repos/${getDataRepo()}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=1`,
-    { headers: headers() },
+    `${API}/repos/${getDataRepo()}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=5`,
+    { headers: headers(), cache: 'no-store' },
   )
   if (!res.ok) await fail(res)
   const body = (await res.json()) as { workflow_runs?: WorkflowRun[] }
@@ -136,6 +141,7 @@ export async function latestRun(): Promise<WorkflowRun | null> {
 export async function getRun(id: number): Promise<WorkflowRun> {
   const res = await fetch(`${API}/repos/${getDataRepo()}/actions/runs/${id}`, {
     headers: headers(),
+    cache: 'no-store',
   })
   if (!res.ok) await fail(res)
   return (await res.json()) as WorkflowRun

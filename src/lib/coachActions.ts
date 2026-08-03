@@ -15,25 +15,6 @@ const PROPOSE_SYSTEM = `${SYSTEM_PERSONA}
 // only the proposal tool — so this flow can never mutate the plan directly
 const PROPOSE_TOOLS = COACH_TOOLS.filter((t) => t.name === 'propose_plan_week')
 
-const ZONE_SYSTEM = `${SYSTEM_PERSONA}
-
-משימה כרגע: המשתמש מציג לך את פילוח זמן האימון שלו לפי אזורי דופק בתקופה האחרונה.
-נתח **האם היחס בין אימונים קלים לעצימים מתאים לו**, לפי עקרונות אימון סיבולת (אימון מקוטב: רוב הנפח קל מאוד, מיעוט עצים, מעט מאוד "אזור אפור" בינוני), ובהתחשב בתוכנית, בתחרות הקרובה, בנתוני ההתאוששות ובתחושות (RPE) שבמצב הנוכחי.
-כתוב 3–5 משפטים בעברית: מה היחס אומר עליו, האם זה טוב למטרה שלו, ומה קונקרטית לשנות (אם צריך). בלי כלים — טקסט בלבד.`
-
-/** Ask the coach to assess the easy/hard training-intensity balance. */
-export async function requestZoneFeedback(summary: string): Promise<string> {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error(NO_KEY)
-  return runCoach({
-    apiKey,
-    system: `${ZONE_SYSTEM}\n\nמצב נוכחי:\n${buildContext()}`,
-    messages: [{ role: 'user', content: `פילוח אזורי הדופק שלי:\n${summary}` }],
-    tools: [],
-    onToolCall: () => 'no tools',
-  })
-}
-
 /** Ask the coach to propose plan changes (stored as proposals awaiting approval). */
 export async function requestPlanRecommendations(): Promise<string> {
   const apiKey = getApiKey()

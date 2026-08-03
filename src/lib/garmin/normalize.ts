@@ -5,6 +5,7 @@
 //   bike → distance km, speedKmh
 import type { Category, Sport, WorkoutEntry } from '../../store/useStore'
 import type { DailyHealth, GarminActivitySummary, GarminDailyBundle } from './types'
+import { classifyIntensity } from './autoTag'
 
 const RUN_KEYS = new Set([
   'running',
@@ -74,8 +75,15 @@ export function splitStartLocal(s?: string): { date?: string; time?: string } {
   return { date: m[1], time: m[2] }
 }
 
-/** Convert a Garmin activity summary to a log entry (without id). */
-export function activityToEntry(a: GarminActivitySummary): Omit<WorkoutEntry, 'id'> {
+/**
+ * Convert a Garmin activity summary to a log entry (without id).
+ * `maxHrRef` (the athlete's highest recorded max HR) enables intensity
+ * auto-tagging; without it the tag falls back to duration/distance.
+ */
+export function activityToEntry(
+  a: GarminActivitySummary,
+  maxHrRef?: number,
+): Omit<WorkoutEntry, 'id'> {
   const kind = sportFromTypeKey(a.activityType?.typeKey ?? '')
   const { date, time } = splitStartLocal(a.startTimeLocal)
   const meters = a.distance ?? 0
@@ -131,6 +139,22 @@ export function activityToEntry(a: GarminActivitySummary): Omit<WorkoutEntry, 'i
     entry.strengthName = a.activityName || 'אימון כוח'
   } else {
     entry.otherName = a.activityName || 'פעילות'
+  }
+
+  if (entry.category === 'aerobic') {
+    const tag = classifyIntensity(
+      {
+        sport: entry.sport,
+        distance: entry.distance,
+        durationMin: entry.durationMin,
+        avgHr: entry.avgHr,
+      },
+      maxHrRef,
+    )
+    if (tag) {
+      entry.aerobicIntensity = tag
+      entry.autoTagged = true
+    }
   }
 
   return entry

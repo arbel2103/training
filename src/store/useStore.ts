@@ -62,6 +62,8 @@ export interface WorkoutEntry {
   // Garmin-sourced metrics (optional; present when source === 'garmin')
   source?: 'manual' | 'garmin'
   garminActivityId?: number
+  /** true while aerobicIntensity is an automatic guess; false once the user edits it */
+  autoTagged?: boolean
   startTime?: string // HH:MM local
   avgHr?: number
   maxHr?: number

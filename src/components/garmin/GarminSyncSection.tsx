@@ -85,9 +85,14 @@ export default function GarminSyncSection() {
           )}
           {busy && (
             <p className="text-sm text-accent font-semibold">
-              הסנכרון רץ בשרת…
+              הסנכרון רץ בשרת… (1–3 דקות; אפשר לסגור ולחזור)
             </p>
           )}
+          <p className="text-xs text-muted leading-relaxed">
+            נתוני גרמין מתעדכנים אוטומטית כל יום ב-12:00. כדי לקבל נתונים
+            עדכניים <b>עכשיו</b> — לחץ "משוך נתונים חדשים מגרמין" (מריץ סנכרון
+            בשרת). "טען מהשרת" רק קורא מה שכבר סונכרן.
+          </p>
 
           <div className="flex flex-wrap gap-2">
             <button
@@ -95,14 +100,14 @@ export default function GarminSyncSection() {
               disabled={busy}
               className="btn-primary"
             >
-              🔄 סנכרון מלא עכשיו
+              {busy ? 'מסנכרן…' : '🔄 משוך נתונים חדשים מגרמין'}
             </button>
             <button
               onClick={() => void refresh()}
               disabled={refreshing || busy}
               className="btn-soft"
             >
-              {refreshing ? 'מרענן…' : '⬇️ משוך נתונים'}
+              {refreshing ? 'טוען…' : '⬇️ טען מהשרת'}
             </button>
             <button
               onClick={() => setWizard({ open: true, step: 2 })}
