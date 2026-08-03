@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './ui/Modal'
+import GarminSyncSection from './garmin/GarminSyncSection'
 import { isConfigured, preloadGis } from '../lib/googleCalendar'
 import {
   downloadBackup,
@@ -208,6 +209,8 @@ export default function SyncModal({
             />
           </div>
         </section>
+
+        <GarminSyncSection />
 
         {busy && <p className="text-sm text-muted">{busy}</p>}
         {msg && <p className="text-sm text-bike font-semibold">{msg}</p>}

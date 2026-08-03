@@ -12,7 +12,9 @@ import { weekCompletion } from '../../lib/planMatch'
 import { sportIcon, sportLabel } from '../../lib/labels'
 import { formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
+import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
+import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import TabBar from '../../components/ui/TabBar'
 import EntryTab from '../Tracking/EntryTab'
 import HistoryTab from '../Tracking/HistoryTab'
@@ -44,6 +46,11 @@ export default function HomePage() {
 
   const [tab, setTab] = useState<'today' | 'history'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
+  const [garminWizard, setGarminWizard] = useState(false)
+  const [garminDismissed, setGarminDismissed] = useState(
+    () => localStorage.getItem('garmin-banner-dismissed') === '1',
+  )
+  const showGarminBanner = !hasGarminSetup() && !garminDismissed
 
   const now = new Date()
   const todayISO = toISODate(now)
@@ -105,6 +112,40 @@ export default function HomePage() {
         <HistoryTab />
       ) : (
         <>
+      {showGarminBanner && (
+        <div
+          className="card p-3.5 mb-5 text-sm bg-accent-soft/40"
+          style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
+        >
+          <div className="flex items-start gap-2">
+            <span className="text-lg leading-none">⌚</span>
+            <div className="flex-1">
+              <p className="leading-relaxed">
+                חבר את <b>Garmin Connect</b> כדי למשוך אוטומטית שינה, בריאות
+                ואימונים — האפליקציה תסמן וי על האימונים לבד.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setGarminWizard(true)}
+                  className="btn-primary text-sm py-1.5"
+                >
+                  חבר עכשיו
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('garmin-banner-dismissed', '1')
+                    setGarminDismissed(true)
+                  }}
+                  className="btn-ghost text-sm py-1.5"
+                >
+                  אחר כך
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {backupStale && (
         <div
           className="card p-3.5 mb-5 text-sm flex items-center gap-2 bg-accent-soft/40"
@@ -259,6 +300,11 @@ export default function HomePage() {
           onClose={() => setQuick(null)}
         />
       )}
+
+      <GarminSetupWizard
+        open={garminWizard}
+        onClose={() => setGarminWizard(false)}
+      />
     </div>
   )
 }
