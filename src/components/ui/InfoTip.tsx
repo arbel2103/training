@@ -19,11 +19,11 @@ export default function InfoTip({ text }: { text: string }) {
         }}
         aria-label="מה זה הגרף הזה?"
         title="מה זה הגרף הזה?"
-        className={`w-4.5 h-4.5 w-[18px] h-[18px] rounded-full text-[11px] font-bold leading-none
+        className={`w-[18px] h-[18px] rounded-full text-[11px] font-bold italic font-serif leading-none
           grid place-items-center transition select-none
           ${open ? 'bg-accent text-white' : 'bg-ink/10 text-muted hover:bg-ink/20'}`}
       >
-        !
+        i
       </button>
       {open && (
         <span
