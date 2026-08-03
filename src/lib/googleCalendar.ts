@@ -64,9 +64,16 @@ export function preloadGis(): Promise<void> {
   return gisPromise
 }
 
-/** Trigger the OAuth consent / token flow. */
+/**
+ * Trigger the OAuth consent / token flow.
+ *
+ * No-ops while the current token is still valid: re-requesting one can open a
+ * popup, and browsers only allow that straight from a tap — a native select
+ * picker doesn't reliably count, so switching calendars used to get blocked.
+ */
 export async function connect(): Promise<void> {
   if (!CLIENT_ID) throw new Error('missing-client-id')
+  if (isConnected()) return
   await preloadGis()
   await new Promise<void>((resolve, reject) => {
     let settled = false
