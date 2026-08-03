@@ -1,14 +1,14 @@
 {
-  "name": "fitness — מערכת אימונים",
-  "short_name": "fitness",
+  "name": "TriLife — מערכת אימונים",
+  "short_name": "TriLife",
   "description": "מעקב אימונים, תוכנית, תכנון מול היומן ומאמן AI",
   "lang": "he",
   "dir": "rtl",
   "start_url": "/training/",
   "scope": "/training/",
   "display": "standalone",
-  "background_color": "#f6f4f1",
-  "theme_color": "#b5654a",
+  "background_color": "#ffffff",
+  "theme_color": "#f7f6f4",
   "icons": [
     {
       "src": "/training/icon-192.png",
