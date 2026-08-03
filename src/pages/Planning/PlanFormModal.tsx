@@ -3,6 +3,7 @@ import {
   useStore,
   type AerobicIntensity,
   type Category,
+  type PlannedWorkout,
   type Sport,
 } from '../../store/useStore'
 import {
@@ -15,21 +16,28 @@ import {
 } from '../../lib/labels'
 import { sportUnit } from '../../lib/calc'
 import { formatFullDate } from '../../lib/dates'
+import { conflictsFor, findFreeSlot } from '../../lib/scheduling'
 import Modal from '../../components/ui/Modal'
 import Segmented from '../../components/ui/Segmented'
 
 export default function PlanFormModal({
   open,
   date,
+  plan: editing,
   onClose,
 }: {
   open: boolean
   date: string
+  /** when provided, the form edits this planned workout instead of adding one */
+  plan?: PlannedWorkout | null
   onClose: () => void
 }) {
   const categories = useStore((s) => s.strengthCategories)
   const addPlanned = useStore((s) => s.addPlanned)
+  const updatePlanned = useStore((s) => s.updatePlanned)
+  const calendarBusy = useStore((s) => s.calendarBusy)
 
+  const [day, setDay] = useState(date)
   const [category, setCategory] = useState<Category>('strength')
   const [strengthName, setStrengthName] = useState('')
   const [sport, setSport] = useState<Sport>('run')
@@ -40,39 +48,81 @@ export default function PlanFormModal({
   const [durationMin, setDurationMin] = useState(60)
 
   useEffect(() => {
-    if (open) {
-      setCategory('strength')
-      setStrengthName(categories[0]?.name ?? '')
-      setSport('run')
-      setAerobicIntensity('easy')
-      setDistance('')
-      setOtherName('')
-      setTime('18:00')
-      setDurationMin(60)
+    if (!open) return
+    if (editing) {
+      setDay(editing.date)
+      setCategory(editing.category)
+      setStrengthName(editing.strengthName ?? categories[0]?.name ?? '')
+      setSport(editing.sport ?? 'run')
+      setAerobicIntensity(editing.aerobicIntensity ?? 'easy')
+      setDistance(editing.distance ?? '')
+      setOtherName(editing.otherName ?? '')
+      setTime(editing.time || '18:00')
+      setDurationMin(editing.durationMin || 60)
+      return
     }
+    setDay(date)
+    setCategory('strength')
+    setStrengthName(categories[0]?.name ?? '')
+    setSport('run')
+    setAerobicIntensity('easy')
+    setDistance('')
+    setOtherName('')
+    setTime('18:00')
+    setDurationMin(60)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, editing, date])
+
+  const dayEvents = calendarBusy.filter((b) => b.date === day)
+  const clashes = conflictsFor(time, durationMin, dayEvents)
+
+  function suggestTime() {
+    const slot = findFreeSlot(dayEvents, durationMin, time)
+    if (slot) setTime(slot)
+  }
 
   const save = () => {
-    const base = { date, time, durationMin, category }
-    if (category === 'strength') {
-      addPlanned({ ...base, strengthName: strengthName || undefined })
-    } else if (category === 'aerobic') {
-      addPlanned({
-        ...base,
-        sport,
-        aerobicIntensity,
-        distance: typeof distance === 'number' ? distance : undefined,
-      })
-    } else {
-      addPlanned({ ...base, otherName: otherName || 'אימון' })
-    }
+    const base = { date: day, time, durationMin, category }
+    const payload =
+      category === 'strength'
+        ? {
+            ...base,
+            strengthName: strengthName || undefined,
+            sport: undefined,
+            aerobicIntensity: undefined,
+            distance: undefined,
+            otherName: undefined,
+          }
+        : category === 'aerobic'
+          ? {
+              ...base,
+              sport,
+              aerobicIntensity,
+              distance: typeof distance === 'number' ? distance : undefined,
+              strengthName: undefined,
+              otherName: undefined,
+            }
+          : {
+              ...base,
+              otherName: otherName || 'אימון',
+              sport: undefined,
+              aerobicIntensity: undefined,
+              distance: undefined,
+              strengthName: undefined,
+            }
+
+    if (editing) updatePlanned(editing.id, payload)
+    else addPlanned(payload)
     onClose()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="תכנון אימון">
-      <div className="text-sm text-muted mb-4">{formatFullDate(date)}</div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? 'עריכת אימון מתוכנן' : 'תכנון אימון'}
+    >
+      <div className="text-sm text-muted mb-4">{formatFullDate(day)}</div>
 
       <div className="mb-5">
         <label className="label">סוג אימון</label>
@@ -164,27 +214,52 @@ export default function PlanFormModal({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-4 mt-5 pt-5 border-t border-line">
-        <div className="w-32">
-          <label className="label">שעה</label>
-          <input
-            type="time"
-            dir="ltr"
-            className="input text-center"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
+      <div className="mt-5 pt-5 border-t border-line grid gap-3">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="w-40">
+            <label className="label">תאריך</label>
+            <input
+              type="date"
+              className="input text-sm"
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
+            />
+          </div>
+          <div className="w-28">
+            <label className="label">שעה</label>
+            <input
+              type="time"
+              dir="ltr"
+              className="input text-center"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+          <div className="w-28">
+            <label className="label">משך (דקות)</label>
+            <input
+              type="number"
+              min={0}
+              className="input"
+              value={durationMin}
+              onChange={(e) => setDurationMin(Number(e.target.value) || 0)}
+            />
+          </div>
+          <button onClick={suggestTime} className="btn-soft text-sm mb-px">
+            🔎 מצא לי שעה
+          </button>
         </div>
-        <div className="w-32">
-          <label className="label">משך (דקות)</label>
-          <input
-            type="number"
-            min={0}
-            className="input"
-            value={durationMin}
-            onChange={(e) => setDurationMin(Number(e.target.value) || 0)}
-          />
-        </div>
+
+        {clashes.length > 0 && (
+          <p className="text-sm text-run leading-relaxed">
+            ⚠️ מתנגש עם: {clashes.map((c) => c.title).join(' · ')}
+          </p>
+        )}
+        {dayEvents.length === 0 && (
+          <p className="text-xs text-muted">
+            טען את היומן כדי שנוכל לזהות התנגשויות ולהציע שעה פנויה.
+          </p>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 mt-7">
@@ -192,7 +267,7 @@ export default function PlanFormModal({
           ביטול
         </button>
         <button onClick={save} className="btn-primary">
-          הוסף לתכנון
+          {editing ? 'שמור שינויים' : 'הוסף לתכנון'}
         </button>
       </div>
     </Modal>

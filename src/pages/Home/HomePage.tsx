@@ -73,12 +73,6 @@ export default function HomePage() {
       ? daysInRange(todayISO, plan.raceDate) - 1
       : null
 
-  // weight trend: last two weigh-ins
-  const sortedWeighIns = [...weighIns].sort((a, b) => a.date.localeCompare(b.date))
-  const lastW = sortedWeighIns[sortedWeighIns.length - 1]
-  const prevW = sortedWeighIns[sortedWeighIns.length - 2]
-  const weightDiff = lastW && prevW ? lastW.weight - prevW.weight : null
-
   // backup nudge (only when there's data worth protecting)
   const hasData = log.length > 0 || totalCount > 0 || weighIns.length > 0
   const backup = lastBackupAt()
@@ -255,34 +249,6 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* weight */}
-        <div className="card p-5 sm:col-span-2">
-          <h3 className="font-display text-lg font-bold mb-2">משקל</h3>
-          {!lastW ? (
-            <p className="text-sm text-muted">
-              אין שקילות עדיין — אפשר להוסיף בעמוד <b>מעקב בריאות</b>.
-            </p>
-          ) : (
-            <div className="flex items-baseline gap-3">
-              <span className="font-display text-3xl font-black">
-                {lastW.weight} <span className="text-base font-normal">ק״ג</span>
-              </span>
-              {weightDiff !== null && weightDiff !== 0 && (
-                <span
-                  className={`text-sm font-semibold ${
-                    weightDiff < 0 ? 'text-bike' : 'text-run'
-                  }`}
-                >
-                  {weightDiff < 0 ? '↓' : '↑'}{' '}
-                  {Math.abs(Math.round(weightDiff * 10) / 10)} ק״ג מהשקילה הקודמת
-                </span>
-              )}
-              <span className="text-sm text-muted mr-auto">
-                {formatDayMonth(fromISO(lastW.date))}
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* week entry — the old tracking page, now right under the dashboard */}

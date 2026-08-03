@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   useStore,
   type CalendarBusy,
@@ -14,19 +14,24 @@ import {
   weekDays,
 } from '../../lib/dates'
 import { describePlanned } from '../../lib/describe'
+import { conflictsFor } from '../../lib/scheduling'
 import {
   connect,
+  deleteEvent,
   insertEvent,
   isConfigured,
   listCalendars,
   listEvents,
   preloadGis,
   TIME_ZONE,
+  updateEvent,
   type GCalEvent,
 } from '../../lib/googleCalendar'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
+
+const AUTO_CONNECT_KEY = 'calendar-auto-connect'
 
 function addMinutes(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number)
@@ -54,15 +59,20 @@ export default function PlanningPage() {
   const updatePlanned = useStore((s) => s.updatePlanned)
   const calendarQuery = useStore((s) => s.calendarQuery)
   const setCalendarQuery = useStore((s) => s.setCalendarQuery)
+  const calendarBusy = useStore((s) => s.calendarBusy)
   const setCalendarBusy = useStore((s) => s.setCalendarBusy)
 
   const [weekRef, setWeekRef] = useState(() => new Date())
   const days = useMemo(() => weekDays(weekRef), [weekRef])
   const weekStart = toISODate(days[0])
   const weekEnd = toISODate(days[6])
+  const todayISO = toISODate(new Date())
 
   const [formDate, setFormDate] = useState<string | null>(null)
+  const [editing, setEditing] = useState<PlannedWorkout | null>(null)
   const [detailDate, setDetailDate] = useState<string | null>(null)
+  const [selectedDay, setSelectedDay] = useState(todayISO)
+  const [dragId, setDragId] = useState<string | null>(null)
 
   const [connected, setConnected] = useState(false)
   const [account, setAccount] = useState<string | null>(null)
@@ -72,57 +82,131 @@ export default function PlanningPage() {
 
   const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
 
+  // keep the mobile day view inside the displayed week
+  useEffect(() => {
+    if (selectedDay < weekStart || selectedDay > weekEnd) {
+      setSelectedDay(todayISO >= weekStart && todayISO <= weekEnd ? todayISO : weekStart)
+    }
+  }, [weekStart, weekEnd, selectedDay, todayISO])
+
   // preload Google's script so the OAuth popup opens inside the click gesture
   useEffect(() => {
     if (isConfigured()) void preloadGis().catch(() => {})
   }, [])
 
-  async function loadCalendar() {
-    setBusy('טוען יומן…')
+  const loadCalendar = useCallback(
+    async (silent = false) => {
+      if (!silent) setBusy('טוען יומן…')
+      setError(null)
+      try {
+        await connect()
+        setConnected(true)
+        localStorage.setItem(AUTO_CONNECT_KEY, '1')
+        const cals = await listCalendars()
+        setAccount(cals.find((c) => c.primary)?.id ?? null)
+        const q = calendarQuery.trim()
+        const match = q
+          ? cals.find((c) => (c.summary || '').includes(q))
+          : cals.find((c) => c.primary)
+        if (q && !match) {
+          setCalEvents({})
+          if (!silent)
+            setError(
+              `לא נמצא יומן שמכיל "${q}". היומנים הזמינים: ${cals
+                .map((c) => c.summary)
+                .filter(Boolean)
+                .join(' · ')}`,
+            )
+          return
+        }
+        const calId = match?.id ?? 'primary'
+        // fetch a 2-week window so the coach sees upcoming commitments too
+        const busyEnd = toISODate(addDays(days[0], 13))
+        const events = await listEvents(
+          calId,
+          `${weekStart}T00:00:00Z`,
+          `${busyEnd}T23:59:59Z`,
+        )
+        const byDay: Record<string, GCalEvent[]> = {}
+        const busyList: CalendarBusy[] = []
+        for (const ev of events) {
+          const d = ev.start?.dateTime?.slice(0, 10) ?? ev.start?.date
+          if (!d) continue
+          ;(byDay[d] ??= []).push(ev)
+          busyList.push({
+            date: d,
+            start: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : undefined,
+            end: ev.end?.dateTime ? ev.end.dateTime.slice(11, 16) : undefined,
+            title: ev.summary || '(ללא כותרת)',
+          })
+        }
+        setCalEvents(byDay)
+        setCalendarBusy(busyList) // share commitments with the coach
+      } catch (e) {
+        if (!silent) setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        if (!silent) setBusy(null)
+      }
+    },
+    [calendarQuery, days, weekStart, setCalendarBusy],
+  )
+
+  // reconnect quietly on load for anyone who already granted access
+  useEffect(() => {
+    if (!isConfigured()) return
+    if (localStorage.getItem(AUTO_CONNECT_KEY) !== '1') return
+    void loadCalendar(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** Create or overwrite the Google event for one planned workout. */
+  const pushToCalendar = useCallback(
+    async (p: PlannedWorkout) => {
+      if (!isConfigured() || !connected) return
+      try {
+        if (p.syncedEventId) {
+          await updateEvent('primary', p.syncedEventId, planToEvent(p))
+        } else {
+          const created = await insertEvent('primary', planToEvent(p))
+          if (created?.id) updatePlanned(p.id, { syncedEventId: created.id })
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [connected, updatePlanned],
+  )
+
+  /** Remove locally and from Google, so the two never drift apart. */
+  async function removeEverywhere(p: PlannedWorkout) {
+    if (p.syncedEventId && connected) {
+      setBusy('מסיר מהיומן…')
+      try {
+        await deleteEvent('primary', p.syncedEventId)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setBusy(null)
+      }
+    }
+    removePlanned(p.id)
+  }
+
+  async function approve() {
+    setBusy('מסנכרן ליומן…')
     setError(null)
     try {
       await connect()
       setConnected(true)
-      const cals = await listCalendars()
-      setAccount(cals.find((c) => c.primary)?.id ?? null)
-      const q = calendarQuery.trim()
-      const match = q
-        ? cals.find((c) => (c.summary || '').includes(q))
-        : cals.find((c) => c.primary)
-      if (q && !match) {
-        setCalEvents({})
-        setError(
-          `לא נמצא יומן שמכיל "${q}". היומנים הזמינים: ${cals
-            .map((c) => c.summary)
-            .filter(Boolean)
-            .join(' · ')}`,
-        )
-        return
+      localStorage.setItem(AUTO_CONNECT_KEY, '1')
+      for (const p of weekPlanned) {
+        if (p.syncedEventId) {
+          await updateEvent('primary', p.syncedEventId, planToEvent(p))
+        } else {
+          const created = await insertEvent('primary', planToEvent(p))
+          if (created?.id) updatePlanned(p.id, { syncedEventId: created.id })
+        }
       }
-      const calId = match?.id ?? 'primary'
-      // fetch a 2-week window so the coach sees upcoming commitments too;
-      // the grid still renders only the 7 displayed days
-      const busyEnd = toISODate(addDays(days[0], 13))
-      const events = await listEvents(
-        calId,
-        `${weekStart}T00:00:00Z`,
-        `${busyEnd}T23:59:59Z`,
-      )
-      const byDay: Record<string, GCalEvent[]> = {}
-      const busy: CalendarBusy[] = []
-      for (const ev of events) {
-        const d = ev.start?.dateTime?.slice(0, 10) ?? ev.start?.date
-        if (!d) continue
-        ;(byDay[d] ??= []).push(ev)
-        busy.push({
-          date: d,
-          start: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : undefined,
-          end: ev.end?.dateTime ? ev.end.dateTime.slice(11, 16) : undefined,
-          title: ev.summary || '(ללא כותרת)',
-        })
-      }
-      setCalEvents(byDay)
-      setCalendarBusy(busy) // share commitments with the coach
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -130,25 +214,148 @@ export default function PlanningPage() {
     }
   }
 
-  async function approve() {
-    setBusy('מוסיף ליומן…')
-    setError(null)
-    try {
-      await connect()
-      setConnected(true)
-      for (const p of weekPlanned.filter((p) => !p.syncedEventId)) {
-        const created = await insertEvent('primary', planToEvent(p))
-        if (created.id) updatePlanned(p.id, { syncedEventId: created.id })
+  /** After the form saves, keep an already-synced event in step. */
+  function afterSave() {
+    setTimeout(() => {
+      const latest = useStore.getState().planned
+      for (const p of latest.filter((x) => x.syncedEventId)) {
+        if (p.date >= weekStart && p.date <= weekEnd) void pushToCalendar(p)
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setBusy(null)
-    }
+    }, 0)
+  }
+
+  async function moveTo(p: PlannedWorkout, date: string) {
+    if (p.date === date) return
+    updatePlanned(p.id, { date })
+    if (p.syncedEventId) await pushToCalendar({ ...p, date })
   }
 
   const eventTime = (ev: GCalEvent) =>
     ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : 'כל היום'
+
+  function DayCard({ iso, index }: { iso: string; index: number }) {
+    const dayPlanned = weekPlanned.filter((p) => p.date === iso)
+    const dayEvents = calEvents[iso] ?? []
+    const dayBusy = calendarBusy.filter((b) => b.date === iso)
+    const isToday = iso === todayISO
+
+    return (
+      <div
+        onClick={() => setDetailDate(iso)}
+        onDragOver={(e) => {
+          if (dragId) e.preventDefault()
+        }}
+        onDrop={() => {
+          const p = planned.find((x) => x.id === dragId)
+          if (p) void moveTo(p, iso)
+          setDragId(null)
+        }}
+        title="לחץ להגדלה וצפייה בלו״ז המלא"
+        className={`card p-3 flex flex-col gap-2 min-h-[180px] cursor-pointer transition hover:shadow-pop ${
+          isToday ? 'ring-2 ring-accent/30' : ''
+        } ${dragId ? 'outline-dashed outline-1 outline-accent/40' : ''}`}
+      >
+        <div className="flex items-baseline justify-between">
+          <span className="font-bold">{HEB_DAYS_SHORT[index]}</span>
+          <span className="flex items-center gap-1 text-xs text-muted">
+            {formatDayMonth(new Date(iso + 'T00:00:00'))}
+            <span className="opacity-50">⤢</span>
+          </span>
+        </div>
+
+        {/* existing calendar events (read-only) */}
+        {dayEvents.map((ev, idx) => (
+          <div
+            key={idx}
+            className="text-xs rounded-lg bg-ink/5 text-muted px-2 py-1 truncate"
+            title={ev.summary}
+          >
+            <span dir="ltr">{eventTime(ev)}</span> · {ev.summary}
+          </div>
+        ))}
+
+        {/* planned workouts */}
+        {dayPlanned.map((p) => {
+          const v = describePlanned(p)
+          const clash = conflictsFor(p.time || '18:00', p.durationMin || 60, dayBusy)
+          return (
+            <div
+              key={p.id}
+              draggable
+              onDragStart={(e) => {
+                e.stopPropagation()
+                setDragId(p.id)
+              }}
+              onDragEnd={() => setDragId(null)}
+              className="text-xs rounded-lg px-2 py-1.5 border"
+              style={{ borderColor: v.color, background: 'rgb(var(--surface))' }}
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="font-semibold truncate" style={{ color: v.color }}>
+                  {v.icon} {v.title}
+                </span>
+                <span className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditing(p)
+                    }}
+                    className="text-muted hover:text-accent leading-none"
+                    aria-label="ערוך"
+                    title="ערוך"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void removeEverywhere(p)
+                    }}
+                    className="text-muted hover:text-run leading-none"
+                    aria-label="הסר"
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+              <div className="text-muted truncate">{v.details.join(' · ')}</div>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <input
+                  type="time"
+                  value={p.time || '18:00'}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => updatePlanned(p.id, { time: e.target.value })}
+                  onBlur={() => {
+                    const cur = useStore.getState().planned.find((x) => x.id === p.id)
+                    if (cur?.syncedEventId) void pushToCalendar(cur)
+                  }}
+                  className="bg-transparent border border-line rounded-md px-1 py-0.5 text-xs text-ink"
+                  title="שעת האימון ביומן"
+                />
+                <span className="text-muted">{p.durationMin || 60}׳</span>
+                {p.syncedEventId && <span className="text-bike">ביומן ✓</span>}
+                {clash.length > 0 && (
+                  <span className="text-run" title={clash.map((c) => c.title).join(' · ')}>
+                    ⚠️ התנגשות
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setFormDate(iso)
+          }}
+          className="mt-auto text-sm text-accent hover:bg-accent-soft rounded-lg py-1.5 font-semibold"
+        >
+          + הוסף
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -161,7 +368,7 @@ export default function PlanningPage() {
             disabled={!!busy || weekPlanned.length === 0}
             className="btn-primary"
           >
-            אשר ושלח ליומן
+            סנכרן ליומן
           </button>
         }
       />
@@ -186,7 +393,7 @@ export default function PlanningPage() {
               />
             </div>
             <button
-              onClick={loadCalendar}
+              onClick={() => void loadCalendar()}
               disabled={!!busy}
               className="btn-soft mb-px self-end"
             >
@@ -197,10 +404,7 @@ export default function PlanningPage() {
               <span className="text-sm text-bike self-end mb-2">מחובר ✓</span>
             )}
             {account && (
-              <span
-                className="chip text-sm self-end mb-1"
-                title="חשבון Google המחובר"
-              >
+              <span className="chip text-sm self-end mb-1" title="חשבון Google המחובר">
                 👤 {account}
               </span>
             )}
@@ -213,9 +417,9 @@ export default function PlanningPage() {
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setWeekRef((d) => addDays(startOfWeek(d), -7))}
-          className="btn-ghost"
+          className="btn-ghost text-sm py-1.5 px-3"
         >
-          ← שבוע קודם
+          ← קודם
         </button>
         <div className="text-center">
           <button
@@ -230,111 +434,68 @@ export default function PlanningPage() {
         </div>
         <button
           onClick={() => setWeekRef((d) => addDays(startOfWeek(d), 7))}
-          className="btn-ghost"
+          className="btn-ghost text-sm py-1.5 px-3"
         >
-          שבוע הבא →
+          הבא →
         </button>
       </div>
 
-      {/* week grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-        {days.map((d, i) => {
-          const iso = toISODate(d)
-          const dayPlanned = weekPlanned.filter((p) => p.date === iso)
-          const dayEvents = calEvents[iso] ?? []
-          const isToday = iso === toISODate(new Date())
-          return (
-            <div
-              key={iso}
-              onClick={() => setDetailDate(iso)}
-              title="לחץ להגדלה וצפייה בלו״ז המלא"
-              className={`card p-3 flex flex-col gap-2 min-h-[180px] cursor-pointer transition hover:shadow-pop ${
-                isToday ? 'ring-2 ring-accent/30' : ''
-              }`}
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="font-bold">{HEB_DAYS_SHORT[i]}</span>
-                <span className="flex items-center gap-1 text-xs text-muted">
-                  {formatDayMonth(d)}
-                  <span className="opacity-50">⤢</span>
-                </span>
-              </div>
-
-              {/* existing calendar events (read-only) */}
-              {dayEvents.map((ev, idx) => (
-                <div
-                  key={idx}
-                  className="text-xs rounded-lg bg-ink/5 text-muted px-2 py-1 truncate"
-                  title={ev.summary}
-                >
-                  <span dir="ltr">{eventTime(ev)}</span> · {ev.summary}
-                </div>
-              ))}
-
-              {/* planned workouts */}
-              {dayPlanned.map((p) => {
-                const v = describePlanned(p)
-                return (
-                  <div
-                    key={p.id}
-                    className="text-xs rounded-lg px-2 py-1.5 border"
-                    style={{
-                      borderColor: v.color,
-                      background: 'rgb(var(--surface))',
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-semibold" style={{ color: v.color }}>
-                        {v.icon} {v.title}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removePlanned(p.id)
-                        }}
-                        className="text-muted hover:text-accent leading-none"
-                        aria-label="הסר"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="text-muted">{v.details.join(' · ')}</div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <input
-                        type="time"
-                        value={p.time || '18:00'}
-                        disabled={!!p.syncedEventId}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) =>
-                          updatePlanned(p.id, { time: e.target.value })
-                        }
-                        className="bg-transparent border border-line rounded-md px-1 py-0.5 text-xs text-ink disabled:opacity-60"
-                        title="שעת האימון ביומן"
-                      />
-                      {p.syncedEventId && <span className="text-bike">ביומן ✓</span>}
-                    </div>
-                  </div>
-                )
-              })}
-
+      {/* phones: pick a day, see just that day — no endless scrolling */}
+      <div className="lg:hidden">
+        <div className="flex gap-1.5 mb-3">
+          {days.map((d, i) => {
+            const iso = toISODate(d)
+            const active = iso === selectedDay
+            const count = weekPlanned.filter((p) => p.date === iso).length
+            return (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setFormDate(iso)
-                }}
-                className="mt-auto text-sm text-accent hover:bg-accent-soft rounded-lg py-1.5 font-semibold"
+                key={iso}
+                onClick={() => setSelectedDay(iso)}
+                className={`flex-1 min-w-0 rounded-xl py-1.5 text-center transition border ${
+                  active
+                    ? 'bg-ink text-bg border-ink'
+                    : iso === todayISO
+                      ? 'border-accent/40 text-ink'
+                      : 'border-line text-muted'
+                }`}
               >
-                + הוסף
+                <div className="text-xs font-bold">{HEB_DAYS_SHORT[i]}</div>
+                <div className="text-[11px] opacity-70">{d.getDate()}</div>
+                {count > 0 && (
+                  <div
+                    className={`mx-auto mt-0.5 w-1.5 h-1.5 rounded-full ${
+                      active ? 'bg-bg' : 'bg-accent'
+                    }`}
+                  />
+                )}
               </button>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
+        <DayCard iso={selectedDay} index={days.findIndex((d) => toISODate(d) === selectedDay)} />
+      </div>
+
+      {/* desktop: the whole week at a glance */}
+      <div className="hidden lg:grid grid-cols-7 gap-3">
+        {days.map((d, i) => (
+          <DayCard key={toISODate(d)} iso={toISODate(d)} index={i} />
+        ))}
       </div>
 
       <PlanFormModal
         open={formDate !== null}
-        date={formDate ?? toISODate(new Date())}
+        date={formDate ?? todayISO}
         onClose={() => setFormDate(null)}
+      />
+
+      <PlanFormModal
+        open={editing !== null}
+        date={editing?.date ?? todayISO}
+        plan={editing}
+        onClose={() => {
+          setEditing(null)
+          afterSave()
+        }}
       />
 
       <Modal
@@ -408,10 +569,7 @@ export default function PlanningPage() {
                             style={{ borderColor: v.color }}
                           >
                             <div className="min-w-0">
-                              <span
-                                className="font-semibold"
-                                style={{ color: v.color }}
-                              >
+                              <span className="font-semibold" style={{ color: v.color }}>
                                 {v.icon} {v.title}
                               </span>
                               {v.details.length > 0 && (
@@ -424,13 +582,25 @@ export default function PlanningPage() {
                                 <span className="text-bike text-sm"> · ביומן ✓</span>
                               )}
                             </div>
-                            <button
-                              onClick={() => removePlanned(p.id)}
-                              className="text-muted hover:text-accent shrink-0"
-                              aria-label="הסר"
-                            >
-                              ×
-                            </button>
+                            <span className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setDetailDate(null)
+                                  setEditing(p)
+                                }}
+                                className="text-muted hover:text-accent"
+                                aria-label="ערוך"
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() => void removeEverywhere(p)}
+                                className="text-muted hover:text-run"
+                                aria-label="הסר"
+                              >
+                                ×
+                              </button>
+                            </span>
                           </div>
                         )
                       })}

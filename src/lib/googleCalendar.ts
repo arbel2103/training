@@ -142,7 +142,10 @@ async function api(path: string, opts: RequestInit = {}): Promise<any> {
     },
   })
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
-  return res.json()
+  // DELETE answers 204 with an empty body — nothing to parse
+  if (res.status === 204) return null
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
 }
 
 export async function listCalendars(): Promise<GCalCalendar[]> {
@@ -185,4 +188,35 @@ export async function insertEvent(
     method: 'POST',
     body: JSON.stringify(event),
   })
+}
+
+/** Overwrite an existing event (used when a planned workout changes). */
+export async function updateEvent(
+  calendarId: string,
+  eventId: string,
+  event: GCalEvent,
+): Promise<GCalEvent> {
+  return api(
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    { method: 'PUT', body: JSON.stringify(event) },
+  )
+}
+
+/**
+ * Delete an event. Already-missing events (404/410) resolve quietly so the
+ * app can drop its local copy either way.
+ */
+export async function deleteEvent(
+  calendarId: string,
+  eventId: string,
+): Promise<void> {
+  try {
+    await api(
+      `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+      { method: 'DELETE' },
+    )
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (!/\b(404|410)\b/.test(msg)) throw e
+  }
 }
