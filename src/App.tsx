@@ -7,6 +7,7 @@ import CoachFab from './components/CoachFab'
 import SyncModal from './components/SyncModal'
 import GuideOverlay from './components/GuideOverlay'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
+import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -23,6 +24,9 @@ export default function App() {
   const [guideOpen, setGuideOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const scrollerRef = useRef<HTMLDivElement>(null)
+
+  // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
+  useGarminRefreshOnMount()
 
   // show the walkthrough automatically on the very first visit
   useEffect(() => {

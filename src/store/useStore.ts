@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { DailyHealth } from '../lib/garmin/types'
 
 export type ID = string
 
@@ -153,6 +154,20 @@ export interface ChatMessage {
   text: string
 }
 
+/* ---------------- Garmin integration ---------------- */
+export interface GarminSettings {
+  connected: boolean
+  lastEmail?: string // password is never stored on the device
+}
+export type GarminSyncState = 'idle' | 'dispatching' | 'running' | 'error'
+export interface GarminSyncStatus {
+  state: GarminSyncState
+  lastGarminSyncAt?: string // when the workflow last ran (from sync-status.json)
+  lastFetchAt?: string // when the app last pulled data from the repo
+  error?: string
+  errorCode?: string
+}
+
 function adjustReps(reps: number[], sets: number): number[] {
   const next = reps.slice(0, sets)
   const fill = reps.length ? reps[reps.length - 1] : 10
@@ -172,6 +187,9 @@ interface State {
   coachMessages: ChatMessage[]
   calendarQuery: string
   calendarBusy: CalendarBusy[]
+  garminSettings: GarminSettings
+  garminSyncStatus: GarminSyncStatus
+  garminDaily: DailyHealth[]
 
   // strength categories
   addCategory: (name: string) => void
@@ -225,6 +243,15 @@ interface State {
   // calendar
   setCalendarQuery: (q: string) => void
   setCalendarBusy: (events: CalendarBusy[]) => void
+
+  // garmin
+  setGarminSettings: (patch: Partial<GarminSettings>) => void
+  setGarminSyncStatus: (patch: Partial<GarminSyncStatus>) => void
+  setGarminDaily: (days: DailyHealth[]) => void
+  upsertGarminEntries: (
+    creates: Omit<WorkoutEntry, 'id'>[],
+    updates: { id: ID; patch: Partial<WorkoutEntry> }[],
+  ) => void
 }
 
 export const useStore = create<State>()(
@@ -241,6 +268,9 @@ export const useStore = create<State>()(
       coachMessages: [],
       calendarQuery: 'אלבטרוס',
       calendarBusy: [],
+      garminSettings: { connected: false },
+      garminSyncStatus: { state: 'idle' },
+      garminDaily: [],
 
       addCategory: (name) =>
         set((s) => ({
@@ -407,7 +437,41 @@ export const useStore = create<State>()(
 
       setCalendarQuery: (q) => set({ calendarQuery: q }),
       setCalendarBusy: (events) => set({ calendarBusy: events }),
+
+      setGarminSettings: (patch) =>
+        set((s) => ({ garminSettings: { ...s.garminSettings, ...patch } })),
+      setGarminSyncStatus: (patch) =>
+        set((s) => ({ garminSyncStatus: { ...s.garminSyncStatus, ...patch } })),
+      setGarminDaily: (days) =>
+        set((s) => {
+          const byDate = new Map<string, DailyHealth>()
+          for (const d of s.garminDaily) byDate.set(d.date, d)
+          for (const d of days) byDate.set(d.date, d)
+          return {
+            garminDaily: [...byDate.values()].sort((a, b) =>
+              a.date.localeCompare(b.date),
+            ),
+          }
+        }),
+      upsertGarminEntries: (creates, updates) =>
+        set((s) => {
+          const patchById = new Map(updates.map((u) => [u.id, u.patch]))
+          const log = s.log.map((e) =>
+            patchById.has(e.id) ? { ...e, ...patchById.get(e.id) } : e,
+          )
+          for (const c of creates) log.push({ ...c, id: uid() })
+          return { log }
+        }),
     }),
-    { name: 'training-app-v1' },
+    {
+      name: 'training-app-v1',
+      version: 1,
+      migrate: (state) => ({
+        garminSettings: { connected: false },
+        garminSyncStatus: { state: 'idle' },
+        garminDaily: [],
+        ...(state as object),
+      }),
+    },
   ),
 )
