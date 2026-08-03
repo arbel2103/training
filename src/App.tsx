@@ -69,7 +69,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <span className="font-display text-2xl font-black leading-none tracking-tight">
-              fitness<span className="text-accent">.</span>
+              fitness
             </span>
             <span className="hidden md:block h-6 w-px bg-line" />
           </div>

@@ -12,7 +12,6 @@ export default function PageHeader({ title, subtitle, actions }: PageHeaderProps
       <div>
         <h1 className="font-display text-4xl md:text-5xl font-black tracking-tight leading-none">
           {title}
-          <span className="text-accent">.</span>
         </h1>
         {subtitle && <p className="mt-2.5 text-muted">{subtitle}</p>}
       </div>
