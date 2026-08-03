@@ -66,7 +66,7 @@ function StepDots({ step }: { step: Step }) {
             <span
               className={`w-6 h-6 grid place-items-center rounded-full text-xs font-bold ${
                 active
-                  ? 'bg-ink text-white'
+                  ? 'bg-ink text-bg'
                   : done
                     ? 'bg-accent text-white'
                     : 'bg-ink/10 text-muted'

@@ -222,7 +222,7 @@ export default function CoachPanel({
                   key={m.id}
                   className={`max-w-[85%] rounded-2xl px-4 py-2.5 whitespace-pre-wrap leading-relaxed ${
                     m.role === 'user'
-                      ? 'ml-auto bg-ink text-white'
+                      ? 'ml-auto bg-ink text-bg'
                       : 'bg-bg border border-line'
                   }`}
                 >

@@ -32,7 +32,7 @@ export default function StrengthProgram() {
               key={c.id}
               className={`flex items-center gap-1.5 rounded-xl border px-2 py-1.5 transition ${
                 isActive
-                  ? 'bg-ink text-white border-ink'
+                  ? 'bg-ink text-bg border-ink'
                   : 'bg-surface text-muted border-line hover:text-ink'
               }`}
             >

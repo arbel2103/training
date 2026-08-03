@@ -47,7 +47,7 @@ export default function TabBar<T extends string>({
         >
           {t.label}
           {t.value === value && (
-            <span className="absolute inset-x-0 -bottom-px h-0.5 bg-accent rounded-full" />
+            <span className="tab-underline absolute inset-x-0 -bottom-px h-0.5 bg-accent rounded-full" />
           )}
         </button>
       ))}

@@ -26,8 +26,8 @@ export default {
         '2xl': '20px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(28,28,26,0.04), 0 8px 24px -12px rgba(28,28,26,0.12)',
-        pop: '0 12px 40px -8px rgba(28,28,26,0.22)',
+        card: '0 1px 2px rgba(17,17,16,0.04)',
+        pop: '0 16px 48px -12px rgba(17,17,16,0.25)',
       },
     },
   },

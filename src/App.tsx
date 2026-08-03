@@ -61,7 +61,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <span className="font-display text-2xl font-black leading-none tracking-tight">
-              fitness
+              fitness<span className="text-accent">.</span>
             </span>
             <span className="hidden md:block h-6 w-px bg-line" />
           </div>
@@ -76,7 +76,7 @@ export default function App() {
                   onClick={() => goTo(i)}
                   className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active
-                      ? 'bg-ink text-white shadow-card'
+                      ? 'bg-ink text-bg shadow-card'
                       : 'text-muted hover:text-ink hover:bg-ink/5'
                   }`}
                 >

@@ -3,40 +3,39 @@
 @tailwind utilities;
 
 :root {
-  /* Squarespace-inspired palette. RGB channel triplets so Tailwind alpha
-     modifiers (e.g. bg-ink/90, ring-accent/15) work. */
-  --bg: 246 244 241;
+  /* Studio-minimal palette: near-monochrome paper + ink with a single vivid
+     accent. RGB channel triplets so Tailwind alpha modifiers work. */
+  --bg: 247 246 244;
   --surface: 255 255 255;
-  --ink: 28 28 26;
-  --muted: 122 117 110;
-  --line: 231 226 218;
-  --accent: 181 101 74;
-  --accent-soft: 241 228 221;
+  --ink: 17 17 16;
+  --muted: 128 126 120;
+  --line: 229 228 224;
+  --accent: 228 87 46;
+  --accent-soft: 250 232 225;
 
-  /* sport / category colors (muted, editorial) */
-  --c-strength: 138 90 60;
-  --c-run: 194 96 58;
-  --c-bike: 62 124 106;
-  --c-swim: 58 110 165;
-  --c-other: 122 117 110;
+  /* sport / category colors (harmonized with the accent) */
+  --c-strength: 146 96 60;
+  --c-run: 214 84 42;
+  --c-bike: 44 122 100;
+  --c-swim: 52 106 168;
+  --c-other: 128 126 120;
 }
 
-/* dark palette — same warm character, flipped values; applied by a small
-   script in index.html (saved preference or system setting) */
+/* dark palette — deep studio black, same single-accent character */
 :root[data-theme='dark'] {
-  --bg: 24 22 20;
-  --surface: 35 32 29;
-  --ink: 237 232 226;
-  --muted: 160 152 143;
-  --line: 58 53 48;
-  --accent: 209 126 94;
-  --accent-soft: 66 47 39;
+  --bg: 14 14 13;
+  --surface: 24 24 23;
+  --ink: 240 239 235;
+  --muted: 152 150 143;
+  --line: 44 44 42;
+  --accent: 255 112 67;
+  --accent-soft: 61 34 25;
 
-  --c-strength: 186 132 92;
-  --c-run: 228 130 88;
-  --c-bike: 104 176 152;
-  --c-swim: 118 166 218;
-  --c-other: 160 152 143;
+  --c-strength: 196 140 96;
+  --c-run: 235 122 78;
+  --c-bike: 96 180 152;
+  --c-swim: 118 168 220;
+  --c-other: 152 150 143;
 }
 
 * {
@@ -61,9 +60,20 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* whole app fades in once on load */
+#root {
+  animation: fade-in 0.45s ease-out both;
+}
+
+/* display type: tight, editorial */
+.font-display {
+  letter-spacing: -0.02em;
+}
+
 @layer components {
   .card {
-    @apply bg-surface border border-line rounded-2xl shadow-card;
+    @apply bg-surface border border-line rounded-2xl;
+    animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .input {
     @apply w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-ink
@@ -73,17 +83,17 @@ body {
     @apply block text-sm font-medium text-muted mb-1.5;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold
-           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-semibold
+           transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-ink text-white hover:bg-ink/90;
+    @apply btn bg-ink text-bg hover:opacity-90 hover:-translate-y-px;
   }
   .btn-accent {
-    @apply btn bg-accent text-white hover:opacity-90;
+    @apply btn bg-accent text-white hover:opacity-90 hover:-translate-y-px;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-ink hover:bg-ink/5 border border-line;
+    @apply btn bg-transparent text-ink border border-line hover:border-ink/40;
   }
   .btn-soft {
     @apply btn bg-accent-soft text-accent hover:bg-accent-soft/70;
@@ -92,14 +102,68 @@ body {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border border-line bg-surface;
   }
   .seg-btn {
-    @apply px-3 py-2 rounded-lg text-sm font-medium transition border border-transparent;
+    @apply px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-transparent;
   }
   .seg-btn-active {
-    @apply bg-ink text-white;
+    @apply bg-ink text-bg;
   }
   .seg-btn-idle {
-    @apply bg-surface text-muted border-line hover:text-ink;
+    @apply bg-surface text-muted border-line hover:text-ink hover:border-ink/30;
   }
+}
+
+/* ---- motion ---- */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* cards rise gently into place; siblings stagger for a composed feel */
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.grid > .card:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.grid > .card:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.grid > .card:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.grid > .card:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.grid > .card:nth-child(n + 6) {
+  animation-delay: 0.25s;
+}
+
+/* active tab underline slides in */
+@keyframes underline-in {
+  from {
+    transform: scaleX(0.3);
+    opacity: 0.4;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+.tab-underline {
+  transform-origin: center;
+  animation: underline-in 0.25s ease-out both;
 }
 
 /* modals: rise gently from the bottom (bottom-sheet feel on phones) */
@@ -114,7 +178,20 @@ body {
   }
 }
 .modal-panel {
-  animation: modal-in 0.22s ease-out;
+  animation: modal-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* honor users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  #root,
+  .card,
+  .tab-underline,
+  .modal-panel {
+    animation: none !important;
+  }
+  .btn {
+    transition: none;
+  }
 }
 
 /* hide scrollbars on the page carousel while keeping it scrollable */
