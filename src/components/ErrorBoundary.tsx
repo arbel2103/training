@@ -1,0 +1,45 @@
+import { Component, type ErrorInfo, type ReactNode } from 'react'
+
+interface Props {
+  children: ReactNode
+}
+interface State {
+  error: Error | null
+}
+
+/**
+ * Catches render errors in a subtree and shows a small fallback instead of
+ * blanking the whole app. All pages mount at once (App's snap scroller), so
+ * without this a single bad tab would take everything down.
+ */
+export default class ErrorBoundary extends Component<Props, State> {
+  state: State = { error: null }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('Page error:', error, info)
+  }
+
+  render(): ReactNode {
+    if (this.state.error) {
+      return (
+        <div className="card p-6 text-center text-muted grid gap-3">
+          <div className="text-3xl">⚠️</div>
+          <p className="leading-relaxed">
+            אירעה שגיאה בטעינת החלק הזה. נסה לרענן את הדף.
+          </p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="btn-soft justify-self-center"
+          >
+            נסה שוב
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}

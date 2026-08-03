@@ -26,8 +26,8 @@ export interface GarminSleep {
   lightSeconds?: number
   remSeconds?: number
   awakeSeconds?: number
-  startLocal?: string
-  endLocal?: string
+  startLocal?: string | number // ISO string or epoch-ms (Garmin *Local)
+  endLocal?: string | number
 }
 
 export interface GarminHrv {

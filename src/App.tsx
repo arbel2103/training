@@ -6,6 +6,7 @@ import HealthPage from './pages/Health/HealthPage'
 import CoachFab from './components/CoachFab'
 import SyncModal from './components/SyncModal'
 import GuideOverlay from './components/GuideOverlay'
+import ErrorBoundary from './components/ErrorBoundary'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 
@@ -126,7 +127,7 @@ export default function App() {
             className="min-w-full h-full overflow-y-auto snap-start no-scrollbar"
           >
             <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
-              {p.el}
+              <ErrorBoundary>{p.el}</ErrorBoundary>
             </div>
           </section>
         ))}

@@ -2,6 +2,7 @@
 // insights. Pure — no I/O, easily unit tested.
 import type { WorkoutEntry } from '../store/useStore'
 import type { DailyHealth } from './garmin/types'
+import { toIsoLocal } from './garmin/normalize'
 
 export type Severity = 'good' | 'info' | 'warn'
 export interface Insight {
@@ -25,7 +26,8 @@ function stddev(nums: number[]): number {
 }
 
 /** Bedtime as minutes on an 18:00-anchored scale, so past-midnight is monotone. */
-function bedtimeMinutes(iso?: string): number | null {
+function bedtimeMinutes(value?: string | number): number | null {
+  const iso = toIsoLocal(value)
   if (!iso) return null
   const m = iso.match(/T(\d{2}):(\d{2})/)
   if (!m) return null

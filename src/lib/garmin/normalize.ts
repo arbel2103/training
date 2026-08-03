@@ -52,6 +52,20 @@ const round = (n: number, d = 0): number => {
   return Math.round(n * f) / f
 }
 
+/**
+ * Normalize a Garmin sleep timestamp to an ISO string. Garmin's *Local fields
+ * come as epoch-milliseconds encoding local wall-clock time, so reading them as
+ * GMT (toISOString) yields the correct local HH:MM. Strings pass through.
+ */
+export function toIsoLocal(v?: string | number): string | undefined {
+  if (v == null) return undefined
+  if (typeof v === 'number') {
+    const t = new Date(v)
+    return Number.isNaN(t.getTime()) ? undefined : t.toISOString()
+  }
+  return v
+}
+
 /** "2026-08-01 06:30:00" → { date: "2026-08-01", time: "06:30" } */
 export function splitStartLocal(s?: string): { date?: string; time?: string } {
   if (!s) return {}
@@ -156,8 +170,8 @@ export function toDailyHealth(date: string, b: GarminDailyBundle): DailyHealth {
     d.lightMin = secToMin(b.sleep.lightSeconds)
     d.remMin = secToMin(b.sleep.remSeconds)
     d.awakeMin = secToMin(b.sleep.awakeSeconds)
-    d.sleepStart = b.sleep.startLocal
-    d.sleepEnd = b.sleep.endLocal
+    d.sleepStart = toIsoLocal(b.sleep.startLocal)
+    d.sleepEnd = toIsoLocal(b.sleep.endLocal)
   }
   if (b.vo2max != null) d.vo2max = b.vo2max
   return d

@@ -82,6 +82,22 @@ describe('activityToEntry', () => {
 })
 
 describe('toDailyHealth', () => {
+  it('converts epoch-ms sleep timestamps to ISO strings', () => {
+    // real Garmin get_sleep_data returns *Local as epoch milliseconds
+    const d = toDailyHealth('2026-08-01', {
+      sleep: {
+        score: 67,
+        totalSeconds: 19560,
+        deepSeconds: 2880,
+        startLocal: 1785550425000,
+        endLocal: 1785570225000,
+      },
+    })
+    expect(typeof d.sleepStart).toBe('string')
+    expect(d.sleepStart).toBe(new Date(1785550425000).toISOString())
+    expect(d.sleepScore).toBe(67)
+  })
+
   it('extracts steps, sleep minutes, hrv and body battery', () => {
     const d = toDailyHealth('2026-08-01', daily['2026-08-01'])
     expect(d.steps).toBe(12450)

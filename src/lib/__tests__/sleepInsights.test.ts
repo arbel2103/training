@@ -51,4 +51,13 @@ describe('sleepInsights', () => {
     const out = sleepInsights(days)
     expect(out.some((i) => i.severity === 'good')).toBe(true)
   })
+
+  it('does not throw when sleepStart is an epoch-ms number (real Garmin data)', () => {
+    const days = dates(7).map((d, i) => ({
+      ...night(d),
+      // simulate the raw epoch-ms that slipped through before normalization
+      sleepStart: (1785550425000 + i * 86_400_000) as unknown as string,
+    }))
+    expect(() => sleepInsights(days)).not.toThrow()
+  })
 })
