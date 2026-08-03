@@ -4,7 +4,7 @@
 
 const PAT_KEY = 'github-data-pat'
 const REPO_KEY = 'garmin-data-repo'
-const DEFAULT_REPO = 'arbel2103/training-data'
+const DEFAULT_REPO = 'arbel2103/fitness'
 
 export const getPat = (): string => localStorage.getItem(PAT_KEY) ?? ''
 export const setPat = (v: string): void => localStorage.setItem(PAT_KEY, v.trim())
