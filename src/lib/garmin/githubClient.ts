@@ -3,6 +3,7 @@
 // entirely in the browser; the GitHub API allows CORS for these endpoints.
 import { getDataRepo, getPat } from './pat'
 import { sealSecret } from './sealedBox'
+import { SYNC_ENGINE_FILES } from './syncEngine'
 
 const API = 'https://api.github.com'
 const WORKFLOW_FILE = 'sync.yml'
@@ -83,6 +84,43 @@ export async function getJsonFile<T>(path: string): Promise<T | null> {
   const text = await getRawFile(path)
   if (text == null) return null
   return JSON.parse(text) as T
+}
+
+/** True if a file already exists in the data repo. */
+async function fileExists(path: string): Promise<boolean> {
+  const res = await fetch(
+    `${API}/repos/${getDataRepo()}/contents/${encodeURI(path)}?ref=${DEFAULT_REF}`,
+    { headers: headers(), cache: 'no-store' },
+  )
+  if (res.status === 404) return false
+  if (!res.ok) await fail(res)
+  return true
+}
+
+/**
+ * Write the sync engine (workflow + Python) into the data repo, turning a fresh
+ * empty private repo into a working one — so the user never copies files by
+ * hand. Idempotent: only creates files that are missing, never overwrites.
+ * Writing under .github/workflows/ requires the token's Workflows permission.
+ */
+export async function provisionSyncEngine(): Promise<{ created: number }> {
+  const repo = getDataRepo()
+  let created = 0
+  for (const f of SYNC_ENGINE_FILES) {
+    if (await fileExists(f.path)) continue
+    const res = await fetch(`${API}/repos/${repo}/contents/${encodeURI(f.path)}`, {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        message: 'Add TriLife sync engine',
+        content: f.base64,
+        branch: DEFAULT_REF,
+      }),
+    })
+    if (!res.ok) await fail(res)
+    created += 1
+  }
+  return { created }
 }
 
 /** Write (create/update) an Actions secret using a sealed box. */

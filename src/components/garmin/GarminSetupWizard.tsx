@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal'
 import { useStore } from '../../store/useStore'
-import { getDataRepo, setPat } from '../../lib/garmin/pat'
-import { getRepoOk, putSecret } from '../../lib/garmin/githubClient'
+import { getDataRepo, setDataRepo, setPat } from '../../lib/garmin/pat'
+import { getRepoOk, provisionSyncEngine, putSecret } from '../../lib/garmin/githubClient'
 import { garminErrorMessage, manualSync } from '../../lib/garmin/sync'
 
 type Step = 1 | 2 | 3 | 4
@@ -94,6 +94,15 @@ function RepoStep({
   repoName: string
   onDone: () => void
 }) {
+  const [repo, setRepo] = useState(getDataRepo())
+  const valid = /^[\w.-]+\/[\w.-]+$/.test(repo.trim())
+
+  function next() {
+    if (!valid) return
+    setDataRepo(repo.trim())
+    onDone()
+  }
+
   return (
     <div className="grid gap-3">
       <p className="text-sm text-muted leading-relaxed">
@@ -103,8 +112,7 @@ function RepoStep({
       </p>
 
       <div className="rounded-xl bg-accent-soft/50 text-sm px-3 py-2 leading-relaxed">
-        כבר חיברת בעבר? הריפו שלך (<code>{repoName}</code>) כבר קיים — אפשר
-        להמשיך ישר לשלב הבא.
+        כבר חיברת בעבר? הריפו שלך (<code>{repoName}</code>) כבר קיים — פשוט המשך.
       </div>
 
       <p className="text-sm font-semibold">בפעם הראשונה, בהגדרה חדשה:</p>
@@ -117,27 +125,38 @@ function RepoStep({
           .
         </li>
         <li>
-          צור <b>ריפו פרטי חדש</b> ב-
+          צור <b>ריפו פרטי ריק</b> ב-
           <a href={NEW_REPO_URL} target="_blank" rel="noreferrer" className="text-accent font-semibold underline">
             github.com/new
           </a>{' '}
-          — תן לו שם (למשל <code>trilife-data</code>), בחר <b>Private</b>, וסמן{' '}
-          <b>Add a README</b>. לחץ <b>Create repository</b>.
-        </li>
-        <li>
-          הכנס לריפו את <b>מנוע הסנכרון</b>: תיקיית <code>sync/</code> (סקריפטי
-          הפייתון) והקובץ <code>.github/workflows/sync.yml</code> — אלה שמדברים
-          עם גרמין ומעדכנים את הנתונים.
+          — תן לו שם (למשל <code>trilife-data</code>), בחר <b>Private</b>, סמן{' '}
+          <b>Add a README</b>, ולחץ <b>Create repository</b>.
         </li>
       </ol>
 
       <div className="rounded-xl bg-ink/5 text-xs text-muted px-3 py-2 leading-relaxed">
-        טיפ: להכנסת מנוע הסנכרון בקלות אפשר להשתמש בתבנית מוכנה (Import/Template)
-        במקום להעתיק קבצים ידנית. מה שחשוב — שהריפו יהיה <b>פרטי</b>.
+        זה הכל — לא צריך להעתיק שום קובץ. בשלב הבא, אחרי שתיתן הרשאה,{' '}
+        <b>האפליקציה תתקין את מנוע הסנכרון לתוך הריפו בעצמה</b>.
       </div>
 
-      <button onClick={onDone} className="btn-primary justify-self-start">
-        יש לי ריפו — המשך
+      <label className="block">
+        <span className="label">כתובת הריפו (owner/repo)</span>
+        <input
+          className="input text-sm"
+          value={repo}
+          dir="ltr"
+          onChange={(e) => setRepo(e.target.value)}
+          placeholder="your-username/trilife-data"
+          autoComplete="off"
+        />
+      </label>
+
+      <button
+        onClick={next}
+        disabled={!valid}
+        className="btn-primary justify-self-start"
+      >
+        המשך
       </button>
     </div>
   )
@@ -151,16 +170,20 @@ function PatStep({
   onDone: () => void
 }) {
   const [token, setToken] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<false | string>(false)
   const [error, setError] = useState<string | null>(null)
 
   async function validate() {
     if (!token.trim()) return
-    setBusy(true)
+    setBusy('בודק הרשאה…')
     setError(null)
     setPat(token)
     try {
       await getRepoOk()
+      // put the sync engine into the (possibly empty) repo so nothing is
+      // copied by hand; idempotent, so re-running is safe.
+      setBusy('מתקין מנוע סנכרון…')
+      await provisionSyncEngine()
       onDone()
     } catch (e) {
       setError(garminErrorMessage(e))
@@ -198,12 +221,17 @@ function PatStep({
           <code>{repoName}</code>
         </li>
         <li>
-          <b>Permissions</b> (Repository permissions):
+          <b>Permissions</b> (Repository permissions) — כולם <b>Read and write</b>:
           <ul className="list-disc pr-5 mt-1">
-            <li>Contents — <b>Read-only</b></li>
-            <li>Actions — <b>Read and write</b></li>
-            <li>Secrets — <b>Read and write</b></li>
+            <li>Contents</li>
+            <li>Workflows</li>
+            <li>Actions</li>
+            <li>Secrets</li>
           </ul>
+          <span className="text-xs text-muted">
+            (הרשאת <b>Workflows</b> נחוצה כדי שהאפליקציה תוכל להתקין את מנוע
+            הסנכרון לריפו בעצמה.)
+          </span>
         </li>
         <li>לחץ <b>Generate token</b> והעתק את הקוד</li>
       </ol>
@@ -220,10 +248,10 @@ function PatStep({
       {error && <p className="text-sm text-run">{error}</p>}
       <button
         onClick={validate}
-        disabled={busy || !token.trim()}
+        disabled={!!busy || !token.trim()}
         className="btn-primary justify-self-start"
       >
-        {busy ? 'בודק…' : 'אמת והמשך'}
+        {busy || 'אמת והמשך'}
       </button>
     </div>
   )
