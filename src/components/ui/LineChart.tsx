@@ -7,6 +7,26 @@ interface Point {
   value: number
 }
 
+/** A gently smoothed cubic path through the points (Catmull-Rom style). */
+export function smoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return ''
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  let d = `M ${pts[0].x} ${pts[0].y}`
+  const t = 0.16
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] ?? p2
+    const c1x = p1.x + (p2.x - p0.x) * t
+    const c1y = p1.y + (p2.y - p0.y) * t
+    const c2x = p2.x - (p3.x - p1.x) * t
+    const c2y = p2.y - (p3.y - p1.y) * t
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`
+  }
+  return d
+}
+
 /**
  * Minimal dependency-free SVG line chart, styled with the app's design tokens.
  * Scales to the container width via viewBox. `format` controls how y-values
@@ -54,8 +74,13 @@ export default function LineChart({
     data.length === 1 ? padL + plotW / 2 : padL + (i / (data.length - 1)) * plotW
   const y = (v: number) => padT + (1 - (v - min) / span) * plotH
 
-  const pts = data.map((d, i) => `${x(i)},${y(d.value)}`).join(' ')
-  const areaPts = `${padL},${padT + plotH} ${pts} ${x(data.length - 1)},${padT + plotH}`
+  const pts = data.map((d, i) => ({ x: x(i), y: y(d.value) }))
+  const line = smoothPath(pts)
+  const baseY = padT + plotH
+  const area =
+    data.length === 1
+      ? ''
+      : `${line} L ${pts[pts.length - 1].x} ${baseY} L ${pts[0].x} ${baseY} Z`
 
   const labelStep = Math.max(1, Math.ceil(data.length / 6))
   const colW = data.length > 1 ? plotW / (data.length - 1) : plotW
@@ -65,9 +90,16 @@ export default function LineChart({
     <svg
       viewBox={`0 0 ${W} ${H}`}
       width="100%"
-      className="select-none"
+      className="select-none overflow-visible"
       role="img"
     >
+      <defs>
+        <linearGradient id="lc-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
       {/* horizontal guide lines + y labels (min / mid / max) */}
       {[max, (max + min) / 2, min].map((v, i) => {
         const yy = y(v)
@@ -78,7 +110,7 @@ export default function LineChart({
               x2={W - padR}
               y1={yy}
               y2={yy}
-              stroke="rgb(var(--line))"
+              stroke="rgb(var(--ink) / 0.06)"
               strokeWidth={1}
             />
             <text
@@ -95,9 +127,9 @@ export default function LineChart({
       })}
 
       {/* area + line */}
-      <polygon points={areaPts} fill="rgb(var(--accent) / 0.10)" />
-      <polyline
-        points={pts}
+      {area && <path d={area} fill="url(#lc-area)" />}
+      <path
+        d={line}
         fill="none"
         stroke="rgb(var(--accent))"
         strokeWidth={2.5}
@@ -105,28 +137,32 @@ export default function LineChart({
         strokeLinecap="round"
       />
 
-      {/* points + x labels */}
-      {data.map((d, i) => (
-        <g key={i}>
-          <circle
-            cx={x(i)}
-            cy={y(d.value)}
-            r={active === i ? 5.5 : 3.5}
-            fill="rgb(var(--accent))"
-          />
-          {(i % labelStep === 0 || i === data.length - 1) && (
-            <text
-              x={x(i)}
-              y={H - 10}
-              textAnchor="middle"
-              fontSize="12"
-              fill="rgb(var(--muted))"
-            >
-              {d.label}
-            </text>
-          )}
-        </g>
-      ))}
+      {/* x labels */}
+      {data.map((d, i) =>
+        i % labelStep === 0 || i === data.length - 1 ? (
+          <text
+            key={`xl-${i}`}
+            x={x(i)}
+            y={H - 10}
+            textAnchor="middle"
+            fontSize="12"
+            fill="rgb(var(--muted))"
+          >
+            {d.label}
+          </text>
+        ) : null,
+      )}
+
+      {/* glowing endpoint (or the active point) */}
+      {(() => {
+        const idx = active ?? data.length - 1
+        return (
+          <g>
+            <circle cx={x(idx)} cy={y(data[idx].value)} r={9} fill="rgb(var(--accent) / 0.18)" />
+            <circle cx={x(idx)} cy={y(data[idx].value)} r={active === idx ? 5 : 4} fill="rgb(var(--accent))" />
+          </g>
+        )
+      })()}
 
       {/* last value callout (hidden while a point is selected) */}
       {active === null && (

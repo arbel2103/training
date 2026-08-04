@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ChartTooltip from './SvgTooltip'
 import { useTapAway } from './useTapAway'
+import { smoothPath } from './LineChart'
 
 export interface Series {
   name: string
@@ -57,16 +58,21 @@ export default function MultiLineChart({
   const colW = n > 1 ? plotW / (n - 1) : plotW
 
   function pathFor(values: (number | null)[]): string {
+    // smooth each contiguous (non-null) run, breaking the line across gaps
     let d = ''
-    let pen = false
+    let run: { x: number; y: number }[] = []
+    const flush = () => {
+      if (run.length) d += smoothPath(run) + ' '
+      run = []
+    }
     values.forEach((v, i) => {
       if (v == null) {
-        pen = false
+        flush()
         return
       }
-      d += `${pen ? 'L' : 'M'}${x(i)},${y(v)} `
-      pen = true
+      run.push({ x: x(i), y: y(v) })
     })
+    flush()
     return d.trim()
   }
 
@@ -89,7 +95,7 @@ export default function MultiLineChart({
           const yy = y(v)
           return (
             <g key={i}>
-              <line x1={padL} x2={W - padR} y1={yy} y2={yy} stroke="rgb(var(--line))" strokeWidth={1} />
+              <line x1={padL} x2={W - padR} y1={yy} y2={yy} stroke="rgb(var(--ink) / 0.06)" strokeWidth={1} />
               <text x={padL - 8} y={yy + 4} textAnchor="end" fontSize="13" fill="rgb(var(--muted))">
                 {fmt(v)}
               </text>

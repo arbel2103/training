@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import ChartTooltip from './SvgTooltip'
 import { useTapAway } from './useTapAway'
 
@@ -30,6 +30,7 @@ export default function StackedBarChart({
 }) {
   const [active, setActive] = useState<number | null>(null)
   useTapAway(active !== null, () => setActive(null))
+  const gid = useId()
 
   if (data.length === 0) {
     return <p className="text-sm text-muted">אין עדיין מספיק נתונים לגרף.</p>
@@ -73,7 +74,7 @@ export default function StackedBarChart({
           const yy = padT + (1 - v / max) * plotH
           return (
             <g key={i}>
-              <line x1={padL} x2={W - padR} y1={yy} y2={yy} stroke="rgb(var(--line))" strokeWidth={1} />
+              <line x1={padL} x2={W - padR} y1={yy} y2={yy} stroke="rgb(var(--ink) / 0.06)" strokeWidth={1} />
               <text x={padL - 8} y={yy + 4} textAnchor="end" fontSize="13" fill="rgb(var(--muted))">
                 {fmt(v)}
               </text>
@@ -82,6 +83,8 @@ export default function StackedBarChart({
         })}
         {data.map((bar, i) => {
           const cx = padL + step * i + step / 2
+          const total = bar.segments.reduce((s, x) => s + x.value, 0)
+          const topY = padT + plotH - scale(total)
           let cursor = padT + plotH
           return (
             <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => {
@@ -89,6 +92,12 @@ export default function StackedBarChart({
             setActive((c) => (c === i ? null : i))
           }}>
               <rect x={padL + step * i} y={padT} width={step} height={plotH} fill="transparent" />
+              {/* faint full-height track */}
+              <rect x={cx - barW / 2} y={padT} width={barW} height={plotH} rx={5} fill="rgb(var(--ink) / 0.045)" />
+              <clipPath id={`stack-${gid}-${i}`}>
+                <rect x={cx - barW / 2} y={topY} width={barW} height={Math.max(0, scale(total))} rx={5} />
+              </clipPath>
+              <g clipPath={`url(#stack-${gid}-${i})`}>
               {bar.segments.map((seg, j) => {
                 const h = scale(seg.value)
                 cursor -= h
@@ -104,6 +113,7 @@ export default function StackedBarChart({
                   />
                 )
               })}
+              </g>
               {(i % labelStep === 0 || i === data.length - 1) && (
                 <text x={cx} y={H - 10} textAnchor="middle" fontSize="12" fill="rgb(var(--muted))">
                   {bar.label}

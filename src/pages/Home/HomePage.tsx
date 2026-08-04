@@ -46,13 +46,19 @@ export default function HomePage() {
   const log = useStore((s) => s.log)
   const weighIns = useStore((s) => s.weighIns)
 
+  const garminStatus = useStore((s) => s.garminSyncStatus)
+
   const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
-  const [garminWizard, setGarminWizard] = useState(false)
+  const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 }>({
+    open: false,
+    step: 1,
+  })
   const [garminDismissed, setGarminDismissed] = useState(
     () => localStorage.getItem('garmin-banner-dismissed') === '1',
   )
   const showGarminBanner = !hasGarminSetup() && !garminDismissed
+  const mfaNeeded = hasGarminSetup() && garminStatus.errorCode === 'mfa_required'
 
   const now = new Date()
   const todayISO = toISODate(now)
@@ -122,7 +128,7 @@ export default function HomePage() {
               </p>
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => setGarminWizard(true)}
+                  onClick={() => setWizard({ open: true, step: 1 })}
                   className="btn-primary text-sm py-1.5"
                 >
                   חבר עכשיו
@@ -137,6 +143,29 @@ export default function HomePage() {
                   אחר כך
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mfaNeeded && (
+        <div
+          className="card p-3.5 mb-5 text-sm bg-run/10"
+          style={{ borderInlineStart: '4px solid rgb(var(--c-run))' }}
+        >
+          <div className="flex items-start gap-2">
+            <Icon name="warning" className="w-5 h-5 shrink-0 text-run" />
+            <div className="flex-1">
+              <p className="leading-relaxed">
+                הסנכרון האוטומטי עם גרמין נעצר — <b>נדרש קוד אימות דו-שלבי (MFA)</b>.
+                הזן את הקוד וסנכרן ידנית.
+              </p>
+              <button
+                onClick={() => setWizard({ open: true, step: 3 })}
+                className="btn-accent text-sm py-1.5 mt-2"
+              >
+                הזן קוד וסנכרן
+              </button>
             </div>
           </div>
         </div>
@@ -267,8 +296,9 @@ export default function HomePage() {
       )}
 
       <GarminSetupWizard
-        open={garminWizard}
-        onClose={() => setGarminWizard(false)}
+        open={wizard.open}
+        startStep={wizard.step}
+        onClose={() => setWizard((w) => ({ ...w, open: false }))}
       />
     </div>
   )
