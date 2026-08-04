@@ -88,9 +88,10 @@ export default function LastNightCard() {
         ? 'HRV מתחת לבסיס — שקול יום קל יותר'
         : null
 
-  const GREEN = 'rgb(var(--c-bike))'
-  const ROSE = 'rgb(var(--c-run))'
-  const ACCENT = 'rgb(var(--accent))'
+  // one cohesive cool family: each ring a neighbouring shade
+  const C_SLEEP = 'rgb(var(--accent))'
+  const C_HRV = 'rgb(var(--c-swim))'
+  const C_RHR = 'rgb(var(--c-run))'
 
   return (
     <div className="card p-5 sm:col-span-2">
@@ -108,7 +109,7 @@ export default function LastNightCard() {
           <RingStat
             fraction={sleep.sleepScore / 100}
             display={sleep.sleepScore}
-            color={sleep.sleepScore >= 80 ? GREEN : ACCENT}
+            color={C_SLEEP}
             label="ציון שינה"
             sub={sleep.sleepMin ? `${hoursLabel(sleep.sleepMin)} שעות` : undefined}
           />
@@ -118,7 +119,7 @@ export default function LastNightCard() {
             fraction={hrvVal / 100}
             display={Math.round(hrvVal)}
             unit="ms"
-            color={hrvAbove === false ? ROSE : GREEN}
+            color={C_HRV}
             label="HRV"
             sub={
               hrvAbove == null
@@ -127,14 +128,14 @@ export default function LastNightCard() {
                   ? '▲ מעל הבסיס'
                   : '▼ מתחת לבסיס'
             }
-            subClass={hrvAbove ? 'text-bike' : 'text-run'}
+            subClass={hrvAbove ? 'text-swim' : 'text-muted'}
           />
         )}
         {rhrVal != null && (
           <RingStat
             fraction={(90 - rhrVal) / 50}
             display={rhrVal}
-            color={rhrVal < 60 ? GREEN : ACCENT}
+            color={C_RHR}
             label="דופק מנוחה"
           />
         )}
@@ -143,7 +144,7 @@ export default function LastNightCard() {
       {hint && (
         <p
           className={`text-sm mt-4 rounded-xl px-3 py-2 ${
-            hrvAbove ? 'bg-bike/10 text-bike' : 'bg-run/10 text-run'
+            hrvAbove ? 'bg-accent-soft/60 text-accent' : 'bg-ink/5 text-muted'
           }`}
         >
           {hint}

@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import { hasGarminSetup } from '../../lib/garmin/pat'
-import Segmented from '../../components/ui/Segmented'
 import BarChart from '../../components/ui/BarChart'
 import LineChart from '../../components/ui/LineChart'
 import MultiLineChart from '../../components/ui/MultiLineChart'
@@ -12,8 +10,7 @@ import {
 } from '../../components/garmin/GarminDataHeader'
 import InfoTip from '../../components/ui/InfoTip'
 import Icon from '../../components/ui/Icon'
-
-type Range = '7' | '30'
+import { usePeriod } from '../../components/ui/usePeriod'
 
 function dayLabel(date: string): string {
   const d = new Date(date + 'T00:00:00')
@@ -22,7 +19,7 @@ function dayLabel(date: string): string {
 
 export default function DailyHealthTab() {
   const daily = useStore((s) => s.garminDaily)
-  const [range, setRange] = useState<Range>('7')
+  const { inPeriod, controls, customInputs } = usePeriod('30')
 
   if (!hasGarminSetup()) return <GarminConnectPrompt />
 
@@ -36,7 +33,7 @@ export default function DailyHealthTab() {
     )
   }
 
-  const days = sorted.slice(range === '7' ? -7 : -30)
+  const days = sorted.filter((d) => inPeriod(d.date))
   const labels = days.map((d) => dayLabel(d.date))
 
   const steps = days.filter((d) => d.steps != null).map((d) => ({ label: dayLabel(d.date), value: d.steps! }))
@@ -61,16 +58,9 @@ export default function DailyHealthTab() {
     <div className="grid gap-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <GarminRefreshChip />
-        <Segmented
-          value={range}
-          onChange={setRange}
-          size="sm"
-          options={[
-            { value: '7', label: '7 ימים' },
-            { value: '30', label: '30 ימים' },
-          ]}
-        />
+        {controls}
       </div>
+      {customInputs}
 
       <div className="card p-5">
         <h4 className="font-semibold mb-3 flex items-center gap-1.5"><Icon name="steps" className="w-5 h-5 text-muted" /> צעדים <InfoTip text="סך הצעדים בכל יום — מדד פשוט לתנועה הכללית שלך מעבר לאימונים." /></h4>

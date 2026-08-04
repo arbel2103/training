@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-  /* Premium "glass" system. The identity comes from the three triathlon
-     disciplines as a color triad (swim cyan / bike amber / run rose) rather
-     than a single accent. RGB channel triplets so Tailwind alpha modifiers
-     work; full rgba/gradient tokens for the frosted cards + ambient ground. */
+  /* Premium "glass" system. One cohesive cool palette — an indigo accent with
+     the sport colors as an analogous cool ramp (teal → azure → violet), no
+     warm tones. RGB channel triplets so Tailwind alpha modifiers work; full
+     rgba/gradient tokens for the frosted cards + ambient ground. */
 
   /* light theme — the same design translated to a clean, cool daylight */
   --bg: 244 245 248;
@@ -17,12 +17,12 @@
   --accent: 91 79 219;
   --accent-soft: 233 231 251;
 
-  /* sport / category colors — the triad, deepened for contrast on white */
-  --c-strength: 150 96 58;
-  --c-run: 224 66 96;
-  --c-bike: 180 130 8;
-  --c-swim: 14 145 178;
-  --c-other: 128 130 140;
+  /* sport / category colors — a cool ramp, deepened for contrast on white */
+  --c-strength: 110 114 206;
+  --c-run: 130 87 220;
+  --c-bike: 59 111 212;
+  --c-swim: 14 154 174;
+  --c-other: 120 124 140;
 
   /* frosted-glass card + ambient page ground */
   --card-bg: rgba(255, 255, 255, 0.7);
@@ -30,9 +30,9 @@
   --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.55), transparent 46%);
   --card-shadow: 0 20px 45px -26px rgba(30, 35, 60, 0.3);
   --page-bg:
-    radial-gradient(1100px 620px at 82% -10%, rgba(91, 79, 219, 0.07), transparent 60%),
-    radial-gradient(900px 640px at 4% 6%, rgba(14, 145, 178, 0.07), transparent 58%),
-    radial-gradient(1000px 900px at 50% 120%, rgba(224, 66, 96, 0.05), transparent 60%),
+    radial-gradient(1100px 620px at 82% -10%, rgba(91, 79, 219, 0.06), transparent 60%),
+    radial-gradient(900px 640px at 4% 6%, rgba(14, 154, 174, 0.06), transparent 58%),
+    radial-gradient(1000px 900px at 50% 120%, rgba(130, 87, 220, 0.05), transparent 60%),
     rgb(244 245 248);
 }
 
@@ -46,12 +46,12 @@
   --accent: 141 130 246;
   --accent-soft: 40 35 74;
 
-  /* the triad at full neon on black */
-  --c-strength: 196 140 96;
-  --c-run: 251 113 133;
-  --c-bike: 250 204 21;
-  --c-swim: 34 211 238;
-  --c-other: 131 131 142;
+  /* the cool ramp, brightened for black */
+  --c-strength: 148 152 238;
+  --c-run: 163 133 247;
+  --c-bike: 110 146 242;
+  --c-swim: 53 203 222;
+  --c-other: 150 152 165;
 
   --card-bg: rgba(255, 255, 255, 0.045);
   --card-border: rgba(255, 255, 255, 0.085);
@@ -59,8 +59,8 @@
   --card-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
   --page-bg:
     radial-gradient(1100px 620px at 78% -8%, rgba(141, 130, 246, 0.12), transparent 60%),
-    radial-gradient(900px 640px at 6% 8%, rgba(34, 211, 238, 0.09), transparent 58%),
-    radial-gradient(1000px 900px at 50% 118%, rgba(251, 113, 133, 0.07), transparent 60%),
+    radial-gradient(900px 640px at 6% 8%, rgba(53, 203, 222, 0.09), transparent 58%),
+    radial-gradient(1000px 900px at 50% 118%, rgba(163, 133, 247, 0.08), transparent 60%),
     rgb(10 10 12);
 }
 
