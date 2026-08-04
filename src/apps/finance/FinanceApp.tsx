@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { CapitalPage } from './pages/CapitalPage'
 import AppSwitcher from '../../components/AppSwitcher'
@@ -7,15 +7,40 @@ import ErrorBoundary from '../../components/ErrorBoundary'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 
-const TABS: { id: 'expenses' | 'capital'; label: string; short: string; icon: IconName }[] = [
-  { id: 'expenses', label: 'מעקב הוצאות', short: 'הוצאות', icon: 'wallet' },
-  { id: 'capital', label: 'הון והשקעות', short: 'הון', icon: 'coins' },
+const PAGES: { key: string; label: string; short: string; icon: IconName; el: React.ReactNode }[] = [
+  { key: 'expenses', label: 'מעקב הוצאות', short: 'הוצאות', icon: 'wallet', el: <ExpensesPage /> },
+  { key: 'capital', label: 'הון והשקעות', short: 'הון', icon: 'coins', el: <CapitalPage /> },
 ]
 
 export default function FinanceApp() {
-  const [tab, setTab] = useState<'expenses' | 'capital'>('expenses')
+  const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const indexRef = useRef(0)
+
+  const onScroll = () => {
+    const el = scrollerRef.current
+    if (!el || el.clientWidth === 0) return
+    const i = Math.min(
+      PAGES.length - 1,
+      Math.max(0, Math.round(Math.abs(el.scrollLeft) / el.clientWidth)),
+    )
+    indexRef.current = i
+    setIndex(i)
+  }
+
+  const goTo = useCallback((i: number) => {
+    const panel = scrollerRef.current?.children[i] as HTMLElement | undefined
+    // tapping the already-active page scrolls it back to the top
+    if (i === indexRef.current && panel) {
+      panel.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    indexRef.current = i
+    setIndex(i)
+  }, [])
 
   return (
     <div className="flex flex-col h-[100dvh]">
@@ -26,18 +51,18 @@ export default function FinanceApp() {
             <span className="hidden md:block h-6 w-px bg-line" />
           </div>
           <nav className="hidden md:flex flex-1 gap-2 min-w-0">
-            {TABS.map((t) => {
-              const active = t.id === tab
+            {PAGES.map((p, i) => {
+              const active = i === index
               return (
                 <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
+                  key={p.key}
+                  onClick={() => goTo(i)}
                   className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active ? 'bg-ink text-bg shadow-card' : 'text-muted hover:text-ink hover:bg-ink/5'
                   }`}
                 >
-                  <Icon name={t.icon} className="w-5 h-5" />
-                  <span>{t.label}</span>
+                  <Icon name={p.icon} className="w-5 h-5" />
+                  <span>{p.label}</span>
                 </button>
               )
             })}
@@ -60,10 +85,18 @@ export default function FinanceApp() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
-          <ErrorBoundary>{tab === 'expenses' ? <ExpensesPage /> : <CapitalPage />}</ErrorBoundary>
-        </div>
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        className="flex-1 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar"
+      >
+        {PAGES.map((p) => (
+          <section key={p.key} className="min-w-full h-full overflow-y-auto snap-start no-scrollbar">
+            <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
+              <ErrorBoundary>{p.el}</ErrorBoundary>
+            </div>
+          </section>
+        ))}
       </div>
 
       <nav
@@ -71,20 +104,21 @@ export default function FinanceApp() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex">
-          {TABS.map((t) => {
-            const active = t.id === tab
+          {PAGES.map((p, i) => {
+            const active = i === index
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={p.key}
+                onClick={() => goTo(i)}
                 className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-semibold transition ${
                   active ? 'text-accent' : 'text-muted'
                 }`}
+                aria-current={active ? 'page' : undefined}
               >
                 <span className={`px-4 py-1 rounded-full transition ${active ? 'bg-accent-soft' : ''}`}>
-                  <Icon name={t.icon} className="w-6 h-6" />
+                  <Icon name={p.icon} className="w-6 h-6" />
                 </span>
-                <span>{t.short}</span>
+                <span>{p.short}</span>
               </button>
             )
           })}

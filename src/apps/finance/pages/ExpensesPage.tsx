@@ -20,6 +20,7 @@ import { SummaryCards } from '../components/expenses/SummaryCards'
 import { IncomeRow } from '../components/expenses/IncomeRow'
 import { ManualExpenseButton } from '../components/expenses/ManualExpenseButton'
 import { BitModal } from '../components/expenses/BitModal'
+import Icon from '../../../components/ui/Icon'
 import { CategoryPie } from '../components/expenses/CategoryPie'
 import { ExpenseList } from '../components/expenses/ExpenseList'
 import { MonthlyBarChart } from '../components/expenses/MonthlyBarChart'
@@ -129,7 +130,9 @@ export function ExpensesPage() {
             }}
           />
           <ManualExpenseButton />
-          <Button onClick={() => fileRef.current?.click()}>📥 טען אקסל</Button>
+          <Button onClick={() => fileRef.current?.click()} className="gap-1.5">
+            <Icon name="upload" className="w-4 h-4" /> טען אקסל
+          </Button>
         </div>
       </header>
 

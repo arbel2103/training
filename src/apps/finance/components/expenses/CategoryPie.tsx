@@ -3,6 +3,7 @@ import type { CategorySlice } from '../../store/selectors'
 import { findCategoryDef } from '../../lib/categories'
 import { useStore } from '../../store/useStore'
 import { formatCurrency } from '../../lib/format'
+import { useChartDismiss } from '../../lib/useChartDismiss'
 
 interface Props {
   data: CategorySlice[]
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function CategoryPie({ data, activeCategory, onSlice }: Props) {
+  const { chartKey, containerProps } = useChartDismiss()
   const customCategories = useStore((s) => s.customCategories)
   const colorOf = (name: string) => findCategoryDef(name, customCategories).color
   const total = data.reduce((s, d) => s + d.value, 0)
@@ -25,8 +27,8 @@ export function CategoryPie({ data, activeCategory, onSlice }: Props) {
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-6">
-      <div className="relative h-64 w-64 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="relative h-64 w-64 shrink-0" {...containerProps}>
+        <ResponsiveContainer key={chartKey} width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
@@ -58,7 +60,7 @@ export function CategoryPie({ data, activeCategory, onSlice }: Props) {
               formatter={(v) => formatCurrency(Number(v), true)}
               contentStyle={{
                 borderRadius: 12,
-                border: '1px solid #e9e5db',
+                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
                 fontSize: 13,
               }}
             />

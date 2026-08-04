@@ -8,18 +8,18 @@ export interface CategoryDef {
 
 // סט קנוני חכם — "מזון וסופר" ו"מסעדות ואוכל בחוץ" נשארות נפרדות
 export const CANONICAL_CATEGORIES: CategoryDef[] = [
-  { name: 'מזון וסופר', color: '#5f7f5f', icon: '🛒' },
-  { name: 'מסעדות ואוכל בחוץ', color: '#d08a4f', icon: '🍽️' },
-  { name: 'פנאי ובילוי', color: '#7b6bb0', icon: '🎭' },
-  { name: 'קניות ואופנה', color: '#d489ad', icon: '🛍️' },
-  { name: 'בית וריהוט', color: '#94965a', icon: '🏠' },
-  { name: 'בריאות וטיפוח', color: '#cf5b6a', icon: '⚕️' },
-  { name: 'דלק ותחבורה', color: '#4a8fb0', icon: '⛽' },
-  { name: 'תקשורת וטכנולוגיה', color: '#36a0a0', icon: '💻' },
-  { name: 'תיירות ונסיעות', color: '#e3b34d', icon: '✈️' },
-  { name: 'ילדים', color: '#9b8ec9', icon: '🧸' },
-  { name: 'תרומות', color: '#b08a3a', icon: '🤝' },
-  { name: 'חשבונות ושירותים', color: '#6f8f86', icon: '🧾' },
+  { name: 'מזון וסופר', color: '#7C6FF2', icon: '🛒' },
+  { name: 'מסעדות ואוכל בחוץ', color: '#22C1D6', icon: '🍽️' },
+  { name: 'פנאי ובילוי', color: '#4F86F0', icon: '🎭' },
+  { name: 'קניות ואופנה', color: '#E1657F', icon: '🛍️' },
+  { name: 'בית וריהוט', color: '#9C8CF5', icon: '🏠' },
+  { name: 'בריאות וטיפוח', color: '#3FB6A8', icon: '⚕️' },
+  { name: 'דלק ותחבורה', color: '#C77DF0', icon: '⛽' },
+  { name: 'תקשורת וטכנולוגיה', color: '#5AA0E8', icon: '💻' },
+  { name: 'תיירות ונסיעות', color: '#6EC6C0', icon: '✈️' },
+  { name: 'ילדים', color: '#8A93E8', icon: '🧸' },
+  { name: 'תרומות', color: '#A78BFA', icon: '🤝' },
+  { name: 'חשבונות ושירותים', color: '#4FB0C9', icon: '🧾' },
   { name: 'אחר', color: '#8f8c85', icon: '📦' },
 ]
 
@@ -31,14 +31,14 @@ const _byName: Record<string, CategoryDef> = Object.fromEntries(
 
 // פלטת צבעים לקטגוריות מותאמות אישית
 const CUSTOM_PALETTE = [
-  '#9c6b4a',
-  '#6b8fb0',
-  '#a05c9c',
-  '#5f9c7d',
-  '#b0913a',
-  '#c06a6a',
-  '#7d7da0',
-  '#4a9c9c',
+  '#7C6FF2',
+  '#22C1D6',
+  '#4F86F0',
+  '#E1657F',
+  '#9C8CF5',
+  '#3FB6A8',
+  '#C77DF0',
+  '#5AA0E8',
 ]
 
 export function nextCustomColor(existingCount: number): string {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { MonthKey } from '../../lib/types'
 import { monthKey, monthLabel, parseMonthKey } from '../../lib/date'
+import Icon from '../../../../components/ui/Icon'
 
 const HE_MONTHS_SHORT = [
   'ינו',
@@ -37,9 +38,9 @@ export function MonthPicker({ value, onChange, importedMonths }: Props) {
         }}
         className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-bg"
       >
-        <span>📅</span>
+        <Icon name="calendar" className="w-4 h-4 text-muted" />
         {monthLabel(value)}
-        <span className="text-muted">▾</span>
+        <Icon name="chevronDown" className="w-4 h-4 text-muted" />
       </button>
 
       {open && (

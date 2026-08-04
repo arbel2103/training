@@ -11,6 +11,7 @@ import {
 import { formatCard, formatCurrency, formatNumber } from '../../lib/format'
 import { findCategoryDef } from '../../lib/categories'
 import { useStore } from '../../store/useStore'
+import Icon from '../../../../components/ui/Icon'
 
 interface Props {
   expenses: Expense[]
@@ -45,8 +46,9 @@ export function SummaryCards({ expenses, month, mk }: Props) {
     <div className="mt-2 space-y-1 border-t border-line pt-2">
       {cards.map((c) => (
         <div key={c.card} className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1 text-muted">
-            {c.card === 'ידני' ? '✍️' : '💳'} {formatCard(c.card)}
+          <span className="flex items-center gap-1.5 text-muted">
+            <Icon name={c.card === 'ידני' ? 'edit' : 'wallet'} className="w-4 h-4" />
+            {formatCard(c.card)}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="font-medium text-ink num">
@@ -64,7 +66,9 @@ export function SummaryCards({ expenses, month, mk }: Props) {
       ))}
       {transfers > 0 && (
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1 text-muted">🏦 העברה בנקאית</span>
+          <span className="flex items-center gap-1.5 text-muted">
+            <Icon name="bank" className="w-4 h-4" /> העברה בנקאית
+          </span>
           <span className="font-medium text-ink num">
             {formatCurrency(transfers)}
           </span>
@@ -79,9 +83,13 @@ export function SummaryCards({ expenses, month, mk }: Props) {
         label='סה"כ הוצאות (כל הכרטיסים)'
         value={formatCurrency(total)}
         sub={breakdown}
-        icon="💸"
+        icon={<Icon name="wallet" className="w-5 h-5" />}
       />
-      <StatCard label='סה"כ עסקאות' value={formatNumber(count)} icon="🧾" />
+      <StatCard
+        label='סה"כ עסקאות'
+        value={formatNumber(count)}
+        icon={<Icon name="receipt" className="w-5 h-5" />}
+      />
       <StatCard
         label="הקטגוריה המובילה"
         value={
@@ -92,9 +100,21 @@ export function SummaryCards({ expenses, month, mk }: Props) {
           )
         }
         sub={top ? formatCurrency(top.value) : undefined}
-        icon={top ? findCategoryDef(top.category, customCategories).icon : '🏆'}
+        icon={
+          top ? (
+            <span className="text-base">
+              {findCategoryDef(top.category, customCategories).icon}
+            </span>
+          ) : (
+            <Icon name="trophy" className="w-5 h-5" />
+          )
+        }
       />
-      <StatCard label="ממוצע לעסקה" value={formatCurrency(avg)} icon="📊" />
+      <StatCard
+        label="ממוצע לעסקה"
+        value={formatCurrency(avg)}
+        icon={<Icon name="chart" className="w-5 h-5" />}
+      />
     </div>
   )
 }

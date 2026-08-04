@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
+import Icon from '../../../../components/ui/Icon'
 import { NumberInput, TextInput, Field } from '../ui/Input'
 import type { MonthData, MonthKey } from '../../lib/types'
 import { useStore } from '../../store/useStore'
@@ -34,7 +35,9 @@ export function IncomeRow({ month, mk }: Props) {
       {/* משכורת + הכנסות נוספות */}
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-ink">💼 משכורת חודשית</span>
+          <span className="text-sm font-medium text-ink flex items-center gap-1.5">
+            <Icon name="briefcase" className="w-4 h-4 text-muted" /> משכורת חודשית
+          </span>
           <Button size="sm" variant="subtle" onClick={() => setIncomeOpen(true)}>
             + הכנסות נוספות
           </Button>
@@ -66,8 +69,8 @@ export function IncomeRow({ month, mk }: Props) {
       {/* העברה בנקאית — הוצאות גדולות ידניות */}
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-ink">
-            🏦 העברה בנקאית (הוצאות לא באשראי)
+          <span className="text-sm font-medium text-ink flex items-center gap-1.5">
+            <Icon name="bank" className="w-4 h-4 text-muted" /> העברה בנקאית (הוצאות לא באשראי)
           </span>
           <Button size="sm" variant="subtle" onClick={() => setTransferOpen(true)}>
             + הוסף

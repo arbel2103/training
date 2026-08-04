@@ -53,6 +53,12 @@ export type IconName =
   | 'wallet'
   | 'coins'
   | 'chevronDown'
+  | 'receipt'
+  | 'briefcase'
+  | 'bank'
+  | 'target'
+  | 'tag'
+  | 'trophy'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -334,6 +340,46 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   chevronDown: <path d="M6 9l6 6 6-6" />,
+  receipt: (
+    <>
+      <path d="M5 21V4.5a.5.5 0 0 1 .8-.4L8 5.6l2.2-1.5a.5.5 0 0 1 .6 0L13 5.6l2.2-1.5a.5.5 0 0 1 .6 0L18 5.6l2.2-1.5a.5.5 0 0 1 .8.4V21l-2.2-1.5a.5.5 0 0 0-.6 0L16 21l-2.2-1.5a.5.5 0 0 0-.6 0L11 21l-2.2-1.5a.5.5 0 0 0-.6 0Z" />
+      <path d="M8.5 9.5h7M8.5 13h7" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2.5" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" />
+      <path d="M3 12.5h18" />
+    </>
+  ),
+  bank: (
+    <>
+      <path d="M4 10 12 4l8 6" />
+      <path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8" />
+      <path d="M3.5 20.5h17" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <circle cx="12" cy="12" r="0.6" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3.5 12.5 11 5a2 2 0 0 1 1.4-.6H19a1.5 1.5 0 0 1 1.5 1.5v6.6a2 2 0 0 1-.6 1.4l-7.5 7.5a1.5 1.5 0 0 1-2.1 0l-6.8-6.8a1.5 1.5 0 0 1 0-2.1Z" />
+      <circle cx="16" cy="8" r="1.2" />
+    </>
+  ),
+  trophy: (
+    <>
+      <path d="M8 4h8v5a4 4 0 0 1-8 0Z" />
+      <path d="M8 5H5.5a2.5 2.5 0 0 0 2.5 3M16 5h2.5a2.5 2.5 0 0 1-2.5 3" />
+      <path d="M10 13.5 9.5 17h5l-.5-3.5M8 20h8M10 17h4" />
+    </>
+  ),
 }
 
 /** Map a sport/category key straight to its icon name. */

@@ -16,8 +16,10 @@ import { monthLabelShort } from '../../lib/date'
 import { formatCurrency, formatPercent } from '../../lib/format'
 import { monthIncome } from '../../store/selectors'
 import { accountColor } from './investColors'
+import { useChartDismiss } from '../../lib/useChartDismiss'
 
 export function InvestmentCharts() {
+  const { chartKey, containerProps } = useChartDismiss()
   const accounts = useStore((s) => s.accounts)
   const investments = useStore((s) => s.investments)
   const months = useStore((s) => s.months)
@@ -78,13 +80,14 @@ export function InvestmentCharts() {
         <h3 className="text-sm font-medium text-ink">
           השקעה חודשית לפי חשבון
         </h3>
-        <ResponsiveContainer width="100%" height={240}>
+        <div {...containerProps}>
+        <ResponsiveContainer key={chartKey} width="100%" height={240}>
           <BarChart
             data={stackedData}
             margin={{ top: 8, right: 4, left: 4, bottom: 4 }}
             barCategoryGap="22%"
           >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(140,140,150,0.18)" />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 12, fill: '#6b6862' }}
@@ -106,7 +109,7 @@ export function InvestmentCharts() {
               ]}
               contentStyle={{
                 borderRadius: 12,
-                border: '1px solid #e9e5db',
+                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
                 fontSize: 13,
               }}
             />
@@ -126,19 +129,21 @@ export function InvestmentCharts() {
             ))}
           </BarChart>
         </ResponsiveContainer>
+        </div>
       </Card>
 
       <Card className="space-y-3">
         <h3 className="text-sm font-medium text-ink">
           השקעה כאחוז מסך ההכנסות
         </h3>
-        <ResponsiveContainer width="100%" height={240}>
+        <div {...containerProps}>
+        <ResponsiveContainer key={chartKey} width="100%" height={240}>
           <BarChart
             data={percentData}
             margin={{ top: 8, right: 4, left: 4, bottom: 4 }}
             barCategoryGap="22%"
           >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(140,140,150,0.18)" />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 12, fill: '#6b6862' }}
@@ -157,17 +162,18 @@ export function InvestmentCharts() {
               formatter={(v) => [formatPercent(Number(v)), 'מסך ההכנסות']}
               contentStyle={{
                 borderRadius: 12,
-                border: '1px solid #e9e5db',
+                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
                 fontSize: 13,
               }}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={34}>
               {percentData.map((d, i) => (
-                <Cell key={i} fill={d.hasSalary ? '#2f8fd0' : '#cbd5d1'} />
+                <Cell key={i} fill={d.hasSalary ? '#4F86F0' : '#8f8c85'} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </div>
         <p className="text-[11px] text-muted">
           האחוז מחושב מסך ההכנסות (משכורת + הכנסות נוספות) של אותו חודש. חודשים
           ללא הכנסה מוזנת מוצגים כ-0%. הזן הכנסות בדף ההוצאות.
