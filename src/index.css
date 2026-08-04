@@ -3,39 +3,65 @@
 @tailwind utilities;
 
 :root {
-  /* Studio-minimal palette: near-monochrome paper + ink with a single vivid
-     accent. RGB channel triplets so Tailwind alpha modifiers work. */
-  --bg: 247 246 244;
-  --surface: 255 255 255;
-  --ink: 17 17 16;
-  --muted: 128 126 120;
-  --line: 229 228 224;
-  --accent: 228 87 46;
-  --accent-soft: 250 232 225;
+  /* Premium "glass" system. The identity comes from the three triathlon
+     disciplines as a color triad (swim cyan / bike amber / run rose) rather
+     than a single accent. RGB channel triplets so Tailwind alpha modifiers
+     work; full rgba/gradient tokens for the frosted cards + ambient ground. */
 
-  /* sport / category colors (harmonized with the accent) */
-  --c-strength: 146 96 60;
-  --c-run: 214 84 42;
-  --c-bike: 44 122 100;
-  --c-swim: 52 106 168;
-  --c-other: 128 126 120;
+  /* light theme — the same design translated to a clean, cool daylight */
+  --bg: 244 245 248;
+  --surface: 255 255 255;
+  --ink: 20 21 26;
+  --muted: 106 108 120;
+  --line: 226 228 235;
+  --accent: 240 84 46;
+  --accent-soft: 252 233 226;
+
+  /* sport / category colors — the triad, deepened for contrast on white */
+  --c-strength: 150 96 58;
+  --c-run: 224 66 96;
+  --c-bike: 180 130 8;
+  --c-swim: 14 145 178;
+  --c-other: 128 130 140;
+
+  /* frosted-glass card + ambient page ground */
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(20, 21, 26, 0.07);
+  --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.55), transparent 46%);
+  --card-shadow: 0 20px 45px -26px rgba(30, 35, 60, 0.3);
+  --page-bg:
+    radial-gradient(1100px 620px at 82% -10%, rgba(240, 84, 46, 0.06), transparent 60%),
+    radial-gradient(900px 640px at 4% 6%, rgba(14, 145, 178, 0.08), transparent 58%),
+    radial-gradient(1000px 900px at 50% 120%, rgba(224, 66, 96, 0.05), transparent 60%),
+    rgb(244 245 248);
 }
 
-/* dark palette — deep studio black, same single-accent character */
+/* dark theme — the premium near-black glass the design was pitched in */
 :root[data-theme='dark'] {
-  --bg: 14 14 13;
-  --surface: 24 24 23;
-  --ink: 240 239 235;
-  --muted: 152 150 143;
-  --line: 44 44 42;
-  --accent: 255 112 67;
-  --accent-soft: 61 34 25;
+  --bg: 10 10 12;
+  --surface: 22 22 26;
+  --ink: 237 237 242;
+  --muted: 131 131 142;
+  --line: 40 40 46;
+  --accent: 255 106 69;
+  --accent-soft: 60 33 24;
 
+  /* the triad at full neon on black */
   --c-strength: 196 140 96;
-  --c-run: 235 122 78;
-  --c-bike: 96 180 152;
-  --c-swim: 118 168 220;
-  --c-other: 152 150 143;
+  --c-run: 251 113 133;
+  --c-bike: 250 204 21;
+  --c-swim: 34 211 238;
+  --c-other: 131 131 142;
+
+  --card-bg: rgba(255, 255, 255, 0.045);
+  --card-border: rgba(255, 255, 255, 0.085);
+  --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 44%);
+  --card-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
+  --page-bg:
+    radial-gradient(1100px 620px at 78% -8%, rgba(255, 106, 69, 0.1), transparent 60%),
+    radial-gradient(900px 640px at 6% 8%, rgba(34, 211, 238, 0.09), transparent 58%),
+    radial-gradient(1000px 900px at 50% 118%, rgba(251, 113, 133, 0.07), transparent 60%),
+    rgb(10 10 12);
 }
 
 * {
@@ -50,7 +76,7 @@ body,
 
 body {
   margin: 0;
-  background: rgb(var(--bg));
+  background: var(--page-bg);
   color: rgb(var(--ink));
   font-family: 'Heebo', system-ui, sans-serif;
   line-height: 1.55;
@@ -72,8 +98,25 @@ body {
 
 @layer components {
   .card {
-    @apply bg-surface border border-line rounded-2xl;
+    position: relative;
+    isolation: isolate;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    box-shadow: var(--card-shadow);
+    backdrop-filter: blur(20px) saturate(1.15);
+    -webkit-backdrop-filter: blur(20px) saturate(1.15);
     animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* faint top-light sheen — the frosted-glass tell; sits behind content */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--card-sheen);
+    pointer-events: none;
   }
   .input {
     @apply w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-ink

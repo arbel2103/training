@@ -19,7 +19,7 @@ export function applyTheme(theme: Theme): void {
   }
   // keep the mobile browser chrome / status bar in step with the theme
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#181614' : '#b5654a')
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0c' : '#f4f5f8')
 }
 
 export function toggleTheme(): Theme {
