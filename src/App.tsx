@@ -9,7 +9,16 @@ import GuideOverlay from './components/GuideOverlay'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
-import { IconToday, IconProgram, IconCalendar, IconHealth } from './components/ui/NavIcons'
+import {
+  IconToday,
+  IconProgram,
+  IconCalendar,
+  IconHealth,
+  IconHelp,
+  IconSun,
+  IconMoon,
+  IconCloud,
+} from './components/ui/NavIcons'
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -98,29 +107,29 @@ export default function App() {
           <div className="flex-1 md:hidden" />
           <button
             onClick={() => setGuideOpen(true)}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
+            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             title="מדריך שימוש"
             aria-label="מדריך שימוש"
           >
-            ❓
+            <IconHelp className="w-5 h-5" />
           </button>
           <button
             data-guide="theme"
             onClick={() => setTheme(toggleTheme())}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
+            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             title={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
             aria-label={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? <IconSun className="w-5 h-5" /> : <IconMoon className="w-5 h-5" />}
           </button>
           <button
             data-guide="sync"
             onClick={() => setSyncOpen(true)}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-lg text-muted hover:text-ink hover:bg-ink/5 transition"
+            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             title="גיבוי וסנכרון"
             aria-label="גיבוי וסנכרון"
           >
-            ☁️
+            <IconCloud className="w-5 h-5" />
           </button>
         </div>
       </header>

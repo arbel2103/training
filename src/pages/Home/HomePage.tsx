@@ -15,6 +15,7 @@ import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
+import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
 import EntryTab from '../Tracking/EntryTab'
 import StatsTab from './StatsTab'
@@ -171,6 +172,9 @@ export default function HomePage() {
             )}
           </div>
         )}
+
+        {/* last night — sleep, HRV, resting HR */}
+        <LastNightCard />
 
         {/* today's workout */}
         <div className="card p-5">
