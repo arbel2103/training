@@ -50,6 +50,9 @@ export type IconName =
   | 'cloud'
   | 'sun'
   | 'party'
+  | 'wallet'
+  | 'coins'
+  | 'chevronDown'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -315,6 +318,22 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M14 5a2 2 0 0 1 2 2M18 3a4 4 0 0 1 4 4M15.5 10.5 21 5" />
     </>
   ),
+  wallet: (
+    <>
+      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v1" />
+      <path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-3" />
+      <path d="M20 10h-4a2 2 0 0 0 0 4h4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z" />
+    </>
+  ),
+  coins: (
+    <>
+      <ellipse cx="9" cy="7" rx="6" ry="3" />
+      <path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3" />
+      <path d="M3 12v5c0 1.7 2.7 3 6 3 1 0 2-.1 2.8-.4" />
+      <path d="M15 12.5a6 6 0 1 0 6 6 6 6 0 0 0-6-6Z" />
+    </>
+  ),
+  chevronDown: <path d="M6 9l6 6 6-6" />,
 }
 
 /** Map a sport/category key straight to its icon name. */

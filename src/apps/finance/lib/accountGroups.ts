@@ -1,0 +1,30 @@
+import type { Account } from './types'
+
+// קבוצות ברירת מחדל להצעה בעת יצירת חשבון
+export const DEFAULT_GROUPS = ['חיסכון', 'השקעה', 'פנסיה', 'קרן השתלמות']
+
+const GROUP_ICONS: Record<string, string> = {
+  חיסכון: '🏦',
+  השקעה: '📈',
+  פנסיה: '👵',
+  'קרן השתלמות': '🎓',
+  'עו"ש': '💳',
+  עוש: '💳',
+}
+
+export function groupIcon(name: string): string {
+  return GROUP_ICONS[name] ?? '💰'
+}
+
+// רשימת הקבוצות הקיימות (לפי סדר הופעה), מתוך החשבונות
+export function accountGroups(accounts: Account[]): string[] {
+  const seen: string[] = []
+  for (const a of accounts) {
+    const g = a.group || 'חיסכון'
+    if (!seen.includes(g)) seen.push(g)
+  }
+  return seen
+}
+
+// מפתח מיוחד לעו"ש בסינון "סה\"כ הון"
+export const CHECKING_KEY = '__checking__'

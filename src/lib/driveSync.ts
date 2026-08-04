@@ -52,11 +52,14 @@ export function setDeviceName(name: string): void {
   else localStorage.removeItem(DEVICE_KEY)
 }
 
+const FINANCE_STORE_KEY = 'finance-store'
+
 export interface BackupPayload {
   version: 1
   savedAt: string
   deviceName?: string
   store: unknown
+  financeStore?: unknown // the finance mini-app's persisted state
   geminiKey?: string
   githubPat?: string
 }
@@ -84,11 +87,13 @@ async function readJson(res: Response): Promise<any> {
 /** Build the backup payload from this device's data. */
 export function buildBackup(includeKey: boolean): BackupPayload {
   const raw = localStorage.getItem(STORE_KEY)
+  const finance = localStorage.getItem(FINANCE_STORE_KEY)
   return {
     version: 1,
     savedAt: new Date().toISOString(),
     deviceName: getDeviceName(),
     store: raw ? JSON.parse(raw) : null,
+    ...(finance ? { financeStore: JSON.parse(finance) } : {}),
     ...(includeKey && getApiKey() ? { geminiKey: getApiKey() } : {}),
     ...(includeKey && getPat() ? { githubPat: getPat() } : {}),
   }
@@ -99,6 +104,8 @@ export function restoreBackup(payload: BackupPayload): void {
   if (!payload || payload.version !== 1 || !payload.store)
     throw new Error('קובץ הגיבוי לא תקין או ריק.')
   localStorage.setItem(STORE_KEY, JSON.stringify(payload.store))
+  if (payload.financeStore)
+    localStorage.setItem(FINANCE_STORE_KEY, JSON.stringify(payload.financeStore))
   if (payload.geminiKey) setApiKey(payload.geminiKey)
   if (payload.githubPat) setPat(payload.githubPat)
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
