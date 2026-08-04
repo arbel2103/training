@@ -1,6 +1,7 @@
 import { useStore } from '../../store/useStore'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import Icon from '../ui/Icon'
+import Ring from '../ui/Ring'
 
 function hoursLabel(min?: number): string {
   if (!min) return '—'
@@ -16,52 +17,67 @@ function dayLabel(date: string): string {
   })
 }
 
-function Metric({
-  value,
+/** A single animated ring metric: value inside, label + optional sub below. */
+function RingStat({
+  fraction,
+  display,
   unit,
+  color,
   label,
   sub,
   subClass,
 }: {
-  value: string | number
+  fraction: number
+  display: string | number
   unit?: string
+  color: string
   label: string
   sub?: string
   subClass?: string
 }) {
   return (
-    <div>
-      <div className="font-display text-3xl font-black leading-none">
-        {value}
-        {unit && <span className="text-base font-bold text-muted"> {unit}</span>}
+    <div className="flex flex-col items-center gap-2">
+      <Ring value={fraction} max={1} color={color}>
+        <div className="text-center leading-none">
+          <span className="font-display text-2xl font-black">{display}</span>
+          {unit && <span className="text-[11px] font-bold text-muted"> {unit}</span>}
+        </div>
+      </Ring>
+      <div className="text-center">
+        <div className="text-xs text-muted">{label}</div>
+        {sub && (
+          <div className={`text-xs mt-0.5 font-semibold ${subClass ?? 'text-muted'}`}>
+            {sub}
+          </div>
+        )}
       </div>
-      <div className="text-xs text-muted mt-1">{label}</div>
-      {sub && <div className={`text-xs mt-0.5 font-semibold ${subClass ?? 'text-muted'}`}>{sub}</div>}
     </div>
   )
 }
 
 /**
- * "הלילה האחרון" — a compact recovery tile for the home dashboard:
- * last night's sleep, HRV vs the personal baseline, and resting HR.
- * Renders nothing until Garmin is set up and there's data to show.
+ * "הלילה האחרון" — a compact recovery tile for the home dashboard: last
+ * night's sleep, HRV vs the personal baseline, and resting HR, each shown as a
+ * ring that fills on load. Rings are normalized so "fuller = better recovery":
+ * sleep score /100, HRV /100ms (higher better), resting HR mapped 40–90bpm
+ * inverted (lower better). Renders nothing until there's Garmin data to show.
  */
 export default function LastNightCard() {
   const daily = useStore((s) => s.garminDaily)
   if (!hasGarminSetup()) return null
 
-  const sorted = [...daily].sort((a, b) => a.date.localeCompare(b.date))
-  const rev = [...sorted].reverse()
-  const sleep = rev.find((d) => d.sleepScore != null || d.sleepMin != null)
+  const rev = [...daily].sort((a, b) => b.date.localeCompare(a.date))
+  const sleep = rev.find((d) => d.sleepScore != null)
   const hrv = rev.find((d) => d.hrvLastNight != null)
   const rhr = rev.find((d) => d.restingHr != null)
 
   if (!sleep && !hrv && !rhr) return null
 
-  // HRV vs the weekly baseline drives a light recovery read
   const hrvVal = hrv?.hrvLastNight ?? null
   const hrvBase = hrv?.hrvWeeklyAvg ?? null
   const hrvAbove = hrvVal != null && hrvBase != null ? hrvVal >= hrvBase : null
+
+  const rhrVal = rhr?.restingHr ?? null
 
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
 
@@ -71,6 +87,10 @@ export default function LastNightCard() {
       : hrvAbove === false
         ? 'HRV מתחת לבסיס — שקול יום קל יותר'
         : null
+
+  const GREEN = 'rgb(var(--c-bike))'
+  const ROSE = 'rgb(var(--c-run))'
+  const ACCENT = 'rgb(var(--accent))'
 
   return (
     <div className="card p-5 sm:col-span-2">
@@ -83,18 +103,22 @@ export default function LastNightCard() {
         )}
       </div>
 
-      <div className="flex items-start gap-8 flex-wrap">
-        {sleep && (
-          <Metric
-            value={sleep.sleepScore ?? '—'}
+      <div className="flex items-start justify-around gap-4 flex-wrap">
+        {sleep?.sleepScore != null && (
+          <RingStat
+            fraction={sleep.sleepScore / 100}
+            display={sleep.sleepScore}
+            color={sleep.sleepScore >= 80 ? GREEN : ACCENT}
             label="ציון שינה"
             sub={sleep.sleepMin ? `${hoursLabel(sleep.sleepMin)} שעות` : undefined}
           />
         )}
         {hrvVal != null && (
-          <Metric
-            value={Math.round(hrvVal)}
+          <RingStat
+            fraction={hrvVal / 100}
+            display={Math.round(hrvVal)}
             unit="ms"
+            color={hrvAbove === false ? ROSE : GREEN}
             label="HRV"
             sub={
               hrvAbove == null
@@ -106,8 +130,13 @@ export default function LastNightCard() {
             subClass={hrvAbove ? 'text-bike' : 'text-run'}
           />
         )}
-        {rhr?.restingHr != null && (
-          <Metric value={rhr.restingHr} label="דופק מנוחה" />
+        {rhrVal != null && (
+          <RingStat
+            fraction={(90 - rhrVal) / 50}
+            display={rhrVal}
+            color={rhrVal < 60 ? GREEN : ACCENT}
+            label="דופק מנוחה"
+          />
         )}
       </div>
 

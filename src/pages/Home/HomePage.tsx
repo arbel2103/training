@@ -11,6 +11,7 @@ import {
 import { weekCompletion } from '../../lib/planMatch'
 import { sportColorClass, sportLabel } from '../../lib/labels'
 import Icon, { type IconName } from '../../components/ui/Icon'
+import ProgressBar from '../../components/ui/ProgressBar'
 import { formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
@@ -241,14 +242,9 @@ export default function HomePage() {
                 </span>
                 <span className="text-sm text-muted">אימונים בוצעו</span>
               </div>
-              <div className="h-2.5 rounded-full bg-line overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-accent transition-all"
-                  style={{
-                    width: `${totalCount ? Math.round((doneCount / totalCount) * 100) : 0}%`,
-                  }}
-                />
-              </div>
+              <ProgressBar
+                pct={totalCount ? Math.round((doneCount / totalCount) * 100) : 0}
+              />
               {doneCount === totalCount && (
                 <p className="text-sm text-bike font-semibold mt-2">
                   כל הכבוד — השבוע הושלם!
