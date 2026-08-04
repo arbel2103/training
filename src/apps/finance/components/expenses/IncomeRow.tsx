@@ -92,12 +92,14 @@ export function IncomeRow({ month, mk }: Props) {
                       onClick={() => removeBankTransfer(mk, t.id)}
                       className="text-muted hover:text-red-500"
                     >
-                      ✕
+                      <Icon name="x" className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2">
-                  <span className="shrink-0 text-[11px] text-muted">🎯 שיוך:</span>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted">
+                    <Icon name="target" className="w-3 h-3" /> שיוך:
+                  </span>
                   <SavingsLinkSelect
                     accountId={t.savingsAccountId}
                     goalId={t.savingsGoalId}
@@ -219,7 +221,7 @@ function AddItemModal({
                   onClick={() => onRemove(it.id)}
                   className="text-muted hover:text-red-500"
                 >
-                  ✕
+                  <Icon name="x" className="w-3.5 h-3.5" />
                 </button>
               </span>
             </div>

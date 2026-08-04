@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import type { Expense } from '../../lib/types'
 import { useStore } from '../../store/useStore'
 import { effectiveAmount } from '../../store/selectors'
-import { findCategoryDef } from '../../lib/categories'
+import { findCategoryDef, categoryIconName } from '../../lib/categories'
+import Icon from '../../../../components/ui/Icon'
 import { formatCurrency } from '../../lib/format'
 import { formatDate } from '../../lib/date'
 import { CategorySelect } from '../CategorySelect'
@@ -26,7 +27,6 @@ export function ExpenseList({ expenses }: Props) {
   const savingLabel = useSavingLabel()
 
   const colorOf = (name: string) => findCategoryDef(name, customCategories).color
-  const iconOf = (name: string) => findCategoryDef(name, customCategories).icon
 
   const [editing, setEditing] = useState<{ id: string; mode: EditMode } | null>(
     null,
@@ -51,10 +51,13 @@ export function ExpenseList({ expenses }: Props) {
           <div key={e.id} className="py-2.5">
             <div className="flex items-center gap-3">
               <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm"
-                style={{ background: `${colorOf(e.category)}22` }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                style={{
+                  background: `${colorOf(e.category)}22`,
+                  color: colorOf(e.category),
+                }}
               >
-                {iconOf(e.category)}
+                <Icon name={categoryIconName(e.category)} className="w-4 h-4" />
               </span>
 
               <div className="min-w-0 flex-1">
@@ -85,8 +88,10 @@ export function ExpenseList({ expenses }: Props) {
                     </span>
                   )}
                   {(e.savingsAccountId || e.savingsGoalId) && (
-                    <span className="text-accent">
-                      · 🎯 {savingLabel(e.savingsAccountId, e.savingsGoalId)}
+                    <span className="inline-flex items-center gap-1 text-accent">
+                      ·{' '}
+                      <Icon name="target" className="w-3 h-3" />
+                      {savingLabel(e.savingsAccountId, e.savingsGoalId)}
                     </span>
                   )}
                 </div>
@@ -105,17 +110,17 @@ export function ExpenseList({ expenses }: Props) {
 
               <div className="flex shrink-0 items-center gap-1">
                 <IconBtn label="קטגוריה" active={isOpen && editing?.mode === 'category'} onClick={() => toggle(e.id, 'category')}>
-                  🏷️
+                  <Icon name="tag" className="w-4 h-4" />
                 </IconBtn>
                 <IconBtn label="החזר" active={isOpen && editing?.mode === 'refund'} onClick={() => toggle(e.id, 'refund')}>
-                  ↩️
+                  <Icon name="undo" className="w-4 h-4" />
                 </IconBtn>
                 <IconBtn
                   label="שיוך חיסכון"
                   active={isOpen && editing?.mode === 'goal'}
                   onClick={() => toggle(e.id, 'goal')}
                 >
-                  🎯
+                  <Icon name="target" className="w-4 h-4" />
                 </IconBtn>
                 {e.isManual && (
                   <IconBtn
@@ -125,7 +130,7 @@ export function ExpenseList({ expenses }: Props) {
                         removeExpense(e.id)
                     }}
                   >
-                    🗑️
+                    <Icon name="trash" className="w-4 h-4" />
                   </IconBtn>
                 )}
               </div>

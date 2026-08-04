@@ -195,8 +195,8 @@ function SummaryAndList({ expenses, mk }: { expenses: Expense[]; mk: MonthKey })
             )}
           </h3>
           {filter && (
-            <Button size="sm" variant="ghost" onClick={() => setFilter(null)}>
-              נקה סינון ✕
+            <Button size="sm" variant="ghost" onClick={() => setFilter(null)} className="gap-1">
+              נקה סינון <Icon name="x" className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>

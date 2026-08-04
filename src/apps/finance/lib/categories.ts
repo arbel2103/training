@@ -1,4 +1,26 @@
 // ===== מערכת הקטגוריות הקנונית =====
+import type { IconName } from '../../../components/ui/Icon'
+
+/** Clean line-icon per canonical category (custom categories fall back). */
+const CATEGORY_ICONS: Record<string, IconName> = {
+  'מזון וסופר': 'cart',
+  'מסעדות ואוכל בחוץ': 'utensils',
+  'פנאי ובילוי': 'ticket',
+  'קניות ואופנה': 'bag',
+  'בית וריהוט': 'home',
+  'בריאות וטיפוח': 'health',
+  'דלק ותחבורה': 'fuel',
+  'תקשורת וטכנולוגיה': 'laptop',
+  'תיירות ונסיעות': 'plane',
+  ילדים: 'gift',
+  תרומות: 'heart',
+  'חשבונות ושירותים': 'receipt',
+  אחר: 'tag',
+}
+
+export function categoryIconName(name: string): IconName {
+  return CATEGORY_ICONS[name] ?? 'tag'
+}
 
 export interface CategoryDef {
   name: string

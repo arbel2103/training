@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
-import { accountGroups, DEFAULT_GROUPS, groupIcon } from '../../lib/accountGroups'
+import { accountGroups, DEFAULT_GROUPS, groupIconName } from '../../lib/accountGroups'
+import Icon from '../../../../components/ui/Icon'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
 import { TextInput, Field } from '../ui/Input'
@@ -80,9 +81,9 @@ export function AddAccount() {
                     group === g
                       ? 'border-accent bg-accent-soft text-accent'
                       : 'border-line bg-surface text-muted hover:bg-bg'
-                  }`}
+                  } inline-flex items-center gap-1`}
                 >
-                  {groupIcon(g)} {g}
+                  <Icon name={groupIconName(g)} className="w-3 h-3" /> {g}
                 </button>
               ))}
             </div>

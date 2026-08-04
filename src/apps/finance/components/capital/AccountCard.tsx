@@ -10,7 +10,8 @@ import {
 } from '../../store/selectors'
 import { formatCurrency } from '../../lib/format'
 import { formatDate } from '../../lib/date'
-import { accountGroups, DEFAULT_GROUPS, groupIcon } from '../../lib/accountGroups'
+import { accountGroups, DEFAULT_GROUPS, groupIconName } from '../../lib/accountGroups'
+import Icon from '../../../../components/ui/Icon'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -49,8 +50,9 @@ export function AccountCard({ account }: { account: Account }) {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-ink">{account.name}</h3>
-            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
-              {groupIcon(account.group)} {account.group}
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+              <Icon name={groupIconName(account.group)} className="w-3 h-3" />
+              {account.group}
             </span>
           </div>
           <div className="mt-0.5 text-xs text-muted">
@@ -63,7 +65,7 @@ export function AccountCard({ account }: { account: Account }) {
             className="text-ink-300 hover:text-ink"
             title="עריכת שם / קבוצה"
           >
-            ✏️
+            <Icon name="edit" className="w-4 h-4" />
           </button>
           <button
             onClick={() => {
@@ -73,7 +75,7 @@ export function AccountCard({ account }: { account: Account }) {
             className="text-ink-300 hover:text-red-500"
             title="מחיקת חשבון"
           >
-            🗑️
+            <Icon name="trash" className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -91,8 +93,8 @@ export function AccountCard({ account }: { account: Account }) {
       </div>
 
       <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={() => setBalanceOpen(true)}>
-          ✏️ עדכן יתרה
+        <Button size="sm" variant="outline" onClick={() => setBalanceOpen(true)} className="gap-1.5">
+          <Icon name="edit" className="w-4 h-4" /> עדכן יתרה
         </Button>
         <Button size="sm" variant="subtle" onClick={() => setGoalOpen(true)}>
           + הוסף מטרה
@@ -112,7 +114,9 @@ export function AccountCard({ account }: { account: Account }) {
             return (
               <div key={g.id} className="rounded-xl bg-bg px-3 py-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-ink-800">🎯 {g.name}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium text-ink-800">
+                    <Icon name="target" className="w-3.5 h-3.5 text-accent" /> {g.name}
+                  </span>
                   <span className="flex items-center gap-2">
                     {g.targetAmount ? (
                       <span className="text-muted num">
@@ -125,7 +129,7 @@ export function AccountCard({ account }: { account: Account }) {
                       onClick={() => removeGoal(account.id, g.id)}
                       className="text-ink-300 hover:text-red-500"
                     >
-                      ✕
+                      <Icon name="x" className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 </div>
@@ -167,7 +171,9 @@ export function AccountCard({ account }: { account: Account }) {
               בחודש.
             </p>
           ) : (
-            <p className="font-medium">🎉 כל המטרות עם יעד הושגו!</p>
+            <p className="inline-flex items-center gap-1.5 font-medium">
+              <Icon name="party" className="w-4 h-4" /> כל המטרות עם יעד הושגו!
+            </p>
           )}
         </div>
       )}

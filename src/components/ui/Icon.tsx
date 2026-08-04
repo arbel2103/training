@@ -59,6 +59,18 @@ export type IconName =
   | 'target'
   | 'tag'
   | 'trophy'
+  | 'cart'
+  | 'utensils'
+  | 'ticket'
+  | 'bag'
+  | 'fuel'
+  | 'laptop'
+  | 'plane'
+  | 'gift'
+  | 'umbrella'
+  | 'graduation'
+  | 'x'
+  | 'undo'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -309,6 +321,13 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7" />,
+  x: <path d="M6 6l12 12M18 6L6 18" />,
+  undo: (
+    <>
+      <path d="M9 7 4 12l5 5" />
+      <path d="M4 12h11a5 5 0 0 1 0 10h-1.5" />
+    </>
+  ),
   cloud: (
     <path d="M17.5 18.5H7a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.4 1.6 3.7 3.7 0 0 1-.4 7.4Z" />
   ),
@@ -378,6 +397,71 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M8 4h8v5a4 4 0 0 1-8 0Z" />
       <path d="M8 5H5.5a2.5 2.5 0 0 0 2.5 3M16 5h2.5a2.5 2.5 0 0 1-2.5 3" />
       <path d="M10 13.5 9.5 17h5l-.5-3.5M8 20h8M10 17h4" />
+    </>
+  ),
+  cart: (
+    <>
+      <circle cx="9.5" cy="20" r="1.2" />
+      <circle cx="17" cy="20" r="1.2" />
+      <path d="M2.5 4h2l2.2 10.5a1.5 1.5 0 0 0 1.5 1.2h8a1.5 1.5 0 0 0 1.5-1.2L20.5 7.5H6" />
+    </>
+  ),
+  utensils: (
+    <>
+      <path d="M7 3v5a2 2 0 0 1-4 0V3" />
+      <path d="M5 8v13" />
+      <path d="M17 3c1.6 1.6 1.6 6 0 8v10" />
+    </>
+  ),
+  ticket: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2.5" />
+      <path d="M15 6v12" strokeDasharray="1.5 2.5" />
+    </>
+  ),
+  bag: (
+    <>
+      <path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9Z" />
+      <path d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
+    </>
+  ),
+  fuel: (
+    <>
+      <rect x="4" y="4" width="9" height="16" rx="1.5" />
+      <path d="M4 11h9" />
+      <path d="M13 8.5h3a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 0 3 0V9.5L18 7" />
+    </>
+  ),
+  laptop: (
+    <>
+      <rect x="4" y="5" width="16" height="10" rx="1.6" />
+      <path d="M2.5 19h19" />
+    </>
+  ),
+  plane: (
+    <>
+      <path d="M21 3 3 10.5l6 2.5 2.5 6L21 3Z" />
+      <path d="M9 13l4-4" />
+    </>
+  ),
+  gift: (
+    <>
+      <rect x="4" y="9" width="16" height="11.5" rx="1.5" />
+      <path d="M4 13h16M12 9v11.5" />
+      <path d="M12 9c-1-3.5-5-3-4 0M12 9c1-3.5 5-3 4 0" />
+    </>
+  ),
+  umbrella: (
+    <>
+      <path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9Z" />
+      <path d="M12 12v6.5a2 2 0 0 0 4 0" />
+    </>
+  ),
+  graduation: (
+    <>
+      <path d="M2 8.5 12 4.5l10 4-10 4Z" />
+      <path d="M6 10.5V15c0 1.1 2.7 2.3 6 2.3s6-1.2 6-2.3v-4.5" />
+      <path d="M22 8.5v5" />
     </>
   ),
 }

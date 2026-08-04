@@ -7,7 +7,9 @@ import { useStore } from '../../store/useStore'
 import { collectSavingLinks, totalByGroup, totalCapital } from '../../store/selectors'
 import { formatCurrency } from '../../lib/format'
 import { formatDate } from '../../lib/date'
-import { accountGroups, groupIcon, CHECKING_KEY } from '../../lib/accountGroups'
+import { accountGroups, groupIconName, CHECKING_KEY } from '../../lib/accountGroups'
+import Icon from '../../../../components/ui/Icon'
+import type { IconName } from '../../../../components/ui/Icon'
 
 export function CapitalSummary() {
   const accounts = useStore((s) => s.accounts)
@@ -47,7 +49,7 @@ export function CapitalSummary() {
             key={g}
             label={g}
             value={formatCurrency(totalByGroup(accounts, links, g))}
-            icon={groupIcon(g)}
+            icon={<Icon name={groupIconName(g)} className="w-5 h-5" />}
             sub={isExcluded(g) ? 'לא נספר בהון' : undefined}
           />
         ))}
@@ -60,7 +62,7 @@ export function CapitalSummary() {
               ? 'לא נספר בהון · לחץ לעדכון'
               : `עודכן ${formatDate(checking.updatedAt)} · לחץ לעדכון`
           }
-          icon="✏️"
+          icon={<Icon name="edit" className="w-5 h-5" />}
           onClick={openChecking}
         />
 
@@ -112,9 +114,9 @@ function TotalCard({
   onToggle: (key: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const rows: { key: string; label: string; icon: string }[] = [
-    ...groups.map((g) => ({ key: g, label: g, icon: groupIcon(g) })),
-    { key: CHECKING_KEY, label: 'עו״ש', icon: '💳' },
+  const rows: { key: string; label: string; icon: IconName }[] = [
+    ...groups.map((g) => ({ key: g, label: g, icon: groupIconName(g) })),
+    { key: CHECKING_KEY, label: 'עו״ש', icon: 'wallet' as IconName },
   ]
 
   return (
@@ -126,7 +128,7 @@ function TotalCard({
           className="text-white/90 hover:text-white"
           title={'בחר מה לכלול בסה"כ הון'}
         >
-          ⚙️
+          <Icon name="gear" className="w-4 h-4" />
         </button>
       </div>
       <div className="mt-2 text-2xl font-semibold tracking-tight num">
@@ -158,8 +160,8 @@ function TotalCard({
                     onChange={() => onToggle(r.key)}
                     className="accent-accent"
                   />
-                  <span>
-                    {r.icon} {r.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name={r.icon} className="w-4 h-4 text-muted" /> {r.label}
                   </span>
                 </label>
               )

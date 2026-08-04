@@ -9,7 +9,7 @@ import {
   transactionCount,
 } from '../../store/selectors'
 import { formatCard, formatCurrency, formatNumber } from '../../lib/format'
-import { findCategoryDef } from '../../lib/categories'
+import { categoryIconName } from '../../lib/categories'
 import { useStore } from '../../store/useStore'
 import Icon from '../../../../components/ui/Icon'
 
@@ -21,7 +21,6 @@ interface Props {
 
 export function SummaryCards({ expenses, month, mk }: Props) {
   const removeCard = useStore((s) => s.removeCard)
-  const customCategories = useStore((s) => s.customCategories)
   const total = monthTotalSpending(expenses, month, mk)
   const count = transactionCount(expenses, mk)
   const top = topCategory(expenses, mk)
@@ -59,7 +58,7 @@ export function SummaryCards({ expenses, month, mk }: Props) {
               className="text-ink-300 hover:text-red-500"
               title="מחיקת הוצאות הכרטיס לחודש זה"
             >
-              ✕
+              <Icon name="x" className="w-3.5 h-3.5" />
             </button>
           </span>
         </div>
@@ -102,9 +101,7 @@ export function SummaryCards({ expenses, month, mk }: Props) {
         sub={top ? formatCurrency(top.value) : undefined}
         icon={
           top ? (
-            <span className="text-base">
-              {findCategoryDef(top.category, customCategories).icon}
-            </span>
+            <Icon name={categoryIconName(top.category)} className="w-5 h-5" />
           ) : (
             <Icon name="trophy" className="w-5 h-5" />
           )

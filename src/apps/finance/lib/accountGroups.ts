@@ -1,4 +1,18 @@
 import type { Account } from './types'
+import type { IconName } from '../../../components/ui/Icon'
+
+const GROUP_ICON_NAMES: Record<string, IconName> = {
+  חיסכון: 'bank',
+  השקעה: 'trendUp',
+  פנסיה: 'umbrella',
+  'קרן השתלמות': 'graduation',
+  'עו"ש': 'wallet',
+  עוש: 'wallet',
+}
+
+export function groupIconName(name: string): IconName {
+  return GROUP_ICON_NAMES[name] ?? 'coins'
+}
 
 // קבוצות ברירת מחדל להצעה בעת יצירת חשבון
 export const DEFAULT_GROUPS = ['חיסכון', 'השקעה', 'פנסיה', 'קרן השתלמות']

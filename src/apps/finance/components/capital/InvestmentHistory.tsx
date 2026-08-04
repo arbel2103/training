@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../../store/useStore'
 import { Card } from '../ui/Card'
+import Icon from '../../../../components/ui/Icon'
 import { monthLabel } from '../../lib/date'
 import { formatCurrency } from '../../lib/format'
 
@@ -59,7 +60,7 @@ export function InvestmentHistory() {
                         className="text-ink-300 hover:text-red-500"
                         title="מחיקה"
                       >
-                        🗑️
+                        <Icon name="trash" className="w-4 h-4" />
                       </button>
                     </span>
                   </div>
