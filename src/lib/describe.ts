@@ -1,5 +1,6 @@
 import type { PlannedWorkout, WorkoutEntry } from '../store/useStore'
 import { entryDuration, formatDuration, formatPace, sportUnit } from './calc'
+import type { IconName } from '../components/ui/Icon'
 import {
   aerobicIntensityLabel,
   sportColorVar,
@@ -10,7 +11,8 @@ import {
 } from './labels'
 
 export interface EntryView {
-  icon: string
+  icon: string // emoji — kept for external text (e.g. Google Calendar summaries)
+  iconName: IconName // clean in-app line icon
   title: string
   details: string[]
   color: string
@@ -24,6 +26,7 @@ export function describeEntry(e: WorkoutEntry): EntryView {
     if (e.durationMin) details.push(formatDuration(e.durationMin))
     return {
       icon: '💪',
+      iconName: 'strength',
       title: e.strengthName || 'אימון כוח',
       details,
       color: 'rgb(var(--c-strength))',
@@ -40,6 +43,7 @@ export function describeEntry(e: WorkoutEntry): EntryView {
     details.push(formatDuration(entryDuration(e)))
     return {
       icon: sportIcon[e.sport],
+      iconName: e.sport,
       title: sportLabel[e.sport],
       details,
       color: sportColorVar[e.sport],
@@ -47,6 +51,7 @@ export function describeEntry(e: WorkoutEntry): EntryView {
   }
   return {
     icon: '✨',
+    iconName: 'other',
     title: e.otherName || 'אימון אחר',
     details: e.durationMin ? [formatDuration(e.durationMin)] : [],
     color: 'rgb(var(--c-other))',
@@ -59,6 +64,7 @@ export function describePlanned(p: PlannedWorkout): EntryView {
   if (p.category === 'strength') {
     return {
       icon: '💪',
+      iconName: 'strength',
       title: p.strengthName || 'כוח',
       details,
       color: 'rgb(var(--c-strength))',
@@ -69,6 +75,7 @@ export function describePlanned(p: PlannedWorkout): EntryView {
     if (p.aerobicIntensity) details.push(aerobicIntensityLabel[p.aerobicIntensity])
     return {
       icon: sportIcon[p.sport],
+      iconName: p.sport,
       title: sportLabel[p.sport],
       details,
       color: sportColorVar[p.sport],
@@ -76,6 +83,7 @@ export function describePlanned(p: PlannedWorkout): EntryView {
   }
   return {
     icon: '✨',
+    iconName: 'other',
     title: p.otherName || 'אחר',
     details,
     color: 'rgb(var(--c-other))',

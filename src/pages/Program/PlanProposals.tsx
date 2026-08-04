@@ -7,16 +7,17 @@ import {
   type PlanSport,
 } from '../../store/useStore'
 import { HEB_DAYS_SHORT } from '../../lib/dates'
-import { sportIcon, sportLabel } from '../../lib/labels'
+import { sportLabel } from '../../lib/labels'
+import Icon, { type IconName } from '../../components/ui/Icon'
 import { hasApiKey } from '../../lib/apiKey'
 import { requestPlanRecommendations } from '../../lib/coachActions'
 
-const sportMeta: Record<PlanSport, { icon: string; label: string }> = {
-  run: { icon: sportIcon.run, label: sportLabel.run },
-  bike: { icon: sportIcon.bike, label: sportLabel.bike },
-  swim: { icon: sportIcon.swim, label: sportLabel.swim },
-  strength: { icon: '💪', label: 'כוח' },
-  other: { icon: '✨', label: 'אחר' },
+const sportMeta: Record<PlanSport, { iconName: IconName; label: string }> = {
+  run: { iconName: 'run', label: sportLabel.run },
+  bike: { iconName: 'bike', label: sportLabel.bike },
+  swim: { iconName: 'swim', label: sportLabel.swim },
+  strength: { iconName: 'strength', label: 'כוח' },
+  other: { iconName: 'other', label: 'אחר' },
 }
 const unitFor = (s: PlanSport): string =>
   s === 'swim' ? 'מ׳' : s === 'run' || s === 'bike' ? 'ק״מ' : ''
@@ -54,7 +55,9 @@ function ProposalCard({ p }: { p: PlanProposal }) {
           {p.label ? ` · ${p.label}` : ''}
         </h4>
       </div>
-      <p className="text-sm text-muted leading-relaxed mb-3">💡 {p.rationale}</p>
+      <p className="text-sm text-muted leading-relaxed mb-3 flex items-start gap-1.5">
+        <Icon name="bulb" className="w-4 h-4 mt-0.5 shrink-0" /> {p.rationale}
+      </p>
 
       {sorted.length === 0 ? (
         <p className="text-sm text-muted mb-3">שבוע מנוחה (בלי אימונים).</p>
@@ -71,7 +74,7 @@ function ProposalCard({ p }: { p: PlanProposal }) {
                 <span className="w-6 text-xs font-bold text-muted shrink-0">
                   {HEB_DAYS_SHORT[s.day]}
                 </span>
-                <span className="shrink-0">{meta.icon}</span>
+                <Icon name={meta.iconName} className="w-4 h-4 shrink-0" />
                 <span className="flex-1 min-w-0 truncate">
                   {meta.label}
                   {s.label ? ` · ${s.label}` : ''}
@@ -141,10 +144,10 @@ export default function PlanProposals() {
           disabled={loading || !hasApiKey()}
           className="btn-soft text-sm"
         >
-          {loading ? 'המאמן חושב…' : '🔄 בקש המלצות להמשך'}
+          {loading ? 'המאמן חושב…' : 'בקש המלצות להמשך'}
         </button>
         {!hasApiKey() && (
-          <span className="text-xs text-muted">דורש חיבור מאמן (🏋️)</span>
+          <span className="text-xs text-muted">דורש חיבור מאמן</span>
         )}
       </div>
 

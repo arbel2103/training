@@ -5,7 +5,7 @@ import { getApiKey } from './apiKey'
 import { runCoach } from './coachApi'
 import { buildContext, COACH_TOOLS, executeTool, SYSTEM_PERSONA } from './coachTools'
 
-const NO_KEY = 'צריך מפתח AI כדי להשתמש במאמן — פתח את המאמן (🏋️) והזן מפתח פעם אחת.'
+const NO_KEY = 'צריך מפתח AI כדי להשתמש במאמן — פתח את המאמן והזן מפתח פעם אחת.'
 
 const PROPOSE_SYSTEM = `${SYSTEM_PERSONA}
 

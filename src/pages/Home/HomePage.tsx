@@ -9,7 +9,8 @@ import {
   weekDays,
 } from '../../lib/dates'
 import { weekCompletion } from '../../lib/planMatch'
-import { sportIcon, sportLabel } from '../../lib/labels'
+import { sportColorClass, sportLabel } from '../../lib/labels'
+import Icon, { type IconName } from '../../components/ui/Icon'
 import { formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
@@ -17,7 +18,6 @@ import QuickCompleteModal from '../../components/QuickCompleteModal'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
-import EntryTab from '../Tracking/EntryTab'
 import StatsTab from './StatsTab'
 
 function greeting(): string {
@@ -28,10 +28,10 @@ function greeting(): string {
   return 'ערב טוב'
 }
 
-function sessionIcon(s: PlanSession): string {
-  if (s.sport === 'strength') return '💪'
-  if (s.sport === 'other') return '✨'
-  return sportIcon[s.sport]
+function sessionIconName(s: PlanSession): IconName {
+  if (s.sport === 'strength') return 'strength'
+  if (s.sport === 'other') return 'other'
+  return s.sport
 }
 
 function sessionTitle(s: PlanSession): string {
@@ -85,7 +85,7 @@ export default function HomePage() {
     <div>
       <div className="mb-5">
         <h1 className="font-display text-3xl md:text-4xl font-black tracking-tight">
-          {greeting()} 👋
+          {greeting()}
         </h1>
         <p className="text-muted mt-1">
           יום {HEB_DAYS[now.getDay()]} · {formatDayMonth(now)}
@@ -113,7 +113,7 @@ export default function HomePage() {
           style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
         >
           <div className="flex items-start gap-2">
-            <span className="text-lg leading-none">⌚</span>
+            <Icon name="watch" className="w-5 h-5 shrink-0 text-accent" />
             <div className="flex-1">
               <p className="leading-relaxed">
                 חבר את <b>Garmin Connect</b> כדי למשוך אוטומטית שינה, בריאות
@@ -146,10 +146,10 @@ export default function HomePage() {
           className="card p-3.5 mb-5 text-sm flex items-center gap-2 bg-accent-soft/40"
           style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
         >
-          ☁️{' '}
+          <Icon name="cloud" className="w-5 h-5 shrink-0 text-accent" />
           {backup
-            ? 'עבר שבוע מהגיבוי האחרון — כדאי לגבות לענן (כפתור ☁️ למעלה).'
-            : 'עוד לא גיבית לענן — כדאי לגבות (כפתור ☁️ למעלה).'}
+            ? 'עבר שבוע מהגיבוי האחרון — כדאי לגבות לענן (בכפתור הענן למעלה).'
+            : 'עוד לא גיבית לענן — כדאי לגבות (בכפתור הענן למעלה).'}
         </div>
       )}
 
@@ -158,10 +158,12 @@ export default function HomePage() {
         {daysToRace !== null && (
           <div className="card p-5 sm:col-span-2 flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted">🏁 {plan?.raceName || 'תחרות'}</div>
+              <div className="text-sm text-muted flex items-center gap-1.5">
+                <Icon name="flag" className="w-4 h-4" /> {plan?.raceName || 'תחרות'}
+              </div>
               <div className="font-display text-2xl font-bold mt-0.5">
                 {daysToRace === 0
-                  ? 'היום זה היום! בהצלחה! 🎉'
+                  ? 'היום זה היום! בהצלחה!'
                   : `עוד ${daysToRace} ימים`}
               </div>
             </div>
@@ -181,10 +183,10 @@ export default function HomePage() {
           <h3 className="font-display text-lg font-bold mb-3">האימון של היום</h3>
           {!plan || plan.weeks.length === 0 ? (
             <p className="text-sm text-muted">
-              אין תוכנית עדיין — פתח את <b>המאמן</b> (🏋️) כדי לבנות אחת.
+              אין תוכנית עדיין — פתח את <b>המאמן</b> כדי לבנות אחת.
             </p>
           ) : todaySessions.length === 0 ? (
-            <p className="text-sm text-muted">יום מנוחה 😌 תן לגוף להתאושש.</p>
+            <p className="text-sm text-muted">יום מנוחה — תן לגוף להתאושש.</p>
           ) : (
             <div className="grid gap-2">
               {todaySessions.map((s) => {
@@ -196,7 +198,10 @@ export default function HomePage() {
                       done ? 'border-bike/40 bg-bike/5' : 'border-line'
                     }`}
                   >
-                    <span className="text-xl">{sessionIcon(s)}</span>
+                    <Icon
+                      name={sessionIconName(s)}
+                      className={`w-6 h-6 shrink-0 ${sportColorClass[s.sport]}`}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold">{sessionTitle(s)}</div>
                       <div className="text-sm text-muted">
@@ -246,19 +251,13 @@ export default function HomePage() {
               </div>
               {doneCount === totalCount && (
                 <p className="text-sm text-bike font-semibold mt-2">
-                  כל הכבוד — השבוע הושלם! 🎉
+                  כל הכבוד — השבוע הושלם!
                 </p>
               )}
             </>
           )}
         </div>
 
-      </div>
-
-      {/* week entry — the old tracking page, now right under the dashboard */}
-      <div className="mt-8">
-        <h2 className="font-display text-xl font-bold mb-4">הזנת אימונים</h2>
-        <EntryTab />
       </div>
         </>
       )}

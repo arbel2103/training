@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import Icon, { type IconName } from './ui/Icon'
 
 interface Step {
-  icon: string
+  icon: IconName
   title: string
   body: ReactNode
   /** page to switch to while this step shows (0=היום … 3=בריאות) */
@@ -12,18 +13,18 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    icon: '👋',
+    icon: 'party',
     title: 'ברוך הבא ל-fitness',
     body: (
       <p>
         סיור קצר על כל חלק — כל פעם נצביע על פיצ'ר אחר. לחץ <b>המשך</b> כדי
-        להתקדם, או <b>דלג</b>. תמיד אפשר לפתוח שוב מכפתור <b>❓</b> למעלה.
+        להתקדם, או <b>דלג</b>. תמיד אפשר לפתוח שוב מכפתור <b>העזרה</b> למעלה.
       </p>
     ),
     page: 0,
   },
   {
-    icon: '🏠',
+    icon: 'home',
     title: 'דף "היום"',
     body: (
       <ul className="space-y-1 list-disc pr-4">
@@ -40,7 +41,7 @@ const STEPS: Step[] = [
           <b>קצב:</b> מקלידים ספרות בלבד — <code>530</code> הופך ל-<b>5:30</b>
         </li>
         <li>
-          טאב <b>היסטוריה</b>: ניתוח לפי תקופה + <b>📈 שיאים ומגמות</b> (הקצב הכי
+          טאב <b>היסטוריה</b>: ניתוח לפי תקופה + <b>שיאים ומגמות</b> (הקצב הכי
           מהיר, גרפי נפח וקצב)
         </li>
       </ul>
@@ -49,13 +50,13 @@ const STEPS: Step[] = [
     target: 'nav-home',
   },
   {
-    icon: '🗂️',
+    icon: 'clipboard',
     title: 'תוכנית אימונים',
     body: (
       <ul className="space-y-1 list-disc pr-4">
         <li>
           <b>כוח:</b> סוגי אימון (חזה/גב/רגליים), תרגילים עם סטים/חזרות/משקל,
-          ו-<b>⏱️ טיימר מנוחה</b> בין סטים
+          ו-<b>טיימר מנוחה</b> בין סטים
         </li>
         <li>
           <b>אירובי:</b> התוכנית שהמאמן בנה, מחולקת לשבועות כטבלה לפי ספורט
@@ -70,7 +71,7 @@ const STEPS: Step[] = [
     target: 'nav-program',
   },
   {
-    icon: '🗓️',
+    icon: 'calendar',
     title: 'שיבוץ ליומן',
     body: (
       <ol className="space-y-1 list-decimal pr-4">
@@ -91,22 +92,22 @@ const STEPS: Step[] = [
     target: 'nav-planning',
   },
   {
-    icon: '🩺',
+    icon: 'health',
     title: 'מעקב בריאות',
     body: (
       <ul className="space-y-1 list-disc pr-4">
         <li>
-          <b>🌙 שינה:</b> ציון ושלבי שינה, מגמות ו<b>מאמן שינה</b> עם תובנות
+          <b>שינה:</b> ציון ושלבי שינה, מגמות ו<b>מאמן שינה</b> עם תובנות
           מותאמות — הכל מגרמין
         </li>
         <li>
-          <b>❤️ בריאות יומית:</b> צעדים, דופק מנוחה, סוללת גוף, לחץ ו-HRV
+          <b>בריאות יומית:</b> צעדים, דופק מנוחה, סוללת גוף, לחץ ו-HRV
         </li>
         <li>
-          <b>⚖️ משקל:</b> שקילות וגרף מגמה; המשקל האחרון מופיע גם בדף הבית
+          <b>משקל:</b> שקילות וגרף מגמה; המשקל האחרון מופיע גם בדף הבית
         </li>
         <li>
-          <b>🩺 בדיקות:</b> סוג, תאריך ותוקף — האפליקציה מחשבת מתי הבאה
+          <b>בדיקות:</b> סוג, תאריך ותוקף — האפליקציה מחשבת מתי הבאה
         </li>
       </ul>
     ),
@@ -114,12 +115,12 @@ const STEPS: Step[] = [
     target: 'nav-health',
   },
   {
-    icon: '⌚',
+    icon: 'watch',
     title: 'חיבור לגרמין',
     body: (
       <ul className="space-y-1 list-disc pr-4">
         <li>
-          מחברים פעם אחת את חשבון <b>Garmin Connect</b> (כפתור ☁️ למעלה → קטע
+          מחברים פעם אחת את חשבון <b>Garmin Connect</b> (כפתור הענן למעלה → קטע
           Garmin), והאפליקציה מושכת אוטומטית שינה, בריאות ואימונים
         </li>
         <li>
@@ -128,14 +129,14 @@ const STEPS: Step[] = [
         </li>
         <li>
           סנכרון אוטומטי כל יום ב-12:00, או ידנית בכל רגע; טאב{' '}
-          <b>📊 סטטיסטיקות</b> בדף הבית מציג ניתוח עומק לכל ענף
+          <b>סטטיסטיקות</b> בדף הבית מציג ניתוח עומק לכל ענף
         </li>
       </ul>
     ),
     target: 'sync',
   },
   {
-    icon: '🏋️',
+    icon: 'chat',
     title: 'המאמן האישי (AI)',
     body: (
       <ul className="space-y-1 list-disc pr-4">
@@ -145,7 +146,7 @@ const STEPS: Step[] = [
           המחויבויות מהיומן שטענת — ו<b>מתכנן סביבן</b>
         </li>
         <li>
-          כפתור <b>📊 סכם לי את השבוע</b> — פידבק על מתוכנן מול בוצע והתאמות לשבוע
+          כפתור <b>סכם לי את השבוע</b> — פידבק על מתוכנן מול בוצע והתאמות לשבוע
           הבא
         </li>
         <li>
@@ -156,7 +157,7 @@ const STEPS: Step[] = [
     target: 'fab',
   },
   {
-    icon: '☁️',
+    icon: 'cloud',
     title: 'גיבוי וסנכרון',
     body: (
       <ul className="space-y-1 list-disc pr-4">
@@ -173,12 +174,12 @@ const STEPS: Step[] = [
     target: 'sync',
   },
   {
-    icon: '🌙',
+    icon: 'moon',
     title: 'מצב כהה והתקנה',
     body: (
       <ul className="space-y-1 list-disc pr-4">
         <li>
-          <b>🌙 מצב כהה</b> — הכפתור הזה, נוח לעיניים בערב
+          <b>מצב כהה</b> — הכפתור הזה, נוח לעיניים בערב
         </li>
         <li>
           <b>התקנה כאפליקציה:</b> בטלפון "הוסף למסך הבית", במחשב אייקון ההתקנה
@@ -189,15 +190,15 @@ const STEPS: Step[] = [
     target: 'theme',
   },
   {
-    icon: '🎉',
+    icon: 'party',
     title: 'זהו, אתה מוכן!',
     body: (
       <>
         <p>ההמלצה שלי להתחלה:</p>
         <ol className="mt-1.5 space-y-1 list-decimal pr-4">
-          <li>פתח את המאמן 🏋️ ובקש לבנות תוכנית</li>
+          <li>פתח את המאמן ובקש לבנות תוכנית</li>
           <li>מכל יום — סמן "בצעתי ✓" ודרג איך היה</li>
-          <li>גבה לענן ☁️ מדי פעם</li>
+          <li>גבה לענן מדי פעם</li>
         </ol>
       </>
     ),
@@ -359,8 +360,8 @@ export default function GuideOverlay({
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="w-9 h-9 rounded-xl bg-accent-soft grid place-items-center text-xl">
-                {step.icon}
+              <span className="w-9 h-9 rounded-xl bg-accent-soft grid place-items-center text-accent">
+                <Icon name={step.icon} className="w-5 h-5" />
               </span>
               <span className="text-xs font-semibold text-muted">
                 {i + 1}/{STEPS.length}
@@ -389,7 +390,7 @@ export default function GuideOverlay({
             </button>
             {isLast ? (
               <button onClick={onClose} className="btn-accent flex-1 text-sm py-1.5">
-                יאללה, מתחילים! 🎉
+                יאללה, מתחילים!
               </button>
             ) : (
               <button

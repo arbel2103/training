@@ -24,6 +24,15 @@ export const sportColorVar: Record<Sport, string> = {
   swim: 'rgb(var(--c-swim))',
 }
 
+/** Tailwind text-color class per sport/category, for coloring line icons. */
+export const sportColorClass: Record<string, string> = {
+  run: 'text-run',
+  bike: 'text-bike',
+  swim: 'text-swim',
+  strength: 'text-strength',
+  other: 'text-other',
+}
+
 export const categoryLabel: Record<Category, string> = {
   strength: 'כוח',
   aerobic: 'אירובי',

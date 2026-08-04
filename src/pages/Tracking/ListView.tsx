@@ -4,6 +4,7 @@ import { describeEntry } from '../../lib/describe'
 import { formatFullDate } from '../../lib/dates'
 import ActivityDetailModal from '../../components/garmin/ActivityDetailModal'
 import WorkoutFormModal from './WorkoutFormModal'
+import Icon from '../../components/ui/Icon'
 
 export default function ListView() {
   const log = useStore((s) => s.log)
@@ -40,16 +41,16 @@ export default function ListView() {
               return (
                 <div key={e.id} className="card p-3.5 flex items-center gap-3">
                   <span
-                    className="w-9 h-9 rounded-xl grid place-items-center text-lg"
-                    style={{ background: 'rgb(var(--accent-soft))' }}
+                    className="w-9 h-9 rounded-xl grid place-items-center"
+                    style={{ background: 'rgb(var(--accent-soft))', color: v.color }}
                   >
-                    {v.icon}
+                    <Icon name={v.iconName} className="w-5 h-5" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold flex items-center gap-1.5" style={{ color: v.color }}>
                       {v.title}
                       {e.source === 'garmin' && (
-                        <span title="נמשך מגרמין" className="text-xs">⌚</span>
+                        <Icon name="watch" className="w-3.5 h-3.5" />
                       )}
                     </div>
                     <div className="text-sm text-muted">{v.details.join(' · ')}</div>
@@ -61,7 +62,7 @@ export default function ListView() {
                       aria-label="פירוט"
                       title="פירוט אימון"
                     >
-                      📊
+                      <Icon name="chart" className="w-4 h-4" />
                     </button>
                   )}
                   <button
@@ -70,14 +71,14 @@ export default function ListView() {
                     aria-label="ערוך"
                     title="ערוך אימון"
                   >
-                    ✏️
+                    <Icon name="edit" className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => removeEntry(e.id)}
-                    className="text-muted hover:text-accent px-1"
+                    className="text-muted hover:text-run px-1"
                     aria-label="מחק"
                   >
-                    🗑
+                    <Icon name="trash" className="w-4 h-4" />
                   </button>
                 </div>
               )

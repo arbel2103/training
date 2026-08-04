@@ -11,7 +11,6 @@ import {
   aerobicIntensitiesFor,
   aerobicIntensityLabel,
   categoryLabel,
-  sportIcon,
   sportLabel,
 } from '../../lib/labels'
 import { sportUnit } from '../../lib/calc'
@@ -19,6 +18,7 @@ import { formatFullDate } from '../../lib/dates'
 import { conflictsFor } from '../../lib/scheduling'
 import Modal from '../../components/ui/Modal'
 import Segmented from '../../components/ui/Segmented'
+import Icon from '../../components/ui/Icon'
 
 export default function PlanFormModal({
   open,
@@ -176,7 +176,7 @@ export default function PlanFormModal({
               }}
               options={SPORTS.map((s) => ({
                 value: s,
-                label: `${sportIcon[s]} ${sportLabel[s]}`,
+                label: sportLabel[s],
               }))}
             />
           </div>
@@ -253,8 +253,9 @@ export default function PlanFormModal({
         </div>
 
         {clashes.length > 0 && (
-          <p className="text-sm text-run leading-relaxed">
-            ⚠️ מתנגש עם: {clashes.map((c) => c.title).join(' · ')}
+          <p className="text-sm text-run leading-relaxed flex items-start gap-1.5">
+            <Icon name="warning" className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>מתנגש עם: {clashes.map((c) => c.title).join(' · ')}</span>
           </p>
         )}
         {dayEvents.length === 0 && (

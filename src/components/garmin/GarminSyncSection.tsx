@@ -4,6 +4,7 @@ import { clearPat, hasGarminSetup } from '../../lib/garmin/pat'
 import { clearCache } from '../../lib/garmin/cache'
 import { manualSync } from '../../lib/garmin/sync'
 import GarminSetupWizard from './GarminSetupWizard'
+import Icon from '../ui/Icon'
 
 function formatTime(iso?: string): string | null {
   if (!iso) return null
@@ -38,7 +39,9 @@ export default function GarminSyncSection() {
 
   return (
     <section className="border-t border-line pt-5">
-      <h4 className="font-semibold mb-1">⌚ Garmin Connect</h4>
+      <h4 className="font-semibold mb-1 flex items-center gap-1.5">
+        <Icon name="watch" className="w-4 h-4 text-muted" /> Garmin Connect
+      </h4>
 
       {!connected ? (
         <>
@@ -48,23 +51,25 @@ export default function GarminSyncSection() {
           </p>
           <button
             onClick={() => setWizard({ open: true, step: 1 })}
-            className="btn-primary"
+            className="btn-primary gap-1.5"
           >
-            🔗 חבר את גרמין
+            <Icon name="link" className="w-4 h-4" /> חבר את גרמין
           </button>
         </>
       ) : (
         <div className="grid gap-3">
           <div className="flex flex-wrap gap-2">
-            <span className="chip text-sm">✅ מחובר</span>
+            <span className="chip text-sm gap-1.5 text-bike">
+              <Icon name="checkCircle" className="w-4 h-4" /> מחובר
+            </span>
             {settings.lastEmail && (
-              <span className="chip text-sm" title="חשבון הגרמין">
-                👤 {settings.lastEmail}
+              <span className="chip text-sm gap-1.5" title="חשבון הגרמין">
+                <Icon name="user" className="w-4 h-4" /> {settings.lastEmail}
               </span>
             )}
             {lastSync && (
-              <span className="chip text-sm" title="הסנכרון האחרון מהשרת">
-                🕒 {lastSync}
+              <span className="chip text-sm gap-1.5" title="הסנכרון האחרון מהשרת">
+                <Icon name="clock" className="w-4 h-4" /> {lastSync}
               </span>
             )}
           </div>
@@ -86,9 +91,10 @@ export default function GarminSyncSection() {
             <button
               onClick={() => void manualSync()}
               disabled={busy}
-              className="btn-primary"
+              className="btn-primary gap-1.5"
             >
-              {busy ? 'מסנכרן…' : '🔄 סנכרן עכשיו'}
+              {!busy && <Icon name="refresh" className="w-4 h-4" />}
+              {busy ? 'מסנכרן…' : 'סנכרן עכשיו'}
             </button>
             <button
               onClick={() => setWizard({ open: true, step: 2 })}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './ui/Modal'
+import Icon from './ui/Icon'
 import GarminSyncSection from './garmin/GarminSyncSection'
 import { isConfigured, preloadGis } from '../lib/googleCalendar'
 import {
@@ -96,7 +97,7 @@ export default function SyncModal({
     })
 
   return (
-    <Modal open={open} onClose={onClose} title="☁️ גיבוי וסנכרון">
+    <Modal open={open} onClose={onClose} title="גיבוי וסנכרון">
       <div className="grid gap-6">
         <section>
           <h4 className="font-semibold mb-1">סנכרון בענן (Google Drive)</h4>
@@ -117,34 +118,35 @@ export default function SyncModal({
             />
           </label>
           {!isConfigured() ? (
-            <p className="text-sm text-muted">
-              🔌 סנכרון ענן דורש את חיבור Google (מוגדר באתר החי).
+            <p className="text-sm text-muted flex items-start gap-1.5">
+              <Icon name="plug" className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>סנכרון ענן דורש את חיבור Google (מוגדר באתר החי).</span>
             </p>
           ) : (
             <>
               {cloud === null ? (
-                <button onClick={checkCloud} disabled={!!busy} className="btn-soft">
-                  🔗 התחבר ובדוק גיבוי
+                <button onClick={checkCloud} disabled={!!busy} className="btn-soft gap-1.5">
+                  <Icon name="link" className="w-4 h-4" /> התחבר ובדוק גיבוי
                 </button>
               ) : (
                 <div className="grid gap-3">
                   <div className="flex flex-wrap gap-2">
                     {account && (
-                      <span className="chip text-sm" title="החשבון המחובר">
-                        👤 {account}
+                      <span className="chip text-sm gap-1.5" title="החשבון המחובר">
+                        <Icon name="user" className="w-4 h-4" /> {account}
                       </span>
                     )}
                     {cloud.modifiedTime || cloud.savedAt ? (
                       <>
-                        <span className="chip text-sm">
-                          🕒 {formatTime(cloud.savedAt || cloud.modifiedTime!)}
+                        <span className="chip text-sm gap-1.5">
+                          <Icon name="clock" className="w-4 h-4" /> {formatTime(cloud.savedAt || cloud.modifiedTime!)}
                         </span>
                         {cloud.deviceName && (
                           <span
-                            className="chip text-sm"
+                            className="chip text-sm gap-1.5"
                             title="המכשיר שממנו בוצע הגיבוי האחרון"
                           >
-                            📱 {cloud.deviceName}
+                            <Icon name="watch" className="w-4 h-4" /> {cloud.deviceName}
                           </span>
                         )}
                       </>
@@ -159,16 +161,16 @@ export default function SyncModal({
                     <button
                       onClick={backupNow}
                       disabled={!!busy}
-                      className="btn-primary"
+                      className="btn-primary gap-1.5"
                     >
-                      ⬆️ גבה לענן עכשיו
+                      <Icon name="upload" className="w-4 h-4" /> גבה לענן עכשיו
                     </button>
                     <button
                       onClick={restoreNow}
                       disabled={!!busy || !cloud.fileId}
-                      className="btn-ghost"
+                      className="btn-ghost gap-1.5"
                     >
-                      ⬇️ שחזר מהענן למכשיר זה
+                      <Icon name="download" className="w-4 h-4" /> שחזר מהענן למכשיר זה
                     </button>
                   </div>
                 </div>
@@ -183,11 +185,11 @@ export default function SyncModal({
             גיבוי מקומי בלי גוגל — קובץ שאפשר לשמור איפה שרוצים.
           </p>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => exportToFile()} className="btn-ghost">
-              💾 הורד קובץ גיבוי
+            <button onClick={() => exportToFile()} className="btn-ghost gap-1.5">
+              <Icon name="save" className="w-4 h-4" /> הורד קובץ גיבוי
             </button>
-            <button onClick={() => fileRef.current?.click()} className="btn-ghost">
-              📂 שחזר מקובץ
+            <button onClick={() => fileRef.current?.click()} className="btn-ghost gap-1.5">
+              <Icon name="folder" className="w-4 h-4" /> שחזר מקובץ
             </button>
             <input
               ref={fileRef}

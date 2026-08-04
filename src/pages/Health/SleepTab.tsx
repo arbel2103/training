@@ -10,6 +10,7 @@ import {
   GarminRefreshChip,
 } from '../../components/garmin/GarminDataHeader'
 import InfoTip from '../../components/ui/InfoTip'
+import Icon from '../../components/ui/Icon'
 
 const STAGE_COLORS = {
   deep: 'var(--c-swim)',
@@ -130,19 +131,21 @@ export default function SleepTab() {
 
       {/* insights */}
       <div className="card p-5">
-        <h4 className="font-semibold mb-3">🧠 מאמן השינה</h4>
+        <h4 className="font-semibold mb-3 flex items-center gap-2">
+          <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
+        </h4>
         <div className="grid gap-2">
           {insights.map((ins, i) => (
             <div
               key={i}
               className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${severityClass[ins.severity]}`}
             >
-              <span className="leading-none text-base">{ins.icon}</span>
+              <Icon name={ins.icon} className="w-4 h-4 mt-0.5 shrink-0" />
               <div className="leading-relaxed">
                 <span>{ins.text}</span>
                 {ins.tip && (
                   <div className="mt-1 flex items-start gap-1.5 text-xs opacity-80">
-                    <span>💡</span>
+                    <Icon name="bulb" className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                     <span>{ins.tip}</span>
                   </div>
                 )}

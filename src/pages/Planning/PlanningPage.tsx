@@ -5,7 +5,8 @@ import {
   type PlanSession,
   type PlannedWorkout,
 } from '../../store/useStore'
-import { sportIcon, sportLabel } from '../../lib/labels'
+import { sportLabel } from '../../lib/labels'
+import Icon, { type IconName } from '../../components/ui/Icon'
 import {
   addDays,
   formatDayMonth,
@@ -59,12 +60,12 @@ function sessionToPlanned(s: PlanSession, date: string): Partial<PlannedWorkout>
   return { ...base, category: 'aerobic', sport: s.sport, distance: s.distance }
 }
 
-function sessionChip(s: PlanSession): { icon: string; text: string } {
+function sessionChip(s: PlanSession): { iconName: IconName; text: string } {
   if (s.sport === 'strength')
-    return { icon: '💪', text: s.label || 'כוח' }
-  if (s.sport === 'other') return { icon: '✨', text: s.label || 'אימון' }
+    return { iconName: 'strength', text: s.label || 'כוח' }
+  if (s.sport === 'other') return { iconName: 'other', text: s.label || 'אימון' }
   return {
-    icon: sportIcon[s.sport],
+    iconName: s.sport,
     text: s.distance ? `${sportLabel[s.sport]} ${s.distance}` : sportLabel[s.sport],
   }
 }
@@ -344,7 +345,7 @@ export default function PlanningPage() {
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="font-semibold truncate" style={{ color: v.color }}>
-                  {v.icon} {v.title}
+                  <Icon name={v.iconName} className="w-4 h-4 inline align-middle" /> {v.title}
                 </span>
                 <span className="flex items-center gap-1 shrink-0">
                   <button
@@ -356,7 +357,7 @@ export default function PlanningPage() {
                     aria-label="ערוך"
                     title="ערוך"
                   >
-                    ✎
+                    <Icon name="edit" className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={(e) => {
@@ -387,8 +388,8 @@ export default function PlanningPage() {
                 <span className="text-muted">{p.durationMin || 60}׳</span>
                 {p.syncedEventId && <span className="text-bike">ביומן ✓</span>}
                 {clash.length > 0 && (
-                  <span className="text-run" title={clash.map((c) => c.title).join(' · ')}>
-                    ⚠️ התנגשות
+                  <span className="text-run inline-flex items-center gap-1" title={clash.map((c) => c.title).join(' · ')}>
+                    <Icon name="warning" className="w-3.5 h-3.5" /> התנגשות
                   </span>
                 )}
               </div>
@@ -428,9 +429,12 @@ export default function PlanningPage() {
       {/* connection / status bar */}
       <div className="card p-4 mb-5 flex flex-wrap items-center gap-3">
         {!isConfigured() ? (
-          <div className="text-sm text-muted">
-            🔌 כדי לחבר את היומן צריך להגדיר <b>Google OAuth Client ID</b> (ראה
-            הוראות ב-README). שאר התכנון עובד גם בלי חיבור.
+          <div className="text-sm text-muted flex items-start gap-1.5">
+            <Icon name="plug" className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              כדי לחבר את היומן צריך להגדיר <b>Google OAuth Client ID</b> (ראה
+              הוראות ב-README). שאר התכנון עובד גם בלי חיבור.
+            </span>
           </div>
         ) : (
           <>
@@ -468,17 +472,18 @@ export default function PlanningPage() {
             <button
               onClick={() => void loadCalendar()}
               disabled={!!busy}
-              className="btn-soft mb-px self-end"
+              className="btn-soft mb-px self-end gap-1.5"
             >
-              {connected ? '↻ רענן יומן' : '🔗 התחבר וטען יומן'}
+              <Icon name={connected ? 'refresh' : 'link'} className="w-4 h-4" />
+              {connected ? 'רענן יומן' : 'התחבר וטען יומן'}
             </button>
             {busy && <span className="text-sm text-muted self-end mb-2">{busy}</span>}
             {connected && !busy && (
               <span className="text-sm text-bike self-end mb-2">מחובר ✓</span>
             )}
             {account && (
-              <span className="chip text-sm self-end mb-1" title="חשבון Google המחובר">
-                👤 {account}
+              <span className="chip text-sm self-end mb-1 gap-1.5" title="חשבון Google המחובר">
+                <Icon name="user" className="w-4 h-4" /> {account}
               </span>
             )}
           </>
@@ -486,11 +491,14 @@ export default function PlanningPage() {
         {error && <span className="text-sm text-run">שגיאה: {error}</span>}
         {calendarMissing && (
           <div
-            className="w-full text-sm rounded-xl px-3 py-2 bg-run/10 text-run"
+            className="w-full text-sm rounded-xl px-3 py-2 bg-run/10 text-run flex items-start gap-1.5"
             style={{ borderInlineStart: '3px solid rgb(var(--c-run))' }}
           >
-            ⚠️ היומן <b>"{calendarQuery}"</b> כבר לא קיים בחשבון הזה — בחר יומן
-            אחר מהרשימה כדי לראות את הלו״ז.
+            <Icon name="warning" className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              היומן <b>"{calendarQuery}"</b> כבר לא קיים בחשבון הזה — בחר יומן
+              אחר מהרשימה כדי לראות את הלו״ז.
+            </span>
           </div>
         )}
       </div>
@@ -535,10 +543,10 @@ export default function PlanningPage() {
                 onDragStart={() => setDragSession(s)}
                 onDragEnd={() => setDragSession(null)}
                 onClick={() => setPrefill(sessionToPlanned(s, selectedDay))}
-                className="chip text-xs shrink-0 hover:border-accent hover:text-accent transition"
+                className="chip text-xs shrink-0 gap-1 hover:border-accent hover:text-accent transition"
                 title="לחץ לשיבוץ ליום — או גרור ליום בלוח"
               >
-                {chip.icon} {chip.text}
+                <Icon name={chip.iconName} className="w-3.5 h-3.5" /> {chip.text}
               </button>
             )
           })}
@@ -623,7 +631,9 @@ export default function PlanningPage() {
             return (
               <div className="grid gap-6">
                 <section>
-                  <h4 className="font-semibold mb-2">🗓️ לו״ז היומן</h4>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5">
+                    <Icon name="calendar" className="w-4 h-4 text-muted" /> לו״ז היומן
+                  </h4>
                   {!connected ? (
                     <p className="text-sm text-muted">
                       התחבר וטען את היומן כדי לראות את הלו״ז.
@@ -656,7 +666,9 @@ export default function PlanningPage() {
 
                 <section>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold">🏋️ אימונים מתוכננים</h4>
+                    <h4 className="font-semibold flex items-center gap-1.5">
+                      <Icon name="clipboard" className="w-4 h-4 text-muted" /> אימונים מתוכננים
+                    </h4>
                     <button
                       onClick={() => {
                         const d = detailDate
@@ -682,7 +694,7 @@ export default function PlanningPage() {
                           >
                             <div className="min-w-0">
                               <span className="font-semibold" style={{ color: v.color }}>
-                                {v.icon} {v.title}
+                                <Icon name={v.iconName} className="w-4 h-4 inline align-middle" /> {v.title}
                               </span>
                               {v.details.length > 0 && (
                                 <span className="text-sm text-muted">
@@ -703,7 +715,7 @@ export default function PlanningPage() {
                                 className="text-muted hover:text-accent"
                                 aria-label="ערוך"
                               >
-                                ✎
+                                <Icon name="edit" className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => void removeEverywhere(p)}

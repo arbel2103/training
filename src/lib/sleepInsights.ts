@@ -3,10 +3,11 @@
 import type { WorkoutEntry } from '../store/useStore'
 import type { DailyHealth } from './garmin/types'
 import { toIsoLocal } from './garmin/normalize'
+import type { IconName } from '../components/ui/Icon'
 
 export type Severity = 'good' | 'info' | 'warn'
 export interface Insight {
-  icon: string
+  icon: IconName
   severity: Severity
   text: string
   tip?: string // actionable suggestion, shown for problems
@@ -59,7 +60,7 @@ function num(days: DailyHealth[], key: keyof DailyHealth): number[] {
 export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): Insight[] {
   const sorted = sortedByDate(days).filter((d) => d.sleepMin != null)
   if (sorted.length < 3) {
-    return [{ icon: '🌙', severity: 'info', text: 'צריך עוד כמה לילות נתונים כדי לנתח את השינה.' }]
+    return [{ icon: 'moon', severity: 'info', text: 'צריך עוד כמה לילות נתונים כדי לנתח את השינה.' }]
   }
 
   const out: Insight[] = []
@@ -72,14 +73,14 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
   const avgDur = avg(num(last7, 'sleepMin'))
   if (avgDur > 0 && avgDur < 420) {
     out.push({
-      icon: '⏰',
+      icon: 'clock',
       severity: 'warn',
       text: `ממוצע השינה בשבוע האחרון ${hoursLabel(avgDur)} שעות — פחות מ-7 שעות מומלצות.`,
       tip: 'לך לישון 30–45 דקות מוקדם יותר, וכוון ל-7–9 שעות. הימנע ממסכים ומקפאין בשעות שלפני השינה.',
     })
   } else if (avgDur >= 450) {
     out.push({
-      icon: '😴',
+      icon: 'checkCircle',
       severity: 'good',
       text: `שינה טובה — ממוצע ${hoursLabel(avgDur)} שעות בשבוע האחרון.`,
     })
@@ -91,7 +92,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     .filter((v): v is number => v != null)
   if (bedtimes.length >= 4 && stddev(bedtimes) > 60) {
     out.push({
-      icon: '🕰️',
+      icon: 'clock',
       severity: 'warn',
       text: 'שעת השינה משתנה מאוד מלילה ללילה — שעת שינה קבועה תשפר את איכות השינה.',
       tip: 'קבע שעת שינה ושעת קימה קבועות, גם בסופי שבוע. חלון של ±30 דקות מספיק כדי לייצב את השעון הביולוגי.',
@@ -106,7 +107,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     const remPct = (rem / avgDur) * 100
     if (deepPct > 0 && deepPct < 13) {
       out.push({
-        icon: '🧩',
+        icon: 'moon',
         severity: 'warn',
         text: `שינה עמוקה נמוכה (${Math.round(deepPct)}%) — חשובה להתאוששות הגוף.`,
         tip: 'חדר קריר וחשוך, הימנעות מאלכוהול ומארוחות כבדות בערב, ופעילות גופנית סדירה מגבירים שינה עמוקה.',
@@ -114,14 +115,14 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     }
     if (remPct > 0 && remPct < 18) {
       out.push({
-        icon: '💭',
+        icon: 'brain',
         severity: 'warn',
         text: `שנת REM נמוכה (${Math.round(remPct)}%) — חשובה לריכוז ולזיכרון.`,
         tip: 'REM מגיע בעיקר לקראת הבוקר — הארך את זמן השינה הכולל ושמור על שעת קימה קבועה. הפחת אלכוהול בערב.',
       })
     }
     if (deepPct >= 13 && remPct >= 18) {
-      out.push({ icon: '✅', severity: 'good', text: 'הרכב שלבי השינה (עמוקה + REM) בטווח בריא.' })
+      out.push({ icon: 'checkCircle', severity: 'good', text: 'הרכב שלבי השינה (עמוקה + REM) בטווח בריא.' })
     }
   }
 
@@ -130,9 +131,9 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
   const scorePrev = avg(num(prev7, 'sleepScore'))
   if (score7 && scorePrev) {
     if (score7 - scorePrev >= 5) {
-      out.push({ icon: '📈', severity: 'good', text: `ציון השינה משתפר (${Math.round(scorePrev)} → ${Math.round(score7)}).` })
+      out.push({ icon: 'trendUp', severity: 'good', text: `ציון השינה משתפר (${Math.round(scorePrev)} → ${Math.round(score7)}).` })
     } else if (scorePrev - score7 >= 5) {
-      out.push({ icon: '📉', severity: 'info', text: `ציון השינה ירד לאחרונה (${Math.round(scorePrev)} → ${Math.round(score7)}).` })
+      out.push({ icon: 'trendDown', severity: 'info', text: `ציון השינה ירד לאחרונה (${Math.round(scorePrev)} → ${Math.round(score7)}).` })
     }
   }
 
@@ -140,7 +141,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
   const rhrBaseline = avg(num(last30, 'restingHr'))
   if (rhrBaseline && latest.restingHr && latest.restingHr >= rhrBaseline + 5) {
     out.push({
-      icon: '❤️',
+      icon: 'heart',
       severity: 'warn',
       text: `דופק המנוחה גבוה מהרגיל (${latest.restingHr} מול ${Math.round(rhrBaseline)}) — ייתכן עומס, חוסר שינה או תחילת מחלה.`,
       tip: 'שקול יום קל או מנוחה, הקפד על שתייה מרובה ושינה מספקת. אם זה נמשך כמה ימים — ייתכן שגופך נלחם במחלה.',
@@ -153,7 +154,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     (latest.hrvLastNight != null && latest.hrvWeeklyAvg != null && latest.hrvLastNight < latest.hrvWeeklyAvg * 0.85)
   if (hrvLow) {
     out.push({
-      icon: '🫀',
+      icon: 'hrv',
       severity: 'warn',
       text: 'ה-HRV נמוך מהבסיס שלך — סימן לעייפות או עומס.',
       tip: 'העדף אימון קל או מנוחה היום, הקפד על שינה, שתייה וניהול לחץ. HRV מגיב חזק לאלכוהול ולאימון קשה בערב.',
@@ -168,14 +169,14 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
   )
   if (hardRecently && (hrvLow || (latest.bodyBatteryHigh != null && latest.bodyBatteryHigh < 60))) {
     out.push({
-      icon: '🔋',
+      icon: 'bulb',
       severity: 'info',
       text: 'התאמנת חזק לאחרונה והמדדים מראים התאוששות חלקית — שינה איכותית עכשיו תעזור.',
     })
   }
 
   if (out.length === 0) {
-    out.push({ icon: '👍', severity: 'good', text: 'הנתונים נראים תקינים — המשך כך!' })
+    out.push({ icon: 'checkCircle', severity: 'good', text: 'הנתונים נראים תקינים — המשך כך!' })
   }
   return out
 }

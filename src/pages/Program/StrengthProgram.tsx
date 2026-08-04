@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore'
 import Modal from '../../components/ui/Modal'
 import RestTimer from '../../components/RestTimer'
 import ExerciseRow from './ExerciseRow'
+import Icon from '../../components/ui/Icon'
 
 export default function StrengthProgram() {
   const categories = useStore((s) => s.strengthCategories)
@@ -62,7 +63,7 @@ export default function StrengthProgram() {
               title="שנה שם"
               aria-label="שנה שם"
             >
-              ✎
+              <Icon name="edit" className="w-4 h-4" />
             </button>
             <button
               onClick={() => setConfirmId(active.id)}
@@ -100,10 +101,10 @@ export default function StrengthProgram() {
             </button>
             <button
               onClick={() => setShowTimer((v) => !v)}
-              className={`text-sm py-1.5 px-3 ${showTimer ? 'btn-soft' : 'btn-ghost'}`}
+              className={`text-sm py-1.5 px-3 gap-1.5 ${showTimer ? 'btn-soft' : 'btn-ghost'}`}
               title="טיימר מנוחה בין סטים"
             >
-              ⏱️ טיימר
+              <Icon name="timer" className="w-4 h-4" /> טיימר
             </button>
             <span className="text-sm text-muted mr-auto">
               {active.exercises.length} תרגילים

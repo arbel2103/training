@@ -10,6 +10,7 @@ import {
 } from '../../lib/dates'
 import LineChart from '../../components/ui/LineChart'
 import InfoTip from '../../components/ui/InfoTip'
+import Icon from '../../components/ui/Icon'
 
 export default function WeightTab() {
   const weighIns = useStore((s) => s.weighIns)
@@ -109,10 +110,10 @@ export default function WeightTab() {
                 </div>
                 <button
                   onClick={() => removeWeighIn(w.id)}
-                  className="text-muted hover:text-accent px-1"
+                  className="text-muted hover:text-run px-1"
                   aria-label="מחק"
                 >
-                  🗑
+                  <Icon name="trash" className="w-4 h-4" />
                 </button>
               </div>
             ))}

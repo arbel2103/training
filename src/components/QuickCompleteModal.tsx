@@ -12,7 +12,6 @@ import {
   TIMES_OF_DAY,
   aerobicIntensitiesFor,
   aerobicIntensityLabel,
-  sportIcon,
   sportLabel,
   strengthIntensityLabel,
   timeOfDayLabel,
@@ -138,10 +137,10 @@ export default function QuickCompleteModal({
   }
 
   const title = isAerobic
-    ? `${sportIcon[session.sport as 'run']} ${sportLabel[session.sport as 'run']}${session.label ? ` · ${session.label}` : ''}`
+    ? `${sportLabel[session.sport as 'run']}${session.label ? ` · ${session.label}` : ''}`
     : session.sport === 'strength'
-      ? `💪 ${session.label || 'אימון כוח'}`
-      : `✨ ${session.label || 'אימון'}`
+      ? session.label || 'אימון כוח'
+      : session.label || 'אימון'
 
   return (
     <Modal open onClose={onClose} title={`בצעתי ✓ — ${title}`}>

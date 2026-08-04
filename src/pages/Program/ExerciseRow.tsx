@@ -1,5 +1,6 @@
 import type { Exercise, ID } from '../../store/useStore'
 import { useStore } from '../../store/useStore'
+import Icon from '../../components/ui/Icon'
 
 export default function ExerciseRow({
   categoryId,
@@ -60,11 +61,11 @@ export default function ExerciseRow({
         />
         <button
           onClick={() => remove(categoryId, ex.id)}
-          className="text-muted hover:text-accent text-lg px-1 shrink-0"
+          className="text-muted hover:text-run px-1 shrink-0"
           aria-label="מחק תרגיל"
           title="מחק תרגיל"
         >
-          🗑
+          <Icon name="trash" className="w-4 h-4" />
         </button>
       </div>
 

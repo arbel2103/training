@@ -62,7 +62,7 @@ export default function ActivityDetailModal({
   const splits: GarminSplit[] = data?.splits ?? []
 
   return (
-    <Modal open={!!entry} onClose={onClose} title="⌚ פירוט אימון" maxWidth="max-w-2xl">
+    <Modal open={!!entry} onClose={onClose} title="פירוט אימון" maxWidth="max-w-2xl">
       <div className="grid gap-5">
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {entry.distance != null && (

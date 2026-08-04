@@ -1,5 +1,6 @@
 import { useStore } from '../../store/useStore'
 import { hasGarminSetup } from '../../lib/garmin/pat'
+import Icon from '../ui/Icon'
 
 function hoursLabel(min?: number): string {
   if (!min) return '—'
@@ -66,7 +67,7 @@ export default function LastNightCard() {
 
   const hint =
     hrvAbove === true
-      ? 'התאוששות טובה — הגוף מוכן לעומס 💪'
+      ? 'התאוששות טובה — הגוף מוכן לעומס'
       : hrvAbove === false
         ? 'HRV מתחת לבסיס — שקול יום קל יותר'
         : null
@@ -75,7 +76,7 @@ export default function LastNightCard() {
     <div className="card p-5 sm:col-span-2">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display text-lg font-bold flex items-center gap-2">
-          🌙 הלילה האחרון
+          <Icon name="moon" className="w-5 h-5 text-muted" /> הלילה האחרון
         </h3>
         {dateForLabel && (
           <span className="text-xs text-muted">{dayLabel(dateForLabel)}</span>

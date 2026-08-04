@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Icon from './ui/Icon'
 
 const PRESETS = [30, 45, 60, 90, 120, 180]
 
@@ -90,7 +91,7 @@ export default function RestTimer() {
     <div className="card p-4 mb-5">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-lg">⏱️</span>
+          <Icon name="timer" className="w-5 h-5 text-muted" />
           <div>
             <div className="font-semibold leading-tight">טיימר מנוחה</div>
             <div className="text-sm text-muted">בין סטים</div>
@@ -132,7 +133,7 @@ export default function RestTimer() {
       {/* controls */}
       <div className="flex gap-2">
         <button onClick={toggle} className="btn-accent flex-1">
-          {running ? '⏸ השהה' : left <= 0 ? 'נגמר' : '▶ התחל'}
+          {running ? 'השהה' : left <= 0 ? 'נגמר' : 'התחל'}
         </button>
         <button onClick={reset} className="btn-ghost">
           איפוס

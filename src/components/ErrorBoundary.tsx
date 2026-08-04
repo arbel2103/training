@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import Icon from './ui/Icon'
 
 interface Props {
   children: ReactNode
@@ -27,7 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="card p-6 text-center text-muted grid gap-3">
-          <div className="text-3xl">⚠️</div>
+          <Icon name="warning" className="w-8 h-8 mx-auto text-run" />
           <p className="leading-relaxed">
             אירעה שגיאה בטעינת החלק הזה. נסה לרענן את הדף.
           </p>

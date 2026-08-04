@@ -3,6 +3,7 @@ import { useStore, type Checkup } from '../../store/useStore'
 import { addMonths, formatFullDate, toISODate } from '../../lib/dates'
 import { deleteFile, getFile, saveFile } from '../../lib/fileStore'
 import TabBar from '../../components/ui/TabBar'
+import Icon from '../../components/ui/Icon'
 
 type Sub = 'new' | 'history'
 
@@ -135,8 +136,8 @@ function CheckupRow({ c }: { c: Checkup }) {
       <div className="flex items-center gap-2 shrink-0">
         {c.fileName ? (
           <>
-            <button onClick={openFile} className="btn-soft text-sm" title={c.fileName}>
-              📎 פתח קובץ
+            <button onClick={openFile} className="btn-soft text-sm gap-1.5" title={c.fileName}>
+              <Icon name="attach" className="w-4 h-4" /> פתח קובץ
             </button>
             <button
               onClick={removeFile}
@@ -146,8 +147,8 @@ function CheckupRow({ c }: { c: Checkup }) {
             </button>
           </>
         ) : (
-          <label className="btn-ghost text-sm cursor-pointer">
-            ⬆️ העלה קובץ
+          <label className="btn-ghost text-sm cursor-pointer gap-1.5">
+            <Icon name="upload" className="w-4 h-4" /> העלה קובץ
             <input
               type="file"
               className="hidden"
@@ -160,10 +161,10 @@ function CheckupRow({ c }: { c: Checkup }) {
         )}
         <button
           onClick={remove}
-          className="text-muted hover:text-accent px-1"
+          className="text-muted hover:text-run px-1"
           aria-label="מחק בדיקה"
         >
-          🗑
+          <Icon name="trash" className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -188,7 +189,9 @@ export default function CheckupsTab() {
           className="card p-4 mb-5 bg-accent-soft/40"
           style={{ borderInlineStart: '4px solid rgb(var(--accent))' }}
         >
-          <div className="font-semibold mb-2">🔔 לקבוע תור</div>
+          <div className="font-semibold mb-2 flex items-center gap-1.5">
+            <Icon name="bell" className="w-4 h-4" /> לקבוע תור
+          </div>
           <ul className="grid gap-1 text-sm">
             {attention.map(({ c, status, nextDue }) => (
               <li

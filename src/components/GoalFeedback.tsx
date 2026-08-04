@@ -12,7 +12,7 @@ export default function GoalFeedback({ results }: { results: GoalResult[] }) {
   if (results.length === 0) {
     return (
       <p className="text-muted text-sm">
-        אין עדיין יעדי מרחק לשבוע זה בתוכנית. בקש מ<b>המאמן</b> (🏋️) לבנות תוכנית,
+        אין עדיין יעדי מרחק לשבוע זה בתוכנית. בקש מ<b>המאמן</b> לבנות תוכנית,
         או שהשבוע הזה הוא מנוחה.
       </p>
     )

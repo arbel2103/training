@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import GarminSetupWizard from './GarminSetupWizard'
+import Icon from '../ui/Icon'
 
 /** Shown on data tabs when Garmin isn't connected yet. */
 export function GarminConnectPrompt() {
   const [open, setOpen] = useState(false)
   return (
     <div className="card p-6 text-center grid gap-3">
-      <div className="text-4xl">⌚</div>
+      <Icon name="watch" className="w-10 h-10 mx-auto text-muted" />
       <p className="text-muted leading-relaxed max-w-sm mx-auto">
         חבר את חשבון <b>Garmin Connect</b> כדי לראות כאן ניתוח שינה, בריאות
         ואימונים שנמשכים אוטומטית מהשעון.
       </p>
-      <button onClick={() => setOpen(true)} className="btn-primary justify-self-center">
-        🔗 חבר את גרמין
+      <button onClick={() => setOpen(true)} className="btn-primary justify-self-center gap-1.5">
+        <Icon name="link" className="w-4 h-4" /> חבר את גרמין
       </button>
       <GarminSetupWizard open={open} onClose={() => setOpen(false)} />
     </div>
@@ -22,7 +23,7 @@ export function GarminConnectPrompt() {
 
 /**
  * Read-only "last synced" line for the top of a data tab. Syncing itself is
- * done from one place only — the ☁️ button in the header.
+ * done from one place only — the cloud button in the header.
  */
 export function GarminRefreshChip() {
   const status = useStore((s) => s.garminSyncStatus)
@@ -38,7 +39,10 @@ export function GarminRefreshChip() {
 
   return (
     <div className="flex items-center gap-2 mb-4 text-sm text-muted flex-wrap">
-      <span>⌚ {last ? `סונכרן ${last}` : 'טרם סונכרן'}</span>
+      <span className="flex items-center gap-1.5">
+        <Icon name="watch" className="w-4 h-4" />
+        {last ? `סונכרן ${last}` : 'טרם סונכרן'}
+      </span>
       {syncing && (
         <span className="text-accent font-semibold">מושך נתונים מגרמין…</span>
       )}
@@ -53,7 +57,7 @@ export function GarminRefreshChip() {
 export function GarminEmpty({ label }: { label: string }) {
   return (
     <div className="card p-6 text-center text-muted">
-      עדיין אין נתוני {label}. הרץ סנכרון (☁️ → Garmin) והנתונים יופיעו כאן.
+      עדיין אין נתוני {label}. הרץ סנכרון (בכפתור הענן → Garmin) והנתונים יופיעו כאן.
     </div>
   )
 }

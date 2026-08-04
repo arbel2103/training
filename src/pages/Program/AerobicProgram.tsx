@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore, type PlanSport, type PlanWeek } from '../../store/useStore'
-import { sportIcon, sportLabel } from '../../lib/labels'
+import { sportLabel } from '../../lib/labels'
+import Icon, { type IconName } from '../../components/ui/Icon'
 import { formatDuration, sportUnit } from '../../lib/calc'
 import {
   HEB_DAYS_SHORT,
@@ -13,12 +14,12 @@ import {
 import { weekCompletion } from '../../lib/planMatch'
 import PlanProposals from './PlanProposals'
 
-const planSportMeta: Record<PlanSport, { icon: string; label: string }> = {
-  run: { icon: sportIcon.run, label: sportLabel.run },
-  bike: { icon: sportIcon.bike, label: sportLabel.bike },
-  swim: { icon: sportIcon.swim, label: sportLabel.swim },
-  strength: { icon: '💪', label: 'כוח' },
-  other: { icon: '✨', label: 'אחר' },
+const planSportMeta: Record<PlanSport, { iconName: IconName; label: string }> = {
+  run: { iconName: 'run', label: sportLabel.run },
+  bike: { iconName: 'bike', label: sportLabel.bike },
+  swim: { iconName: 'swim', label: sportLabel.swim },
+  strength: { iconName: 'strength', label: 'כוח' },
+  other: { iconName: 'other', label: 'אחר' },
 }
 
 // full class strings (not built dynamically) so Tailwind keeps them
@@ -116,7 +117,7 @@ function WeekCard({
                 <div
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 ${sportTint[sport]}`}
                 >
-                  <span className="text-base leading-none">{meta.icon}</span>
+                  <Icon name={meta.iconName} className="w-4 h-4 shrink-0" />
                   <span className="font-bold text-sm">{meta.label}</span>
                   <span className="text-xs font-semibold opacity-70 mr-auto">
                     {sessions.length}
@@ -179,10 +180,14 @@ export default function AerobicProgram() {
   if (!plan || plan.weeks.length === 0) {
     return (
       <div className="card p-10 text-center">
-        <div className="text-4xl mb-3">🏊🚴🏃</div>
+        <div className="flex justify-center gap-3 mb-3 text-muted">
+          <Icon name="swim" className="w-8 h-8 text-swim" />
+          <Icon name="bike" className="w-8 h-8 text-bike" />
+          <Icon name="run" className="w-8 h-8 text-run" />
+        </div>
         <h3 className="font-display text-xl font-bold mb-2">אין עדיין תוכנית</h3>
         <p className="text-muted text-sm max-w-md mx-auto">
-          פתח את <b>המאמן</b> (הכפתור 🏋️ בפינה) ובקש לבנות תוכנית לקראת התחרות.
+          פתח את <b>המאמן</b> (הכפתור בפינה) ובקש לבנות תוכנית לקראת התחרות.
           התוכנית תופיע כאן מחולקת לשבועות, וכל אימון שתזין ב"מעקב אימונים" יסומן
           כאן ✓ אוטומטית.
         </p>

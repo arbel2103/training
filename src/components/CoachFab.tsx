@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import CoachPanel from './CoachPanel'
+import Icon from './ui/Icon'
 
 export default function CoachFab() {
   const [open, setOpen] = useState(false)
@@ -12,7 +13,7 @@ export default function CoachFab() {
           className="fixed z-40 bottom-20 md:bottom-5 left-4 md:left-5 h-14 px-4 rounded-full bg-accent text-white font-semibold shadow-pop flex items-center gap-2 hover:opacity-90 active:scale-95 transition"
           title="המאמן שלי"
         >
-          <span className="text-xl leading-none">🏋️</span>
+          <Icon name="chat" className="w-6 h-6" />
           <span className="hidden sm:inline">המאמן</span>
         </button>
       )}

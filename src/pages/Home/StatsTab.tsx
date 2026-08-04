@@ -12,6 +12,7 @@ import { sportLabel } from '../../lib/labels'
 import BarChart from '../../components/ui/BarChart'
 import { formatDayMonth, startOfWeek } from '../../lib/dates'
 import Segmented from '../../components/ui/Segmented'
+import Icon from '../../components/ui/Icon'
 import LineChart from '../../components/ui/LineChart'
 import Modal from '../../components/ui/Modal'
 import InfoTip from '../../components/ui/InfoTip'
@@ -88,10 +89,10 @@ export default function StatsTab() {
           value={kind}
           onChange={setKind}
           options={[
-            { value: 'run', label: `🏃 ${sportLabel.run}` },
-            { value: 'bike', label: `🚴 ${sportLabel.bike}` },
-            { value: 'swim', label: `🏊 ${sportLabel.swim}` },
-            { value: 'strength', label: '💪 כוח' },
+            { value: 'run', label: sportLabel.run },
+            { value: 'bike', label: sportLabel.bike },
+            { value: 'swim', label: sportLabel.swim },
+            { value: 'strength', label: 'כוח' },
           ]}
         />
         <div className="flex items-center gap-2 flex-wrap">
@@ -105,8 +106,8 @@ export default function StatsTab() {
               { value: 'custom', label: 'מותאם' },
             ]}
           />
-          <button onClick={() => setListOpen(true)} className="btn-ghost text-sm py-1.5">
-            📋 כל האימונים
+          <button onClick={() => setListOpen(true)} className="btn-ghost text-sm py-1.5 gap-1.5">
+            <Icon name="clipboard" className="w-4 h-4" /> כל האימונים
           </button>
         </div>
       </div>
@@ -209,7 +210,7 @@ export default function StatsTab() {
       <Modal
         open={listOpen}
         onClose={() => setListOpen(false)}
-        title="📋 כל האימונים"
+        title="כל האימונים"
         maxWidth="max-w-3xl"
       >
         <ListView />

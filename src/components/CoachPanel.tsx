@@ -8,6 +8,7 @@ import {
   buildContext,
   executeTool,
 } from '../lib/coachTools'
+import Icon from './ui/Icon'
 
 const KICKOFF =
   'זוהי פתיחת השיחה הראשונה. הצג את עצמך בקצרה כמאמן האישי שלי, ושאל אותי קודם כל על מה נעבוד — אימוני כוח, טריאתלון/אירובי, או שניהם — ואז המשך לשאלות ההיכרות המתאימות.'
@@ -104,15 +105,17 @@ export default function CoachPanel({
       <div className="card shadow-pop w-full sm:max-w-2xl h-full sm:h-[85vh] flex flex-col overflow-hidden">
         {/* header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-line shrink-0">
-          <div className="font-display text-lg font-bold">🏋️ המאמן שלי</div>
+          <div className="font-display text-lg font-bold flex items-center gap-2">
+            <Icon name="chat" className="w-5 h-5 text-accent" /> המאמן שלי
+          </div>
           <div className="flex items-center gap-1">
             {keySet && (
               <button
                 onClick={() => setShowSettings((v) => !v)}
-                className="text-muted hover:text-ink px-2 py-1 text-sm"
+                className="text-muted hover:text-ink px-2 py-1"
                 title="הגדרות"
               >
-                ⚙️
+                <Icon name="gear" className="w-5 h-5" />
               </button>
             )}
             <button
@@ -151,7 +154,9 @@ export default function CoachPanel({
               </button>
             </div>
             <div>
-              <div className="font-semibold mb-1.5">🧠 מה שאני זוכר עליך</div>
+              <div className="font-semibold mb-1.5 flex items-center gap-1.5">
+                <Icon name="brain" className="w-4 h-4 text-muted" /> מה שאני זוכר עליך
+              </div>
               {memory.length === 0 ? (
                 <p className="text-muted text-xs leading-relaxed">
                   עדיין לא שמרתי עובדות. ככל שנדבר, אזכור פציעות, העדפות ושיאים —
@@ -171,7 +176,7 @@ export default function CoachPanel({
                         aria-label="הסר"
                         title="הסר מהזיכרון"
                       >
-                        ✕
+                        <Icon name="trash" className="w-4 h-4" />
                       </button>
                     </li>
                   ))}
@@ -234,7 +239,7 @@ export default function CoachPanel({
             <div ref={scrollRef} className="flex-1 overflow-auto p-4 flex flex-col gap-3">
               {messages.length === 0 && !loading && (
                 <div className="text-center mt-8">
-                  <div className="text-4xl mb-3">🏋️</div>
+                  <Icon name="chat" className="w-10 h-10 mx-auto mb-3 text-accent" />
                   <p className="text-muted text-sm mb-4">
                     המאמן האישי שלך לטריאתלון — מוכן להתחיל.
                   </p>
@@ -245,7 +250,7 @@ export default function CoachPanel({
                     }}
                     className="btn-primary"
                   >
-                    התחל שיחה 👋
+                    התחל שיחה
                   </button>
                 </div>
               )}
@@ -276,9 +281,9 @@ export default function CoachPanel({
                 <button
                   onClick={() => void send(WEEKLY_SUMMARY)}
                   disabled={loading}
-                  className="chip text-sm hover:border-accent hover:text-accent transition disabled:opacity-50"
+                  className="chip text-sm gap-1.5 hover:border-accent hover:text-accent transition disabled:opacity-50"
                 >
-                  📊 סכם לי את השבוע
+                  <Icon name="chart" className="w-4 h-4" /> סכם לי את השבוע
                 </button>
               </div>
             )}
