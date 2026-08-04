@@ -14,8 +14,8 @@
   --ink: 20 21 26;
   --muted: 106 108 120;
   --line: 226 228 235;
-  --accent: 240 84 46;
-  --accent-soft: 252 233 226;
+  --accent: 91 79 219;
+  --accent-soft: 233 231 251;
 
   /* sport / category colors — the triad, deepened for contrast on white */
   --c-strength: 150 96 58;
@@ -30,8 +30,8 @@
   --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.55), transparent 46%);
   --card-shadow: 0 20px 45px -26px rgba(30, 35, 60, 0.3);
   --page-bg:
-    radial-gradient(1100px 620px at 82% -10%, rgba(240, 84, 46, 0.06), transparent 60%),
-    radial-gradient(900px 640px at 4% 6%, rgba(14, 145, 178, 0.08), transparent 58%),
+    radial-gradient(1100px 620px at 82% -10%, rgba(91, 79, 219, 0.07), transparent 60%),
+    radial-gradient(900px 640px at 4% 6%, rgba(14, 145, 178, 0.07), transparent 58%),
     radial-gradient(1000px 900px at 50% 120%, rgba(224, 66, 96, 0.05), transparent 60%),
     rgb(244 245 248);
 }
@@ -43,8 +43,8 @@
   --ink: 237 237 242;
   --muted: 131 131 142;
   --line: 40 40 46;
-  --accent: 255 106 69;
-  --accent-soft: 60 33 24;
+  --accent: 141 130 246;
+  --accent-soft: 40 35 74;
 
   /* the triad at full neon on black */
   --c-strength: 196 140 96;
@@ -58,7 +58,7 @@
   --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 44%);
   --card-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
   --page-bg:
-    radial-gradient(1100px 620px at 78% -8%, rgba(255, 106, 69, 0.1), transparent 60%),
+    radial-gradient(1100px 620px at 78% -8%, rgba(141, 130, 246, 0.12), transparent 60%),
     radial-gradient(900px 640px at 6% 8%, rgba(34, 211, 238, 0.09), transparent 58%),
     radial-gradient(1000px 900px at 50% 118%, rgba(251, 113, 133, 0.07), transparent 60%),
     rgb(10 10 12);

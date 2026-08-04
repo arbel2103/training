@@ -9,14 +9,15 @@ import GuideOverlay from './components/GuideOverlay'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
+import { IconToday, IconProgram, IconCalendar, IconHealth } from './components/ui/NavIcons'
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
 const PAGES = [
-  { key: 'home', icon: '🏠', label: 'היום', short: 'היום', el: <HomePage /> },
-  { key: 'program', icon: '🗂️', label: 'תוכנית אימונים', short: 'תוכנית', el: <ProgramPage /> },
-  { key: 'planning', icon: '🗓️', label: 'שיבוץ ליומן', short: 'יומן', el: <PlanningPage /> },
-  { key: 'health', icon: '🩺', label: 'מעקב בריאות', short: 'בריאות', el: <HealthPage /> },
+  { key: 'home', Icon: IconToday, label: 'היום', short: 'היום', el: <HomePage /> },
+  { key: 'program', Icon: IconProgram, label: 'תוכנית אימונים', short: 'תוכנית', el: <ProgramPage /> },
+  { key: 'planning', Icon: IconCalendar, label: 'שיבוץ ליומן', short: 'יומן', el: <PlanningPage /> },
+  { key: 'health', Icon: IconHealth, label: 'מעקב בריאות', short: 'בריאות', el: <HealthPage /> },
 ]
 
 export default function App() {
@@ -88,7 +89,7 @@ export default function App() {
                       : 'text-muted hover:text-ink hover:bg-ink/5'
                   }`}
                 >
-                  <span className="text-lg leading-none">{p.icon}</span>
+                  <p.Icon className="w-5 h-5 shrink-0" />
                   <span>{p.label}</span>
                 </button>
               )
@@ -161,11 +162,11 @@ export default function App() {
                 aria-current={active ? 'page' : undefined}
               >
                 <span
-                  className={`text-xl leading-none px-4 py-1 rounded-full transition ${
+                  className={`grid place-items-center px-4 py-1 rounded-full transition ${
                     active ? 'bg-accent-soft' : ''
                   }`}
                 >
-                  {p.icon}
+                  <p.Icon className="w-6 h-6" />
                 </span>
                 <span>{p.short}</span>
               </button>
