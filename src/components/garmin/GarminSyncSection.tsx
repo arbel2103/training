@@ -21,7 +21,7 @@ export default function GarminSyncSection() {
   const status = useStore((s) => s.garminSyncStatus)
   const settings = useStore((s) => s.garminSettings)
   const setGarminSettings = useStore((s) => s.setGarminSettings)
-  const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 }>({
+  const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 | 4 }>({
     open: false,
     step: 1,
   })
@@ -47,14 +47,17 @@ export default function GarminSyncSection() {
         <>
           <p className="text-sm text-muted mb-3 leading-relaxed">
             חבר את חשבון הגרמין שלך כדי למשוך אוטומטית שינה, נתוני בריאות
-            ואימונים — במקום להזין ידנית.
+            ואימונים — במקום להזין ידנית. המדריך מלווה אותך צעד-אחר-צעד, מיצירת
+            הריפו הפרטי ועד הסנכרון הראשון.
           </p>
-          <button
-            onClick={() => setWizard({ open: true, step: 1 })}
-            className="btn-primary gap-1.5"
-          >
-            <Icon name="link" className="w-4 h-4" /> חבר את גרמין
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setWizard({ open: true, step: 1 })}
+              className="btn-primary gap-1.5"
+            >
+              <Icon name="help" className="w-4 h-4" /> מדריך חיבור לגרמין
+            </button>
+          </div>
         </>
       ) : (
         <div className="grid gap-3">
@@ -98,13 +101,13 @@ export default function GarminSyncSection() {
               {busy ? 'מסנכרן…' : 'סנכרן עכשיו'}
             </button>
             <button
-              onClick={() => setWizard({ open: true, step: 2 })}
+              onClick={() => setWizard({ open: true, step: 3 })}
               className="btn-ghost"
             >
               שנה פרטי גרמין
             </button>
             <button
-              onClick={() => setWizard({ open: true, step: 1 })}
+              onClick={() => setWizard({ open: true, step: 2 })}
               className="btn-ghost"
             >
               החלף Token

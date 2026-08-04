@@ -5,9 +5,10 @@ import { getDataRepo, setPat } from '../../lib/garmin/pat'
 import { getRepoOk, putSecret } from '../../lib/garmin/githubClient'
 import { garminErrorMessage, manualSync } from '../../lib/garmin/sync'
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2 | 3 | 4
 
 const TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new'
+const NEW_REPO_URL = 'https://github.com/new'
 
 export default function GarminSetupWizard({
   open,
@@ -30,22 +31,23 @@ export default function GarminSetupWizard({
   const repoName = getDataRepo().split('/')[1] ?? getDataRepo()
 
   return (
-    <Modal open={open} onClose={onClose} title="⌚ חיבור לגרמין">
+    <Modal open={open} onClose={onClose} title="חיבור לגרמין">
       <div className="grid gap-5">
         <StepDots step={step} />
-        {step === 1 && (
-          <PatStep repoName={repoName} onDone={() => setStep(2)} />
-        )}
+        {step === 1 && <RepoStep repoName={repoName} onDone={() => setStep(2)} />}
         {step === 2 && (
+          <PatStep repoName={repoName} onDone={() => setStep(3)} />
+        )}
+        {step === 3 && (
           <CredsStep
             defaultEmail={lastEmail}
             onDone={(email) => {
               setGarminSettings({ connected: true, lastEmail: email })
-              setStep(3)
+              setStep(4)
             }}
           />
         )}
-        {step === 3 && (
+        {step === 4 && (
           <SyncStep status={syncStatus} onClose={onClose} />
         )}
       </div>
@@ -54,7 +56,7 @@ export default function GarminSetupWizard({
 }
 
 function StepDots({ step }: { step: Step }) {
-  const labels = ['הרשאה', 'פרטי גרמין', 'סנכרון']
+  const labels = ['ריפו', 'הרשאה', 'פרטי גרמין', 'סנכרון']
   return (
     <div className="flex items-center gap-2">
       {labels.map((label, i) => {
@@ -81,6 +83,62 @@ function StepDots({ step }: { step: Step }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function RepoStep({
+  repoName,
+  onDone,
+}: {
+  repoName: string
+  onDone: () => void
+}) {
+  return (
+    <div className="grid gap-3">
+      <p className="text-sm text-muted leading-relaxed">
+        לאפליקציה אין שרת משלה. הנתונים שלך ו<b>מנוע הסנכרון</b> (שמושך אוטומטית
+        מגרמין) חיים ב<b>ריפו פרטי משלך ב-GitHub</b> — שרק אתה רואה. יוצרים אותו
+        פעם אחת.
+      </p>
+
+      <div className="rounded-xl bg-accent-soft/50 text-sm px-3 py-2 leading-relaxed">
+        כבר חיברת בעבר? הריפו שלך (<code>{repoName}</code>) כבר קיים — אפשר
+        להמשיך ישר לשלב הבא.
+      </div>
+
+      <p className="text-sm font-semibold">בפעם הראשונה, בהגדרה חדשה:</p>
+      <ol className="text-sm leading-relaxed list-decimal pr-5 grid gap-1.5">
+        <li>
+          אם אין לך חשבון GitHub — הירשם בחינם ב-
+          <a href="https://github.com/signup" target="_blank" rel="noreferrer" className="text-accent font-semibold underline">
+            github.com
+          </a>
+          .
+        </li>
+        <li>
+          צור <b>ריפו פרטי חדש</b> ב-
+          <a href={NEW_REPO_URL} target="_blank" rel="noreferrer" className="text-accent font-semibold underline">
+            github.com/new
+          </a>{' '}
+          — תן לו שם (למשל <code>trilife-data</code>), בחר <b>Private</b>, וסמן{' '}
+          <b>Add a README</b>. לחץ <b>Create repository</b>.
+        </li>
+        <li>
+          הכנס לריפו את <b>מנוע הסנכרון</b>: תיקיית <code>sync/</code> (סקריפטי
+          הפייתון) והקובץ <code>.github/workflows/sync.yml</code> — אלה שמדברים
+          עם גרמין ומעדכנים את הנתונים.
+        </li>
+      </ol>
+
+      <div className="rounded-xl bg-ink/5 text-xs text-muted px-3 py-2 leading-relaxed">
+        טיפ: להכנסת מנוע הסנכרון בקלות אפשר להשתמש בתבנית מוכנה (Import/Template)
+        במקום להעתיק קבצים ידנית. מה שחשוב — שהריפו יהיה <b>פרטי</b>.
+      </div>
+
+      <button onClick={onDone} className="btn-primary justify-self-start">
+        יש לי ריפו — המשך
+      </button>
     </div>
   )
 }

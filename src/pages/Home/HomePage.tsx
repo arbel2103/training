@@ -50,7 +50,7 @@ export default function HomePage() {
 
   const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
-  const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 }>({
+  const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 | 4 }>({
     open: false,
     step: 1,
   })
@@ -161,7 +161,7 @@ export default function HomePage() {
                 הזן את הקוד וסנכרן ידנית.
               </p>
               <button
-                onClick={() => setWizard({ open: true, step: 3 })}
+                onClick={() => setWizard({ open: true, step: 4 })}
                 className="btn-accent text-sm py-1.5 mt-2"
               >
                 הזן קוד וסנכרן
