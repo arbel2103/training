@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
+import { useStore } from '../../store/useStore'
 import { getCached, putCached } from './cache'
 import { getJsonFile } from './githubClient'
 import { hasPat } from './pat'
-import { garminErrorMessage, refreshFromRepo } from './sync'
+import { garminErrorMessage, manualSync, refreshFromRepo } from './sync'
 import type { GarminActivityDetailBundle } from './types'
 
-const LAST_REFRESH_KEY = 'garmin-last-refresh'
-const REFRESH_THROTTLE_MS = 15 * 60 * 1000
+const STALE_MS = 6 * 60 * 60 * 1000 // 6h
+const LAST_AUTOSYNC_KEY = 'garmin-last-autosync'
 
 /**
- * On app mount, silently pull fresh data from the repo when a PAT is present,
- * at most once every 15 minutes. Runs once per session load.
+ * On app open, pull fresh data from the repo (cheap, sha-cached). Then, if the
+ * last Garmin sync is more than ~6h old, trigger a real sync automatically —
+ * this replaces the fixed daily schedule. A 6h local cooldown makes sure a slow
+ * or failed run doesn't get re-dispatched on every reopen. Runs once per load.
  */
 export function useGarminRefreshOnMount(): void {
   const ran = useRef(false)
@@ -19,13 +22,29 @@ export function useGarminRefreshOnMount(): void {
     ran.current = true
     if (!hasPat()) return
 
-    const last = Number(localStorage.getItem(LAST_REFRESH_KEY) ?? 0)
-    if (Date.now() - last < REFRESH_THROTTLE_MS) return
+    void (async () => {
+      await refreshFromRepo().catch(() => {
+        /* errors surface via garminSyncStatus */
+      })
 
-    localStorage.setItem(LAST_REFRESH_KEY, String(Date.now()))
-    void refreshFromRepo().catch(() => {
-      /* errors surface via garminSyncStatus; nothing to do on mount */
-    })
+      const status = useStore.getState().garminSyncStatus
+      if (status.state === 'dispatching' || status.state === 'running') return
+
+      const now = Date.now()
+      const lastSync = status.lastGarminSyncAt
+        ? Date.parse(status.lastGarminSyncAt)
+        : 0
+      const lastAuto = Number(localStorage.getItem(LAST_AUTOSYNC_KEY) ?? 0)
+
+      const stale = now - lastSync > STALE_MS
+      const cooldownPassed = now - lastAuto > STALE_MS
+      if (stale && cooldownPassed) {
+        localStorage.setItem(LAST_AUTOSYNC_KEY, String(now))
+        void manualSync().catch(() => {
+          /* failure surfaces via garminSyncStatus; won't retry for 6h */
+        })
+      }
+    })()
   }, [])
 }
 
