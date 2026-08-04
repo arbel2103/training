@@ -21,6 +21,7 @@ import { IncomeRow } from '../components/expenses/IncomeRow'
 import { ManualExpenseButton } from '../components/expenses/ManualExpenseButton'
 import { BitModal } from '../components/expenses/BitModal'
 import Icon from '../../../components/ui/Icon'
+import InfoTip from '../../../components/ui/InfoTip'
 import { CategoryPie } from '../components/expenses/CategoryPie'
 import { ExpenseList } from '../components/expenses/ExpenseList'
 import { MonthlyBarChart } from '../components/expenses/MonthlyBarChart'
@@ -169,20 +170,31 @@ export function ExpensesPage() {
 // ===== טאב 1: ריכוז ורשימה =====
 function SummaryAndList({ expenses, mk }: { expenses: Expense[]; mk: MonthKey }) {
   const [filter, setFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const data = useMemo(() => categoryBreakdown(expenses, mk), [expenses, mk])
   const list = useMemo(() => {
     const all = monthExpenses(expenses, mk).sort((a, b) =>
       a.date < b.date ? 1 : -1,
     )
-    return filter ? all.filter((e) => e.category === filter) : all
-  }, [expenses, mk, filter])
+    const byCat = filter ? all.filter((e) => e.category === filter) : all
+    const q = query.trim().toLowerCase()
+    if (!q) return byCat
+    return byCat.filter(
+      (e) =>
+        e.merchant.toLowerCase().includes(q) ||
+        e.category.toLowerCase().includes(q),
+    )
+  }, [expenses, mk, filter, query])
 
   return (
     <div className="space-y-4">
       <Card>
-        <h3 className="mb-4 text-sm font-medium text-ink">
-          התפלגות לפי קטגוריות
-        </h3>
+        <div className="mb-4 flex items-center gap-1.5">
+          <h3 className="text-sm font-medium text-ink">
+            התפלגות לפי קטגוריות
+          </h3>
+          <InfoTip text="חלוקת ההוצאות של החודש הנבחר לפי קטגוריה. גודל הפרוסה = חלקה של הקטגוריה מסך ההוצאות. הקש על פרוסה כדי לסנן את הרשימה למטה לאותה קטגוריה." />
+        </div>
         <CategoryPie data={data} activeCategory={filter} onSlice={setFilter} />
       </Card>
 
@@ -199,6 +211,29 @@ function SummaryAndList({ expenses, mk }: { expenses: Expense[]; mk: MonthKey })
               נקה סינון <Icon name="x" className="w-3.5 h-3.5" />
             </Button>
           )}
+        </div>
+        <div className="px-5 pb-2">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute right-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="חיפוש לפי בית עסק או קטגוריה…"
+              className="w-full rounded-xl border border-line bg-bg py-2 pr-9 pl-9 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                aria-label="נקה חיפוש"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+              >
+                <Icon name="x" className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="px-5 pb-4">
           <ExpenseList expenses={list} />
@@ -263,7 +298,10 @@ function TrendTab() {
   return (
     <Card className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-medium text-ink">סך הוצאות לפי חודש</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-medium text-ink">סך הוצאות לפי חודש</h3>
+          <InfoTip text="סך ההוצאות בכל חודש לאורך התקופה שבחרת, כדי לראות מגמה. העמודה המודגשת היא החודש הנבחר. הקש על עמודה לראות את הסכום המדויק." />
+        </div>
         <RangePicker value={range} onChange={setRange} monthOptions={monthOptions} />
       </div>
       <MonthlyBarChart data={data} />
@@ -312,6 +350,7 @@ function CategoryTrendTab() {
               ))}
             </Select>
           </div>
+          <InfoTip text="כמה הוצאת בקטגוריה שבחרת בכל חודש לאורך התקופה, כדי לזהות מגמת עלייה או ירידה. העמודה המודגשת היא החודש הנבחר." />
         </div>
         <RangePicker value={range} onChange={setRange} monthOptions={monthOptions} />
       </div>

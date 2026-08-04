@@ -71,6 +71,7 @@ export type IconName =
   | 'graduation'
   | 'x'
   | 'undo'
+  | 'search'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -322,6 +323,12 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </>
+  ),
   undo: (
     <>
       <path d="M9 7 4 12l5 5" />

@@ -17,6 +17,7 @@ import { formatCurrency, formatPercent } from '../../lib/format'
 import { monthIncome } from '../../store/selectors'
 import { accountColor } from './investColors'
 import { useChartDismiss } from '../../lib/useChartDismiss'
+import InfoTip from '../../../../components/ui/InfoTip'
 
 export function InvestmentCharts() {
   const { chartKey, containerProps } = useChartDismiss()
@@ -77,9 +78,12 @@ export function InvestmentCharts() {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <Card className="space-y-3">
-        <h3 className="text-sm font-medium text-ink">
-          השקעה חודשית לפי חשבון
-        </h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-medium text-ink">
+            השקעה חודשית לפי חשבון
+          </h3>
+          <InfoTip text="כמה הפקדת להשקעות בכל חודש, מפוצל לפי חשבון (כל צבע = חשבון אחר). גובה העמודה הוא סך ההפקדות של אותו חודש. הקש על עמודה לפירוט." />
+        </div>
         <div {...containerProps}>
         <ResponsiveContainer key={chartKey} width="100%" height={240}>
           <BarChart
@@ -133,9 +137,12 @@ export function InvestmentCharts() {
       </Card>
 
       <Card className="space-y-3">
-        <h3 className="text-sm font-medium text-ink">
-          השקעה כאחוז מסך ההכנסות
-        </h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-medium text-ink">
+            השקעה כאחוז מסך ההכנסות
+          </h3>
+          <InfoTip text="איזה נתח מההכנסה החודשית (משכורת + הכנסות נוספות) הופנה להשקעות. אחוז גבוה יותר = שיעור חיסכון גבוה יותר. חודשים ללא הכנסה מוזנת מוצגים כ-0%." />
+        </div>
         <div {...containerProps}>
         <ResponsiveContainer key={chartKey} width="100%" height={240}>
           <BarChart
