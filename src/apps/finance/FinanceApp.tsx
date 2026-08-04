@@ -5,6 +5,7 @@ import AppSwitcher from '../../components/AppSwitcher'
 import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import Icon, { type IconName } from '../../components/ui/Icon'
+import { useAppShell } from '../../lib/appShell'
 import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 
 const PAGES: { key: string; label: string; short: string; icon: IconName; el: React.ReactNode }[] = [
@@ -16,6 +17,8 @@ export default function FinanceApp() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
+  const setAppId = useAppShell((s) => s.setAppId)
+  const requestGuide = useAppShell((s) => s.requestGuide)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const indexRef = useRef(0)
 
@@ -68,6 +71,17 @@ export default function FinanceApp() {
             })}
           </nav>
           <div className="flex-1 md:hidden" />
+          <button
+            onClick={() => {
+              requestGuide()
+              setAppId('tri')
+            }}
+            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
+            title="מדריך שימוש"
+            aria-label="מדריך שימוש"
+          >
+            <Icon name="help" className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setTheme(toggleTheme())}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"

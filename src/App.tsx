@@ -8,6 +8,7 @@ import SyncModal from './components/SyncModal'
 import GuideOverlay from './components/GuideOverlay'
 import ErrorBoundary from './components/ErrorBoundary'
 import AppSwitcher from './components/AppSwitcher'
+import { useAppShell } from './lib/appShell'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 import {
@@ -45,6 +46,16 @@ export default function App() {
   useEffect(() => {
     if (!localStorage.getItem(GUIDE_SEEN_KEY)) setGuideOpen(true)
   }, [])
+
+  // open the guide when another app (finance) asks for it after switching here
+  const guideRequested = useAppShell((s) => s.guideRequested)
+  const clearGuideRequest = useAppShell((s) => s.clearGuideRequest)
+  useEffect(() => {
+    if (guideRequested) {
+      setGuideOpen(true)
+      clearGuideRequest()
+    }
+  }, [guideRequested, clearGuideRequest])
 
   const closeGuide = () => {
     localStorage.setItem(GUIDE_SEEN_KEY, '1')

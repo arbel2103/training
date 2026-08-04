@@ -26,6 +26,7 @@ export default function AppSwitcher() {
   return (
     <div className="relative">
       <button
+        data-guide="app-switcher"
         onClick={(e) => {
           e.stopPropagation()
           setOpen((v) => !v)

@@ -25,7 +25,8 @@ export default function ListView() {
   if (log.length === 0) {
     return (
       <div className="card p-10 text-center text-muted">
-        עדיין לא הוזנו אימונים. עבור לטאב <b>הזנה</b> כדי להתחיל.
+        עדיין לא הוזנו אימונים. הוסף אימון מהכפתור <b>הוספת אימון</b> בכרטיס
+        "האימון של היום" בעמוד הבית.
       </div>
     )
   }

@@ -58,10 +58,12 @@ export default function WorkoutFormModal({
   const [otherName, setOtherName] = useState('')
   const [rpe, setRpe] = useState<number | undefined>(undefined)
   const [note, setNote] = useState('')
+  const [entryDate, setEntryDate] = useState(date)
 
   // prefill from the edited entry, or reset to defaults for a new one
   useEffect(() => {
     if (!open) return
+    setEntryDate(editing?.date ?? date)
     if (editing) {
       setCategory(editing.category)
       setStrengthName(editing.strengthName ?? categories[0]?.name ?? '')
@@ -107,7 +109,7 @@ export default function WorkoutFormModal({
   const save = () => {
     // every form-owned field is listed so switching category clears stale ones
     const base: Omit<WorkoutEntry, 'id'> = {
-      date: editing?.date ?? date,
+      date: editing?.date ?? entryDate,
       category,
       rpe,
       note: note.trim() || undefined,
@@ -157,12 +159,25 @@ export default function WorkoutFormModal({
 
   return (
     <Modal open={open} onClose={onClose} title={editing ? 'עריכת אימון' : 'הוספת אימון'}>
-      <div className="text-sm text-muted mb-4">
-        {formatFullDate(editing?.date ?? date)}
-        {editing?.source === 'garmin' && (
-          <span className="mr-2">· ⌚ נמשך מגרמין (נתוני הדופק נשמרים)</span>
-        )}
-      </div>
+      {editing ? (
+        <div className="text-sm text-muted mb-4">
+          {formatFullDate(editing.date)}
+          {editing.source === 'garmin' && (
+            <span className="mr-2">· ⌚ נמשך מגרמין (נתוני הדופק נשמרים)</span>
+          )}
+        </div>
+      ) : (
+        <div className="mb-5">
+          <label className="label">תאריך האימון</label>
+          <input
+            type="date"
+            className="input"
+            value={entryDate}
+            max={date}
+            onChange={(e) => setEntryDate(e.target.value || date)}
+          />
+        </div>
+      )}
 
       <div className="mb-5">
         <label className="label">סוג אימון</label>

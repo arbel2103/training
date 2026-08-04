@@ -16,6 +16,7 @@ import { formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
+import WorkoutFormModal from '../Tracking/WorkoutFormModal'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
@@ -50,6 +51,7 @@ export default function HomePage() {
 
   const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
+  const [manualOpen, setManualOpen] = useState(false)
   const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 | 4 }>({
     open: false,
     step: 1,
@@ -210,7 +212,16 @@ export default function HomePage() {
 
         {/* today's workout */}
         <div className="card p-5">
-          <h3 className="font-display text-lg font-bold mb-3">האימון של היום</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg font-bold">האימון של היום</h3>
+            <button
+              onClick={() => setManualOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+              title="הוספת אימון שביצעת (למשל גלישה, פילאטיס, או אימון שלא נמדד בשעון)"
+            >
+              <Icon name="plus" className="w-4 h-4" /> הוספת אימון
+            </button>
+          </div>
           {!plan || plan.weeks.length === 0 ? (
             <p className="text-sm text-muted">
               אין תוכנית עדיין — פתח את <b>המאמן</b> כדי לבנות אחת.
@@ -294,6 +305,12 @@ export default function HomePage() {
           onClose={() => setQuick(null)}
         />
       )}
+
+      <WorkoutFormModal
+        open={manualOpen}
+        date={todayISO}
+        onClose={() => setManualOpen(false)}
+      />
 
       <GarminSetupWizard
         open={wizard.open}
