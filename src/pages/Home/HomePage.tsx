@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useStore, type PlanSession } from '../../store/useStore'
+import { Fragment, type ReactNode, useState } from 'react'
+import { useStore, type PlanSession, type HomeTileId } from '../../store/useStore'
 import {
   HEB_DAYS,
   daysInRange,
@@ -18,6 +18,7 @@ import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
 import WorkoutFormModal from '../Tracking/WorkoutFormModal'
 import WeeklySummary from '../../components/WeeklySummary'
+import CustomizeTiles, { orderedTiles } from './CustomizeTiles'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
@@ -54,6 +55,8 @@ export default function HomePage() {
   const [quick, setQuick] = useState<PlanSession | null>(null)
   const [manualOpen, setManualOpen] = useState(false)
   const [weekSummaryOpen, setWeekSummaryOpen] = useState(false)
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const homeLayout = useStore((s) => s.homeLayout)
   const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 | 4 }>({
     open: false,
     step: 1,
@@ -108,6 +111,139 @@ export default function HomePage() {
   const backupStale =
     hasData &&
     (!backup || Date.now() - new Date(backup).getTime() > 7 * 86_400_000)
+
+  const visibleTiles = orderedTiles(homeLayout).filter(
+    (id) => !homeLayout.hidden.includes(id),
+  )
+
+  const renderTile = (id: HomeTileId): ReactNode => {
+    switch (id) {
+      case 'race':
+        if (daysToRace === null) return null
+        return (
+          <div className="card p-5 sm:col-span-2 flex items-center justify-between">
+            <div>
+              <div className="text-sm text-muted flex items-center gap-1.5">
+                <Icon name="flag" className="w-4 h-4" /> {plan?.raceName || 'תחרות'}
+              </div>
+              <div className="font-display text-2xl font-bold mt-0.5">
+                {daysToRace === 0 ? 'היום זה היום! בהצלחה!' : `עוד ${daysToRace} ימים`}
+              </div>
+            </div>
+            {plan?.raceDate && (
+              <div className="text-sm text-muted">
+                {formatDayMonth(fromISO(plan.raceDate))}
+              </div>
+            )}
+          </div>
+        )
+      case 'lastNight':
+        return <LastNightCard />
+      case 'today':
+        return (
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-lg font-bold">האימון של היום</h3>
+              <button
+                onClick={() => setManualOpen(true)}
+                className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+                title="הוספת אימון שביצעת (למשל גלישה, פילאטיס, או אימון שלא נמדד בשעון)"
+              >
+                <Icon name="plus" className="w-4 h-4" /> הוספת אימון
+              </button>
+            </div>
+            {!plan || plan.weeks.length === 0 ? (
+              <p className="text-sm text-muted">
+                אין תוכנית עדיין — פתח את <b>המאמן</b> כדי לבנות אחת.
+              </p>
+            ) : todaySessions.length === 0 ? (
+              <p className="text-sm text-muted">יום מנוחה — תן לגוף להתאושש.</p>
+            ) : (
+              <div className="grid gap-2">
+                {todaySessions.map((s) => {
+                  const done = completion[s.id]?.done
+                  return (
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+                        done ? 'border-bike/40 bg-bike/5' : 'border-line'
+                      }`}
+                    >
+                      <Icon
+                        name={sessionIconName(s)}
+                        className={`w-6 h-6 shrink-0 ${sportColorClass[s.sport]}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold">{sessionTitle(s)}</div>
+                        <div className="text-sm text-muted">
+                          {s.sport !== 'strength' && s.sport !== 'other' && s.distance
+                            ? `${s.distance} ${sportUnit(s.sport)}`
+                            : ''}
+                          {s.durationMin ? ` · ${formatDuration(s.durationMin)}` : ''}
+                        </div>
+                      </div>
+                      {done ? (
+                        <span className="text-bike font-bold shrink-0">בוצע ✓</span>
+                      ) : (
+                        <button
+                          onClick={() => setQuick(s)}
+                          className="btn-accent shrink-0 text-sm px-3 py-1.5"
+                        >
+                          בצעתי ✓
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      case 'week':
+        return (
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-lg font-bold">השבוע שלי</h3>
+              <button
+                onClick={() => setWeekSummaryOpen(true)}
+                className="flex items-center gap-1.5 text-sm font-medium text-accent hover:opacity-80 transition"
+              >
+                <Icon name="chart" className="w-4 h-4" /> סיכום השבוע
+              </button>
+            </div>
+            {totalCount === 0 ? (
+              <p className="text-sm text-muted">אין אימונים מתוכננים לשבוע הזה.</p>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="font-display text-3xl font-black">
+                    {totalDone}/{totalCount}
+                  </span>
+                  <span className="text-sm text-muted">אימונים בוצעו</span>
+                  {extraCount > 0 && (
+                    <span className="text-sm text-bike font-semibold">
+                      (+{extraCount} מעבר לתוכנית)
+                    </span>
+                  )}
+                </div>
+                <ProgressBar
+                  pct={
+                    totalCount
+                      ? Math.min(100, Math.round((totalDone / totalCount) * 100))
+                      : 0
+                  }
+                />
+                {doneCount === totalCount && (
+                  <p className="text-sm text-bike font-semibold mt-2">
+                    כל הכבוד — השבוע הושלם!
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )
+    }
+  }
 
   return (
     <div>
@@ -204,132 +340,19 @@ export default function HomePage() {
         </div>
       )}
 
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => setCustomizeOpen(true)}
+          className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink transition"
+        >
+          <Icon name="gear" className="w-4 h-4" /> התאמה אישית
+        </button>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
-        {/* race countdown */}
-        {daysToRace !== null && (
-          <div className="card p-5 sm:col-span-2 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted flex items-center gap-1.5">
-                <Icon name="flag" className="w-4 h-4" /> {plan?.raceName || 'תחרות'}
-              </div>
-              <div className="font-display text-2xl font-bold mt-0.5">
-                {daysToRace === 0
-                  ? 'היום זה היום! בהצלחה!'
-                  : `עוד ${daysToRace} ימים`}
-              </div>
-            </div>
-            {plan?.raceDate && (
-              <div className="text-sm text-muted">
-                {formatDayMonth(fromISO(plan.raceDate))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* last night — sleep, HRV, resting HR */}
-        <LastNightCard />
-
-        {/* today's workout */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-lg font-bold">האימון של היום</h3>
-            <button
-              onClick={() => setManualOpen(true)}
-              className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
-              title="הוספת אימון שביצעת (למשל גלישה, פילאטיס, או אימון שלא נמדד בשעון)"
-            >
-              <Icon name="plus" className="w-4 h-4" /> הוספת אימון
-            </button>
-          </div>
-          {!plan || plan.weeks.length === 0 ? (
-            <p className="text-sm text-muted">
-              אין תוכנית עדיין — פתח את <b>המאמן</b> כדי לבנות אחת.
-            </p>
-          ) : todaySessions.length === 0 ? (
-            <p className="text-sm text-muted">יום מנוחה — תן לגוף להתאושש.</p>
-          ) : (
-            <div className="grid gap-2">
-              {todaySessions.map((s) => {
-                const done = completion[s.id]?.done
-                return (
-                  <div
-                    key={s.id}
-                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
-                      done ? 'border-bike/40 bg-bike/5' : 'border-line'
-                    }`}
-                  >
-                    <Icon
-                      name={sessionIconName(s)}
-                      className={`w-6 h-6 shrink-0 ${sportColorClass[s.sport]}`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold">{sessionTitle(s)}</div>
-                      <div className="text-sm text-muted">
-                        {s.sport !== 'strength' && s.sport !== 'other' && s.distance
-                          ? `${s.distance} ${sportUnit(s.sport)}`
-                          : ''}
-                        {s.durationMin ? ` · ${formatDuration(s.durationMin)}` : ''}
-                      </div>
-                    </div>
-                    {done ? (
-                      <span className="text-bike font-bold shrink-0">בוצע ✓</span>
-                    ) : (
-                      <button
-                        onClick={() => setQuick(s)}
-                        className="btn-accent shrink-0 text-sm px-3 py-1.5"
-                      >
-                        בצעתי ✓
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* week progress */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-lg font-bold">השבוע שלי</h3>
-            <button
-              onClick={() => setWeekSummaryOpen(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-accent hover:opacity-80 transition"
-            >
-              <Icon name="chart" className="w-4 h-4" /> סיכום השבוע
-            </button>
-          </div>
-          {totalCount === 0 ? (
-            <p className="text-sm text-muted">אין אימונים מתוכננים לשבוע הזה.</p>
-          ) : (
-            <>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="font-display text-3xl font-black">
-                  {totalDone}/{totalCount}
-                </span>
-                <span className="text-sm text-muted">אימונים בוצעו</span>
-                {extraCount > 0 && (
-                  <span className="text-sm text-bike font-semibold">
-                    (+{extraCount} מעבר לתוכנית)
-                  </span>
-                )}
-              </div>
-              <ProgressBar
-                pct={
-                  totalCount
-                    ? Math.min(100, Math.round((totalDone / totalCount) * 100))
-                    : 0
-                }
-              />
-              {doneCount === totalCount && (
-                <p className="text-sm text-bike font-semibold mt-2">
-                  כל הכבוד — השבוע הושלם!
-                </p>
-              )}
-            </>
-          )}
-        </div>
-
+        {visibleTiles.map((id) => (
+          <Fragment key={id}>{renderTile(id)}</Fragment>
+        ))}
       </div>
         </>
       )}
@@ -351,6 +374,11 @@ export default function HomePage() {
       <WeeklySummary
         open={weekSummaryOpen}
         onClose={() => setWeekSummaryOpen(false)}
+      />
+
+      <CustomizeTiles
+        open={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
       />
 
       <GarminSetupWizard

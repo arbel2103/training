@@ -25,6 +25,16 @@ export interface StrengthCategory {
 }
 
 /* ---------------- Program: Aerobic ---------------- */
+export type HomeTileId = 'race' | 'lastNight' | 'today' | 'week'
+export interface HomeLayout {
+  order: HomeTileId[]
+  hidden: HomeTileId[]
+}
+export const DEFAULT_HOME_LAYOUT: HomeLayout = {
+  order: ['race', 'lastNight', 'today', 'week'],
+  hidden: [],
+}
+
 export type Sport = 'run' | 'bike' | 'swim'
 export interface WeeklyTarget {
   id: ID
@@ -219,6 +229,10 @@ interface State {
   garminSyncStatus: GarminSyncStatus
   garminDaily: DailyHealth[]
 
+  // home dashboard layout (tile order + hidden tiles)
+  homeLayout: HomeLayout
+  setHomeLayout: (layout: HomeLayout) => void
+
   // strength categories
   addCategory: (name: string) => void
   renameCategory: (id: ID, name: string) => void
@@ -309,6 +323,7 @@ export const useStore = create<State>()(
       calendarBusy: [],
       garminSettings: { connected: false },
       garminSyncStatus: { state: 'idle' },
+      homeLayout: DEFAULT_HOME_LAYOUT,
       garminDaily: [],
 
       addCategory: (name) =>
@@ -520,6 +535,8 @@ export const useStore = create<State>()(
         set((s) => ({ garminSettings: { ...s.garminSettings, ...patch } })),
       setGarminSyncStatus: (patch) =>
         set((s) => ({ garminSyncStatus: { ...s.garminSyncStatus, ...patch } })),
+      setHomeLayout: (homeLayout) => set({ homeLayout }),
+
       setGarminDaily: (days) =>
         set((s) => {
           const byDate = new Map<string, DailyHealth>()
