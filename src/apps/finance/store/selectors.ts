@@ -114,11 +114,12 @@ export function accountByGoalId(
   return accounts.find((a) => a.goals.some((g) => g.id === goalId))
 }
 
-// שיוך חיסכון מנורמל — סכום, חשבון (מזוהה גם דרך המטרה), ומטרה אופציונלית
+// שיוך חיסכון מנורמל — סכום, חשבון (מזוהה גם דרך המטרה), מטרה, ותאריך ההוצאה
 export interface SavingLink {
   accountId?: string
   goalId?: string
   amount: number
+  date?: string // yyyy-mm-dd — מתי בוצעה ההוצאה/העברה
 }
 
 // איסוף כל השיוכים לחיסכון/השקעה — מהוצאות אשראי ומהעברות בנקאיות.
@@ -138,16 +139,18 @@ export function collectSavingLinks(
         accountId: resolve(e.savingsAccountId, e.savingsGoalId),
         goalId: e.savingsGoalId,
         amount: effectiveAmount(e),
+        date: e.date,
       })
     }
   }
-  for (const m of Object.values(months)) {
+  for (const [mk, m] of Object.entries(months)) {
     for (const t of m.bankTransfers) {
       if (t.savingsAccountId || t.savingsGoalId) {
         links.push({
           accountId: resolve(t.savingsAccountId, t.savingsGoalId),
           goalId: t.savingsGoalId,
           amount: t.amount,
+          date: `${mk}-15`, // אמצע החודש (להעברות אין תאריך יום מדויק)
         })
       }
     }
@@ -155,17 +158,21 @@ export function collectSavingLinks(
   return links
 }
 
-// סך ההוצאות ששויכו לחשבון מסוים
+// סך ההוצאות ששויכו לחשבון — רק אלו שאירעו *אחרי* עדכון היתרה האחרון.
+// הוצאות שקדמו לעדכון כבר משתקפות ביתרה הרשומה, כך שהן יורדות פעם אחת בלבד
+// ולא שוב כשמעדכנים ידנית את היתרה למצב הנוכחי.
 export function accountLinkedTotal(
   account: Account,
   links: SavingLink[],
 ): number {
+  const since = account.updatedAt ? account.updatedAt.slice(0, 10) : ''
   return links
     .filter((l) => l.accountId === account.id)
+    .filter((l) => l.date == null || l.date > since)
     .reduce((s, l) => s + l.amount, 0)
 }
 
-// יתרה אפקטיבית = יתרה ידנית פחות הוצאות משויכות
+// יתרה אפקטיבית = יתרה ידנית פחות הוצאות משויכות שטרם שוקללו ביתרה
 export function accountEffectiveBalance(
   account: Account,
   links: SavingLink[],
