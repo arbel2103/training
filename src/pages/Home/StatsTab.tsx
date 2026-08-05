@@ -142,7 +142,7 @@ export default function StatsTab() {
         </div>
       )}
 
-      <IntensityBalance log={log} inPeriod={inPeriod} />
+      <IntensityBalance log={log} inPeriod={inPeriod} kind={kind} />
 
       {kind === 'strength' ? (
         <StrengthStats log={log} inPeriod={inPeriod} />
@@ -298,16 +298,22 @@ function StrengthStats({
 function IntensityBalance({
   log,
   inPeriod,
+  kind,
 }: {
   log: WorkoutEntry[]
   inPeriod: (date: string) => boolean
+  kind: StatKind
 }) {
+  const isSport = kind === 'run' || kind === 'bike' || kind === 'swim'
   const split = useMemo(() => {
-    const aerobic = log.filter((e) => e.category === 'aerobic' && inPeriod(e.date))
+    const aerobic = log.filter(
+      (e) => e.category === 'aerobic' && e.sport === kind && inPeriod(e.date),
+    )
     return intensityBalance(aerobic, maxHrReference(log))
-  }, [log, inPeriod])
+  }, [log, inPeriod, kind])
 
-  if (split.sessions < 3) return null // not enough to judge a balance
+  // 80/20 is an aerobic concept — only for run/bike/swim
+  if (!isSport || split.sessions < 3) return null // not enough to judge a balance
 
   const { easyPct, hardPct, easyMin, hardMin } = split
   const verdict =
@@ -325,8 +331,8 @@ function IntensityBalance({
 
   return (
     <ChartCard
-      title="בקרת עצימות (80/20)"
-      info="עקרון 80/20: כ-80% מזמן האימון האירובי צריך להיות קל (זון 1–2) וכ-20% עצים (זון 3+). כך משתפרים בלי להישחק. מסווג לפי הדופק הממוצע של כל אימון בתקופה."
+      title={`בקרת עצימות ${sportLabel[kind as Sport]} (80/20)`}
+      info="עקרון 80/20: כ-80% מזמן האימון האירובי צריך להיות קל (זון 1–2) וכ-20% עצים (זון 3+). כך משתפרים בלי להישחק. מחושב לענף הנבחר בלבד, לפי הדופק הממוצע של כל אימון בתקופה."
     >
       <div className="relative h-6 rounded-full overflow-hidden bg-ink/5 flex">
         <div
