@@ -13,9 +13,6 @@ import Icon from './ui/Icon'
 const KICKOFF =
   'זוהי פתיחת השיחה הראשונה. הצג את עצמך בקצרה כמאמן האישי שלי, ושאל אותי קודם כל על מה נעבוד — אימוני כוח, טריאתלון/אירובי, או שניהם — ואז המשך לשאלות ההיכרות המתאימות.'
 
-const WEEKLY_SUMMARY =
-  'סכם לי בבקשה את השבוע: עבור על מה שתוכנן מול מה שביצעתי (כולל תחושת המאמץ וההערות שרשמתי), תן פידבק קצר — מה הלך טוב ומה חסר — והצע התאמות לשבוע הבא. אם צריך, עדכן את התוכנית בפועל.'
-
 function buildSystem() {
   return SYSTEM_PERSONA + '\n\n[מצב נוכחי]\n' + buildContext()
 }
@@ -275,18 +272,6 @@ export default function CoachPanel({
               )}
               {error && <p className="text-run text-sm">{error}</p>}
             </div>
-
-            {messages.length > 0 && (
-              <div className="px-3 pt-2 flex flex-wrap gap-2 shrink-0">
-                <button
-                  onClick={() => void send(WEEKLY_SUMMARY)}
-                  disabled={loading}
-                  className="chip text-sm gap-1.5 hover:border-accent hover:text-accent transition disabled:opacity-50"
-                >
-                  <Icon name="chart" className="w-4 h-4" /> סכם לי את השבוע
-                </button>
-              </div>
-            )}
 
             <div className="border-t border-line p-3 flex items-end gap-2 shrink-0">
               <textarea

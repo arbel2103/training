@@ -17,6 +17,7 @@ import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
 import WorkoutFormModal from '../Tracking/WorkoutFormModal'
+import WeeklySummary from '../../components/WeeklySummary'
 import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
@@ -52,6 +53,7 @@ export default function HomePage() {
   const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
   const [manualOpen, setManualOpen] = useState(false)
+  const [weekSummaryOpen, setWeekSummaryOpen] = useState(false)
   const [wizard, setWizard] = useState<{ open: boolean; step: 1 | 2 | 3 | 4 }>({
     open: false,
     step: 1,
@@ -288,7 +290,15 @@ export default function HomePage() {
 
         {/* week progress */}
         <div className="card p-5">
-          <h3 className="font-display text-lg font-bold mb-3">השבוע שלי</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-lg font-bold">השבוע שלי</h3>
+            <button
+              onClick={() => setWeekSummaryOpen(true)}
+              className="flex items-center gap-1.5 text-sm font-medium text-accent hover:opacity-80 transition"
+            >
+              <Icon name="chart" className="w-4 h-4" /> סיכום השבוע
+            </button>
+          </div>
           {totalCount === 0 ? (
             <p className="text-sm text-muted">אין אימונים מתוכננים לשבוע הזה.</p>
           ) : (
@@ -336,6 +346,11 @@ export default function HomePage() {
         open={manualOpen}
         date={todayISO}
         onClose={() => setManualOpen(false)}
+      />
+
+      <WeeklySummary
+        open={weekSummaryOpen}
+        onClose={() => setWeekSummaryOpen(false)}
       />
 
       <GarminSetupWizard
