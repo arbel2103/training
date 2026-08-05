@@ -61,43 +61,46 @@ export function ExpenseList({ expenses }: Props) {
               </span>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="truncate text-sm font-medium text-ink">
                     {e.merchant}
                   </span>
                   {e.pending && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700">
+                    <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
                       בקליטה
                     </span>
                   )}
                   {e.isManual && (
-                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] text-sky-700">
+                    <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] text-sky-700">
                       ידני
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <span>{formatDate(e.date)}</span>
-                  <span>·</span>
-                  <span style={{ color: colorOf(e.category) }}>
-                    {e.category}
-                  </span>
-                  {e.refund > 0 && (
-                    <span className="text-emerald-600">
-                      · הוחזר {formatCurrency(e.refund)}
-                    </span>
-                  )}
-                  {(e.savingsAccountId || e.savingsGoalId) && (
-                    <span className="inline-flex items-center gap-1 text-accent">
-                      ·{' '}
-                      <Icon name="target" className="w-3 h-3" />
-                      {savingLabel(e.savingsAccountId, e.savingsGoalId)}
-                    </span>
-                  )}
+                <div className="truncate text-xs text-muted">
+                  {formatDate(e.date)}
+                  {' · '}
+                  <span style={{ color: colorOf(e.category) }}>{e.category}</span>
                 </div>
+                {(e.refund > 0 || e.savingsAccountId || e.savingsGoalId) && (
+                  <div className="truncate text-xs">
+                    {e.refund > 0 && (
+                      <span className="text-emerald-600">
+                        הוחזר {formatCurrency(e.refund)}
+                      </span>
+                    )}
+                    {e.refund > 0 && (e.savingsAccountId || e.savingsGoalId) && (
+                      <span className="text-muted"> · </span>
+                    )}
+                    {(e.savingsAccountId || e.savingsGoalId) && (
+                      <span className="text-accent">
+                        ◎ {savingLabel(e.savingsAccountId, e.savingsGoalId)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="text-left shrink-0">
+              <div className="shrink-0 whitespace-nowrap ps-1 text-left">
                 <div className="text-sm font-semibold num">
                   {formatCurrency(effectiveAmount(e), true)}
                 </div>
@@ -108,7 +111,7 @@ export function ExpenseList({ expenses }: Props) {
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <IconBtn label="קטגוריה" active={isOpen && editing?.mode === 'category'} onClick={() => toggle(e.id, 'category')}>
                   <Icon name="tag" className="w-4 h-4" />
                 </IconBtn>
