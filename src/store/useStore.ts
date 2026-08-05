@@ -25,6 +25,12 @@ export interface StrengthCategory {
 }
 
 /* ---------------- Program: Aerobic ---------------- */
+/** A reorderable, hideable list of section ids. */
+export interface LayoutPrefs {
+  order: string[]
+  hidden: string[]
+}
+
 export type HomeTileId = 'race' | 'lastNight' | 'today' | 'week'
 export interface HomeLayout {
   order: HomeTileId[]
@@ -32,6 +38,11 @@ export interface HomeLayout {
 }
 export const DEFAULT_HOME_LAYOUT: HomeLayout = {
   order: ['race', 'lastNight', 'today', 'week'],
+  hidden: [],
+}
+
+export const DEFAULT_DAILY_HEALTH_LAYOUT: LayoutPrefs = {
+  order: ['steps', 'rhr', 'hrv', 'bodyBattery', 'stress', 'calories', 'vo2'],
   hidden: [],
 }
 
@@ -233,6 +244,10 @@ interface State {
   homeLayout: HomeLayout
   setHomeLayout: (layout: HomeLayout) => void
 
+  // daily-health metrics layout (order + hidden)
+  dailyHealthLayout: LayoutPrefs
+  setDailyHealthLayout: (layout: LayoutPrefs) => void
+
   // strength categories
   addCategory: (name: string) => void
   renameCategory: (id: ID, name: string) => void
@@ -324,6 +339,7 @@ export const useStore = create<State>()(
       garminSettings: { connected: false },
       garminSyncStatus: { state: 'idle' },
       homeLayout: DEFAULT_HOME_LAYOUT,
+      dailyHealthLayout: DEFAULT_DAILY_HEALTH_LAYOUT,
       garminDaily: [],
 
       addCategory: (name) =>
@@ -536,6 +552,7 @@ export const useStore = create<State>()(
       setGarminSyncStatus: (patch) =>
         set((s) => ({ garminSyncStatus: { ...s.garminSyncStatus, ...patch } })),
       setHomeLayout: (homeLayout) => set({ homeLayout }),
+      setDailyHealthLayout: (dailyHealthLayout) => set({ dailyHealthLayout }),
 
       setGarminDaily: (days) =>
         set((s) => {

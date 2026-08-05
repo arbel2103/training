@@ -73,6 +73,7 @@ export type IconName =
   | 'undo'
   | 'search'
   | 'plus'
+  | 'battery'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -325,6 +326,13 @@ const PATHS: Record<IconName, ReactNode> = {
   check: <path d="M5 12.5l4.5 4.5L19 7" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  battery: (
+    <>
+      <rect x="3" y="8" width="15" height="9" rx="2" />
+      <path d="M21 11v3" />
+      <path d="M6.5 11v3M10 11v3" />
+    </>
+  ),
   search: (
     <>
       <circle cx="11" cy="11" r="6.5" />
