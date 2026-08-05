@@ -77,6 +77,54 @@ function shortDate(date: string): string {
   return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
 }
 
+/* ---------------- intensity balance (80/20) ---------------- */
+
+export interface IntensitySplit {
+  easyMin: number
+  hardMin: number
+  easyPct: number
+  hardPct: number
+  sessions: number // aerobic sessions that could be classified
+}
+
+/** HR share (of reference max) at/above which a session counts as "hard". */
+const HARD_SHARE = 0.82
+
+/**
+ * Session-based 80/20 split over aerobic workouts: how much time was easy
+ * (Z1–Z2) vs hard (Z3+). Classifies by average HR when available, else by the
+ * intensity tag. Sessions with neither signal are skipped.
+ */
+export function intensityBalance(
+  entries: WorkoutEntry[],
+  maxHrRef?: number,
+): IntensitySplit {
+  let easyMin = 0
+  let hardMin = 0
+  let sessions = 0
+  for (const e of entries) {
+    if (e.category !== 'aerobic') continue
+    const min = entryDuration(e) ?? e.durationMin ?? 0
+    if (min <= 0) continue
+    const share = e.avgHr && maxHrRef ? e.avgHr / maxHrRef : undefined
+    let hard: boolean | undefined
+    if (share != null) hard = share >= HARD_SHARE
+    else if (e.aerobicIntensity) hard = e.aerobicIntensity === 'intense'
+    if (hard == null) continue
+    sessions++
+    if (hard) hardMin += min
+    else easyMin += min
+  }
+  const total = easyMin + hardMin
+  return {
+    easyMin: Math.round(easyMin),
+    hardMin: Math.round(hardMin),
+    easyPct: total ? Math.round((easyMin / total) * 100) : 0,
+    hardPct: total ? Math.round((hardMin / total) * 100) : 0,
+    sessions,
+  }
+}
+
 /* ---------------- strength ---------------- */
 
 export interface StrengthSummary {

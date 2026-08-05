@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore, type Sport, type WorkoutEntry } from '../../store/useStore'
 import { formatDuration, formatPace, sportUnit } from '../../lib/calc'
 import {
+  intensityBalance,
   otherEntries,
   sportEntries,
   strengthEntries,
@@ -10,6 +11,7 @@ import {
   summarizeStrength,
   trend,
 } from '../../lib/garmin/activityStats'
+import { maxHrReference } from '../../lib/garmin/autoTag'
 import { sportLabel } from '../../lib/labels'
 import BarChart from '../../components/ui/BarChart'
 import { formatDayMonth, startOfWeek } from '../../lib/dates'
@@ -139,6 +141,8 @@ export default function StatsTab() {
           </label>
         </div>
       )}
+
+      <IntensityBalance log={log} inPeriod={inPeriod} />
 
       {kind === 'strength' ? (
         <StrengthStats log={log} inPeriod={inPeriod} />
@@ -288,6 +292,79 @@ function StrengthStats({
       )}
 
     </>
+  )
+}
+
+function IntensityBalance({
+  log,
+  inPeriod,
+}: {
+  log: WorkoutEntry[]
+  inPeriod: (date: string) => boolean
+}) {
+  const split = useMemo(() => {
+    const aerobic = log.filter((e) => e.category === 'aerobic' && inPeriod(e.date))
+    return intensityBalance(aerobic, maxHrReference(log))
+  }, [log, inPeriod])
+
+  if (split.sessions < 3) return null // not enough to judge a balance
+
+  const { easyPct, hardPct, easyMin, hardMin } = split
+  const verdict =
+    easyPct >= 78
+      ? { text: 'מצוין — רוב הנפח קל, בדיוק לפי 80/20', good: true }
+      : easyPct >= 65
+        ? { text: 'סביר — אפשר להוסיף עוד אימונים קלים', good: false }
+        : { text: 'יותר מדי עצים — רוב השיפור מגיע מנפח קל ומנוחה', good: false }
+
+  const hrs = (min: number) => {
+    const h = Math.floor(min / 60)
+    const m = min % 60
+    return h ? `${h}:${String(m).padStart(2, '0')} שע׳` : `${m} דק׳`
+  }
+
+  return (
+    <ChartCard
+      title="בקרת עצימות (80/20)"
+      info="עקרון 80/20: כ-80% מזמן האימון האירובי צריך להיות קל (זון 1–2) וכ-20% עצים (זון 3+). כך משתפרים בלי להישחק. מסווג לפי הדופק הממוצע של כל אימון בתקופה."
+    >
+      <div className="relative h-6 rounded-full overflow-hidden bg-ink/5 flex">
+        <div
+          className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+          style={{ width: `${easyPct}%`, background: 'rgb(var(--c-swim))' }}
+        >
+          {easyPct >= 12 ? `${easyPct}%` : ''}
+        </div>
+        <div
+          className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+          style={{ width: `${hardPct}%`, background: 'rgb(var(--c-run))' }}
+        >
+          {hardPct >= 12 ? `${hardPct}%` : ''}
+        </div>
+        {/* 80% target marker */}
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-ink/70"
+          style={{ right: '20%' }}
+          title="יעד 80%"
+        />
+      </div>
+
+      <div className="flex items-center justify-between mt-2 text-xs">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--c-swim))' }} />
+          קל · {hrs(easyMin)}
+        </span>
+        <span className="text-muted">יעד 80 / 20</span>
+        <span className="flex items-center gap-1.5">
+          עצים · {hrs(hardMin)}
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--c-run))' }} />
+        </span>
+      </div>
+
+      <p className={`mt-3 text-sm font-semibold ${verdict.good ? 'text-swim' : 'text-muted'}`}>
+        {verdict.text}
+      </p>
+    </ChartCard>
   )
 }
 
