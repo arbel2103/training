@@ -186,6 +186,8 @@ export function toDailyHealth(date: string, b: GarminDailyBundle): DailyHealth {
     d.hrvLastNight = b.hrv.lastNightAvg
     d.hrvWeeklyAvg = b.hrv.weeklyAvg
     d.hrvStatus = b.hrv.status
+    d.hrvBaselineLow = b.hrv.baselineLow
+    d.hrvBaselineHigh = b.hrv.baselineHigh
   }
   if (b.sleep) {
     d.sleepScore = b.sleep.score

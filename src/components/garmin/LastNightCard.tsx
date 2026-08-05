@@ -74,19 +74,24 @@ export default function LastNightCard() {
   if (!sleep && !hrv && !rhr) return null
 
   const hrvVal = hrv?.hrvLastNight ?? null
+  const hrvLow = hrv?.hrvBaselineLow ?? null
+  const hrvHigh = hrv?.hrvBaselineHigh ?? null
   const hrvBase = hrv?.hrvWeeklyAvg ?? null
-  const hrvAbove = hrvVal != null && hrvBase != null ? hrvVal >= hrvBase : null
+
+  // show the personal baseline range (so you can see where tonight falls in it),
+  // falling back to the weekly average when the range isn't available yet
+  // U+2066…U+2069 isolate the range so it always reads low–high left-to-right,
+  // even inside the RTL layout
+  const hrvRangeSub =
+    hrvLow != null && hrvHigh != null
+      ? `בסיס ⁦${Math.round(hrvLow)}–${Math.round(hrvHigh)}⁩`
+      : hrvBase != null
+        ? `בסיס ~${Math.round(hrvBase)}`
+        : undefined
 
   const rhrVal = rhr?.restingHr ?? null
 
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
-
-  const hint =
-    hrvAbove === true
-      ? 'התאוששות טובה — הגוף מוכן לעומס'
-      : hrvAbove === false
-        ? 'HRV מתחת לבסיס — שקול יום קל יותר'
-        : null
 
   // one cohesive cool family: each ring a neighbouring shade
   const C_SLEEP = 'rgb(var(--accent))'
@@ -121,14 +126,7 @@ export default function LastNightCard() {
             unit="ms"
             color={C_HRV}
             label="HRV"
-            sub={
-              hrvAbove == null
-                ? undefined
-                : hrvAbove
-                  ? '▲ מעל הבסיס'
-                  : '▼ מתחת לבסיס'
-            }
-            subClass={hrvAbove ? 'text-swim' : 'text-muted'}
+            sub={hrvRangeSub}
           />
         )}
         {rhrVal != null && (
@@ -140,16 +138,6 @@ export default function LastNightCard() {
           />
         )}
       </div>
-
-      {hint && (
-        <p
-          className={`text-sm mt-4 rounded-xl px-3 py-2 ${
-            hrvAbove ? 'bg-accent-soft/60 text-accent' : 'bg-ink/5 text-muted'
-          }`}
-        >
-          {hint}
-        </p>
-      )}
     </div>
   )
 }

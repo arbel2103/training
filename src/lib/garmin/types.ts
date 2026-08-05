@@ -172,6 +172,8 @@ export interface DailyHealth {
   hrvLastNight?: number
   hrvWeeklyAvg?: number
   hrvStatus?: string
+  hrvBaselineLow?: number
+  hrvBaselineHigh?: number
   sleepScore?: number
   sleepMin?: number
   deepMin?: number
