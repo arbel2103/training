@@ -1,11 +1,14 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import Icon, { type IconName } from './ui/Icon'
+import { useAppShell, type AppId } from '../lib/appShell'
 
 interface Step {
   icon: IconName
   title: string
   body: ReactNode
-  /** page to switch to while this step shows (0=היום … 3=בריאות) */
+  /** which mini-app this step belongs to (default 'tri') */
+  app?: AppId
+  /** page/tab to switch to inside that app (TriLife 0=היום…3=בריאות; finance 0=הוצאות,1=הון) */
   page?: number
   /** data-guide id of the element to point at; omit for a centered card */
   target?: string
@@ -229,7 +232,9 @@ const STEPS: Step[] = [
         </li>
       </ul>
     ),
+    app: 'finance',
     page: 0,
+    target: 'fin-nav-expenses',
   },
   {
     icon: 'coins',
@@ -250,7 +255,9 @@ const STEPS: Step[] = [
         </li>
       </ul>
     ),
-    page: 0,
+    app: 'finance',
+    page: 1,
+    target: 'fin-nav-capital',
   },
   {
     icon: 'party',
@@ -285,12 +292,11 @@ function findTarget(sel?: string): HTMLElement | null {
 export default function GuideOverlay({
   open,
   onClose,
-  onNavigate,
 }: {
   open: boolean
   onClose: () => void
-  onNavigate: (page: number) => void
 }) {
+  const setGuideNav = useAppShell((s) => s.setGuideNav)
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
 
@@ -300,9 +306,9 @@ export default function GuideOverlay({
 
   const step = STEPS[i]
 
-  // switch to the step's page
+  // switch to the step's app + page (the shell reacts and each app scrolls)
   useEffect(() => {
-    if (open && step.page != null) onNavigate(step.page)
+    if (open) setGuideNav(step.app ?? 'tri', step.page ?? 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, i])
 
@@ -315,8 +321,9 @@ export default function GuideOverlay({
       const el = findTarget(step.target)
       if (el || !step.target) {
         setRect(el ? el.getBoundingClientRect() : null)
-      } else if (tries++ < 15) {
-        timer = window.setTimeout(locate, 90) // wait for the page to render
+      } else if (tries++ < 40) {
+        // wait for the page to render — finance is lazy-loaded on first switch
+        timer = window.setTimeout(locate, 90)
       }
     }
     locate()

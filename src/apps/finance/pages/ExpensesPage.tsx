@@ -22,6 +22,7 @@ import { ManualExpenseButton } from '../components/expenses/ManualExpenseButton'
 import { BitModal } from '../components/expenses/BitModal'
 import Icon from '../../../components/ui/Icon'
 import InfoTip from '../../../components/ui/InfoTip'
+import { ImportBanner } from '../components/ImportBanner'
 import { CategoryPie } from '../components/expenses/CategoryPie'
 import { ExpenseList } from '../components/expenses/ExpenseList'
 import { MonthlyBarChart } from '../components/expenses/MonthlyBarChart'
@@ -108,6 +109,7 @@ export function ExpensesPage() {
 
   return (
     <div className="space-y-5">
+      <ImportBanner />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">מעקב הוצאות</h1>

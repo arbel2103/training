@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { CapitalPage } from './pages/CapitalPage'
 import AppSwitcher from '../../components/AppSwitcher'
@@ -17,8 +17,8 @@ export default function FinanceApp() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
-  const setAppId = useAppShell((s) => s.setAppId)
-  const requestGuide = useAppShell((s) => s.requestGuide)
+  const openGuide = useAppShell((s) => s.openGuide)
+  const guideNav = useAppShell((s) => s.guideNav)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const indexRef = useRef(0)
 
@@ -45,6 +45,11 @@ export default function FinanceApp() {
     setIndex(i)
   }, [])
 
+  // follow the guide's navigation requests aimed at this app
+  useEffect(() => {
+    if (guideNav && guideNav.app === 'finance') goTo(guideNav.page)
+  }, [guideNav, goTo])
+
   return (
     <div className="flex flex-col h-[100dvh]">
       <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
@@ -59,6 +64,7 @@ export default function FinanceApp() {
               return (
                 <button
                   key={p.key}
+                  data-guide={`fin-nav-${p.key}`}
                   onClick={() => goTo(i)}
                   className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active ? 'bg-ink text-bg shadow-card' : 'text-muted hover:text-ink hover:bg-ink/5'
@@ -72,10 +78,7 @@ export default function FinanceApp() {
           </nav>
           <div className="flex-1 md:hidden" />
           <button
-            onClick={() => {
-              requestGuide()
-              setAppId('tri')
-            }}
+            onClick={openGuide}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             title="מדריך שימוש"
             aria-label="מדריך שימוש"
@@ -123,6 +126,7 @@ export default function FinanceApp() {
             return (
               <button
                 key={p.key}
+                data-guide={`fin-nav-${p.key}`}
                 onClick={() => goTo(i)}
                 className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-semibold transition ${
                   active ? 'text-accent' : 'text-muted'

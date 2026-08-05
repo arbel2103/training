@@ -5,7 +5,6 @@ import PlanningPage from './pages/Planning/PlanningPage'
 import HealthPage from './pages/Health/HealthPage'
 import CoachFab from './components/CoachFab'
 import SyncModal from './components/SyncModal'
-import GuideOverlay from './components/GuideOverlay'
 import ErrorBoundary from './components/ErrorBoundary'
 import AppSwitcher from './components/AppSwitcher'
 import { useAppShell } from './lib/appShell'
@@ -22,8 +21,6 @@ import {
   IconCloud,
 } from './components/ui/NavIcons'
 
-const GUIDE_SEEN_KEY = 'fitness-guide-seen'
-
 const PAGES = [
   { key: 'home', Icon: IconToday, label: 'היום', short: 'היום', el: <HomePage /> },
   { key: 'program', Icon: IconProgram, label: 'תוכנית אימונים', short: 'תוכנית', el: <ProgramPage /> },
@@ -34,33 +31,14 @@ const PAGES = [
 export default function App() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
-  const [guideOpen, setGuideOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => getTheme())
   const scrollerRef = useRef<HTMLDivElement>(null)
   const indexRef = useRef(0)
+  const openGuide = useAppShell((s) => s.openGuide)
+  const guideNav = useAppShell((s) => s.guideNav)
 
   // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
   useGarminRefreshOnMount()
-
-  // show the walkthrough automatically on the very first visit
-  useEffect(() => {
-    if (!localStorage.getItem(GUIDE_SEEN_KEY)) setGuideOpen(true)
-  }, [])
-
-  // open the guide when another app (finance) asks for it after switching here
-  const guideRequested = useAppShell((s) => s.guideRequested)
-  const clearGuideRequest = useAppShell((s) => s.clearGuideRequest)
-  useEffect(() => {
-    if (guideRequested) {
-      setGuideOpen(true)
-      clearGuideRequest()
-    }
-  }, [guideRequested, clearGuideRequest])
-
-  const closeGuide = () => {
-    localStorage.setItem(GUIDE_SEEN_KEY, '1')
-    setGuideOpen(false)
-  }
 
   // derive the active page from the horizontal scroll position
   // (Math.abs handles RTL, where scrollLeft is negative)
@@ -84,6 +62,11 @@ export default function App() {
     indexRef.current = i
     setIndex(i)
   }, [])
+
+  // follow the guide's navigation requests aimed at this app
+  useEffect(() => {
+    if (guideNav && guideNav.app === 'tri') goTo(guideNav.page)
+  }, [guideNav, goTo])
 
   return (
     <div className="flex flex-col h-[100dvh]">
@@ -116,7 +99,7 @@ export default function App() {
           </nav>
           <div className="flex-1 md:hidden" />
           <button
-            onClick={() => setGuideOpen(true)}
+            onClick={openGuide}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             title="מדריך שימוש"
             aria-label="מדריך שימוש"
@@ -196,7 +179,6 @@ export default function App() {
 
       <CoachFab />
       <SyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
-      <GuideOverlay open={guideOpen} onClose={closeGuide} onNavigate={goTo} />
     </div>
   )
 }
