@@ -17,7 +17,33 @@ function dayLabel(date: string): string {
   })
 }
 
-/** A single animated ring metric: value inside, label + optional sub below. */
+interface TrendChip {
+  label: string // e.g. "▲ 3 מהממוצע"
+  good: boolean
+}
+
+/**
+ * Compare last night's value to its recent average and describe the direction.
+ * `higherBetter` flips which way counts as good (sleep/HRV up = good, RHR down =
+ * good). Needs a little history so a single night doesn't invent a trend.
+ */
+function trendChip(
+  latest: number | null,
+  prior: number[],
+  higherBetter: boolean,
+): TrendChip | undefined {
+  if (latest == null || prior.length < 2) return undefined
+  const avg = prior.reduce((s, n) => s + n, 0) / prior.length
+  const delta = Math.round(latest - avg)
+  if (delta === 0) return { label: '≈ כמו הממוצע', good: true }
+  const up = delta > 0
+  return {
+    label: `${up ? '▲' : '▼'} ${Math.abs(delta)} מהממוצע`,
+    good: higherBetter ? up : !up,
+  }
+}
+
+/** A single animated ring metric: value inside, label + optional sub/trend below. */
 function RingStat({
   fraction,
   display,
@@ -26,6 +52,7 @@ function RingStat({
   label,
   sub,
   subClass,
+  trend,
 }: {
   fraction: number
   display: string | number
@@ -34,6 +61,7 @@ function RingStat({
   label: string
   sub?: string
   subClass?: string
+  trend?: TrendChip
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
@@ -48,6 +76,15 @@ function RingStat({
         {sub && (
           <div className={`text-xs mt-0.5 font-semibold ${subClass ?? 'text-muted'}`}>
             {sub}
+          </div>
+        )}
+        {trend && (
+          <div
+            className={`text-[11px] mt-0.5 font-semibold ${
+              trend.good ? 'text-swim' : 'text-muted'
+            }`}
+          >
+            {trend.label}
           </div>
         )}
       </div>
@@ -101,6 +138,20 @@ export default function LastNightCard() {
     : null
   const rhrAvgSub = rhrAvg != null ? `ממוצע ${rhrAvg}` : undefined
 
+  // short-term trend vs the recent average (last night vs the prior nights)
+  const sleepSeries = rev
+    .map((d) => d.sleepScore)
+    .filter((v): v is number => v != null)
+  const rhrSeries = rev
+    .map((d) => d.restingHr)
+    .filter((v): v is number => v != null)
+  const sleepTrend = trendChip(
+    sleep?.sleepScore ?? null,
+    sleepSeries.slice(1, 8),
+    true,
+  )
+  const rhrTrend = trendChip(rhrVal, rhrSeries.slice(1, 31), false)
+
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
 
   // one cohesive cool family: each ring a neighbouring shade
@@ -127,6 +178,7 @@ export default function LastNightCard() {
             color={C_SLEEP}
             label="ציון שינה"
             sub={sleep.sleepMin ? `${hoursLabel(sleep.sleepMin)} שעות` : undefined}
+            trend={sleepTrend}
           />
         )}
         {hrvVal != null && (
@@ -146,6 +198,7 @@ export default function LastNightCard() {
             color={C_RHR}
             label="דופק מנוחה"
             sub={rhrAvgSub}
+            trend={rhrTrend}
           />
         )}
       </div>
