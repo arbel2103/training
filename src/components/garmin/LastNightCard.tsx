@@ -91,6 +91,16 @@ export default function LastNightCard() {
 
   const rhrVal = rhr?.restingHr ?? null
 
+  // 30-day average resting HR as a comparison baseline for last night's value
+  const rhrRecent = rev
+    .slice(0, 30)
+    .map((d) => d.restingHr)
+    .filter((v): v is number => v != null)
+  const rhrAvg = rhrRecent.length
+    ? Math.round(rhrRecent.reduce((s, n) => s + n, 0) / rhrRecent.length)
+    : null
+  const rhrAvgSub = rhrAvg != null ? `ממוצע ${rhrAvg}` : undefined
+
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
 
   // one cohesive cool family: each ring a neighbouring shade
@@ -135,6 +145,7 @@ export default function LastNightCard() {
             display={rhrVal}
             color={C_RHR}
             label="דופק מנוחה"
+            sub={rhrAvgSub}
           />
         )}
       </div>

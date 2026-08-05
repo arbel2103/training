@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import { useStore, type Sport, type WorkoutEntry } from '../../store/useStore'
 import { formatDuration, formatPace, sportUnit } from '../../lib/calc'
 import {
+  otherEntries,
   sportEntries,
   strengthEntries,
   summarize,
+  summarizeOther,
   summarizeStrength,
   trend,
 } from '../../lib/garmin/activityStats'
@@ -20,7 +22,7 @@ import ListView from '../Tracking/ListView'
 import { addDays, toISODate } from '../../lib/dates'
 
 type Period = '30' | 'all' | 'custom'
-type StatKind = Sport | 'strength'
+type StatKind = Sport | 'strength' | 'other'
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -68,10 +70,10 @@ export default function StatsTab() {
     }
   }, [period, from, to])
 
-  const sport = kind === 'strength' ? 'run' : kind
+  const sport = kind === 'strength' || kind === 'other' ? 'run' : kind
   const entries = useMemo(
     () =>
-      kind === 'strength'
+      kind === 'strength' || kind === 'other'
         ? ([] as WorkoutEntry[])
         : sportEntries(log, kind).filter((e) => inPeriod(e.date)),
     [log, kind, inPeriod],
@@ -93,6 +95,7 @@ export default function StatsTab() {
             { value: 'bike', label: sportLabel.bike },
             { value: 'swim', label: sportLabel.swim },
             { value: 'strength', label: 'כוח' },
+            { value: 'other', label: 'אחר' },
           ]}
         />
         <div className="flex items-center gap-2 flex-wrap">
@@ -139,6 +142,8 @@ export default function StatsTab() {
 
       {kind === 'strength' ? (
         <StrengthStats log={log} inPeriod={inPeriod} />
+      ) : kind === 'other' ? (
+        <OtherStats log={log} inPeriod={inPeriod} />
       ) : entries.length === 0 ? (
         <div className="card p-8 text-center text-muted">
           אין אימוני {sportLabel[sport]} בתקופה הזו. סנכרן מגרמין או הזן אימון.
@@ -282,6 +287,85 @@ function StrengthStats({
         </ChartCard>
       )}
 
+    </>
+  )
+}
+
+function OtherStats({
+  log,
+  inPeriod,
+}: {
+  log: WorkoutEntry[]
+  inPeriod: (date: string) => boolean
+}) {
+  const entries = useMemo(
+    () => otherEntries(log).filter((e) => inPeriod(e.date)),
+    [log, inPeriod],
+  )
+
+  const weekStarts = useMemo(() => {
+    if (entries.length === 0) return []
+    const first = startOfWeek(new Date(entries[0].date + 'T00:00:00'))
+    const last = startOfWeek(new Date(entries[entries.length - 1].date + 'T00:00:00'))
+    const out: string[] = []
+    for (const d = new Date(first); d <= last; d.setDate(d.getDate() + 7)) {
+      out.push(toISODate(new Date(d)))
+    }
+    return out.slice(-16)
+  }, [entries])
+
+  const s = useMemo(() => summarizeOther(entries, weekStarts), [entries, weekStarts])
+
+  if (entries.length === 0) {
+    return (
+      <div className="card p-8 text-center text-muted">
+        אין אימונים אחרים בתקופה הזו. כל אימון שאינו ריצה/רכיבה/שחייה/כוח נכנס לכאן.
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Stat label="אימונים" value={String(s.count)} />
+        <Stat label="ממוצע לשבוע" value={String(s.perWeek)} />
+        <Stat label="זמן כולל" value={formatDuration(s.totalDurationMin)} />
+        {s.avgDurationMin != null && (
+          <Stat label="משך ממוצע" value={formatDuration(s.avgDurationMin)} />
+        )}
+      </div>
+
+      {s.byName.length > 0 && (
+        <div className="card p-5">
+          <h4 className="font-semibold mb-3">לפי סוג פעילות</h4>
+          <div className="grid gap-1.5">
+            {s.byName.map((r) => (
+              <div
+                key={r.name}
+                className="flex items-center justify-between rounded-xl bg-ink/5 px-3 py-2 text-sm"
+              >
+                <span className="font-medium">{r.name}</span>
+                <span className="text-muted">{r.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {weekStarts.length > 1 && (
+        <ChartCard
+          title="אימונים אחרים בשבוע"
+          info="כמה אימונים אחרים (שאינם ריצה/רכיבה/שחייה/כוח) ביצעת בכל שבוע."
+        >
+          <BarChart
+            data={s.weeks.map((w) => ({
+              label: formatDayMonth(new Date(w.weekStart + 'T00:00:00')),
+              value: w.count,
+            }))}
+            color="var(--c-run)"
+          />
+        </ChartCard>
+      )}
     </>
   )
 }

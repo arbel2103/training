@@ -77,6 +77,23 @@ export default function HomePage() {
     : 0
   const totalCount = planWeek?.sessions.length ?? 0
 
+  // extra workouts this week that aren't matched to any planned session
+  // (e.g. an unplanned pilates) count toward "done" too, so 10 planned + 2
+  // extra shows 12/10
+  const weekEndISO = toISODate(week[week.length - 1])
+  const consumedIds = new Set(
+    Object.values(completion)
+      .map((m) => m.entry?.id)
+      .filter((v): v is string => !!v),
+  )
+  const extraCount = planWeek
+    ? log.filter(
+        (e) =>
+          e.date >= weekStart && e.date <= weekEndISO && !consumedIds.has(e.id),
+      ).length
+    : 0
+  const totalDone = doneCount + extraCount
+
   // race countdown
   const daysToRace =
     plan?.raceDate && plan.raceDate >= todayISO
@@ -278,12 +295,21 @@ export default function HomePage() {
             <>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="font-display text-3xl font-black">
-                  {doneCount}/{totalCount}
+                  {totalDone}/{totalCount}
                 </span>
                 <span className="text-sm text-muted">אימונים בוצעו</span>
+                {extraCount > 0 && (
+                  <span className="text-sm text-bike font-semibold">
+                    (+{extraCount} מעבר לתוכנית)
+                  </span>
+                )}
               </div>
               <ProgressBar
-                pct={totalCount ? Math.round((doneCount / totalCount) * 100) : 0}
+                pct={
+                  totalCount
+                    ? Math.min(100, Math.round((totalDone / totalCount) * 100))
+                    : 0
+                }
               />
               {doneCount === totalCount && (
                 <p className="text-sm text-bike font-semibold mt-2">
