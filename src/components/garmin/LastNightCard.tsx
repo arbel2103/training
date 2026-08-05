@@ -145,11 +145,15 @@ export default function LastNightCard() {
   const rhrSeries = rev
     .map((d) => d.restingHr)
     .filter((v): v is number => v != null)
+  const hrvSeries = rev
+    .map((d) => d.hrvLastNight)
+    .filter((v): v is number => v != null)
   const sleepTrend = trendChip(
     sleep?.sleepScore ?? null,
     sleepSeries.slice(1, 8),
     true,
   )
+  const hrvTrend = trendChip(hrvVal, hrvSeries.slice(1, 8), true)
   const rhrTrend = trendChip(rhrVal, rhrSeries.slice(1, 31), false)
 
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
@@ -189,6 +193,7 @@ export default function LastNightCard() {
             color={C_HRV}
             label="HRV"
             sub={hrvRangeSub}
+            trend={hrvTrend}
           />
         )}
         {rhrVal != null && (
