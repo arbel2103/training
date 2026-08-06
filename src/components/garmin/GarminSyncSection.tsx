@@ -81,8 +81,10 @@ export default function GarminSyncSection() {
             <p className="text-sm text-run">{status.error}</p>
           )}
           {busy && (
-            <p className="text-sm text-accent font-semibold">
-              הסנכרון רץ בשרת… (1–3 דקות; אפשר לסגור ולחזור)
+            <p className="text-sm text-accent font-semibold leading-relaxed">
+              הסנכרון רץ בשרת… המשיכה עצמה מהירה, אבל לפעמים GitHub לוקח כמה
+              דקות עד שמקצה מכונה. אפשר לסגור ולהמשיך להשתמש — הנתונים יופיעו
+              לבד כשמסתיים. אין צורך ללחוץ שוב.
             </p>
           )}
           <p className="text-xs text-muted leading-relaxed">

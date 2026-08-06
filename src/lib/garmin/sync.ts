@@ -114,18 +114,37 @@ async function waitForRun(sinceMs: number): Promise<WorkflowRun | null> {
   return run
 }
 
+/** A queued/in-progress run started within the last few minutes. */
+function isActiveRun(run: WorkflowRun | null): boolean {
+  return (
+    !!run &&
+    run.status !== 'completed' &&
+    Date.now() - new Date(run.created_at).getTime() < 12 * 60 * 1000
+  )
+}
+
 /** Trigger a sync run, poll until done, then refresh local data. */
 export async function manualSync(mfaCode?: string): Promise<void> {
   const { setGarminSyncStatus } = useStore.getState()
   setGarminSyncStatus({ state: 'dispatching', error: undefined, errorCode: undefined })
   const since = Date.now()
   try {
-    const inputs: Record<string, string> = {}
-    if (mfaCode) inputs.mfa_code = mfaCode
-    await dispatchSync(inputs)
+    // If a sync is already queued/running, attach to it instead of dispatching
+    // another — GitHub serializes them (concurrency group), so extra dispatches
+    // just pile up behind the runner queue and make the wait much longer.
+    // An MFA retry must always start a fresh run to pass the code.
+    const existing = await latestRun()
+    let sinceMs = since
+    if (isActiveRun(existing) && !mfaCode) {
+      sinceMs = new Date(existing!.created_at).getTime()
+    } else {
+      const inputs: Record<string, string> = {}
+      if (mfaCode) inputs.mfa_code = mfaCode
+      await dispatchSync(inputs)
+    }
     setGarminSyncStatus({ state: 'running' })
 
-    const run = await waitForRun(since)
+    const run = await waitForRun(sinceMs)
     await refreshFromRepo()
 
     const status = useStore.getState().garminSyncStatus
