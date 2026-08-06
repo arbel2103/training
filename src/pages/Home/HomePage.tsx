@@ -12,7 +12,7 @@ import { weekCompletion } from '../../lib/planMatch'
 import { sportColorClass, sportLabel } from '../../lib/labels'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import ProgressBar from '../../components/ui/ProgressBar'
-import { formatDuration, sportUnit } from '../../lib/calc'
+import { entryDuration, formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import QuickCompleteModal from '../../components/QuickCompleteModal'
@@ -161,7 +161,15 @@ export default function HomePage() {
             ) : (
               <div className="grid gap-2">
                 {todaySessions.map((s) => {
-                  const done = completion[s.id]?.done
+                  const match = completion[s.id]
+                  const done = match?.done
+                  const entry = match?.entry
+                  // once done, show what was actually performed (Garmin/manual),
+                  // even if it differs from the plan — else show the planned numbers
+                  const showSport = entry?.sport ?? s.sport
+                  const dist = done && entry?.distance != null ? entry.distance : s.distance
+                  const dur =
+                    done && entry ? (entryDuration(entry) ?? s.durationMin) : s.durationMin
                   return (
                     <div
                       key={s.id}
@@ -176,10 +184,10 @@ export default function HomePage() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold">{sessionTitle(s)}</div>
                         <div className="text-sm text-muted">
-                          {s.sport !== 'strength' && s.sport !== 'other' && s.distance
-                            ? `${s.distance} ${sportUnit(s.sport)}`
+                          {showSport !== 'strength' && showSport !== 'other' && dist
+                            ? `${dist} ${sportUnit(showSport)}`
                             : ''}
-                          {s.durationMin ? ` · ${formatDuration(s.durationMin)}` : ''}
+                          {dur ? ` · ${formatDuration(dur)}` : ''}
                         </div>
                       </div>
                       {done ? (
