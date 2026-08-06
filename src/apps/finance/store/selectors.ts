@@ -214,6 +214,48 @@ export function totalByGroup(
     .reduce((s, a) => s + accountEffectiveBalance(a, links), 0)
 }
 
+// כמה מתוך ההוצאות/העברות של החודש מומן מחיסכון (ולכן *לא* יצא מהעו"ש)
+function savingsFundedOutflow(
+  expenses: Expense[],
+  month: MonthData | undefined,
+  mk: MonthKey,
+): number {
+  const fromExpenses = monthExpenses(expenses, mk)
+    .filter((e) => e.savingsAccountId || e.savingsGoalId)
+    .reduce((s, e) => s + effectiveAmount(e), 0)
+  const fromTransfers = (month?.bankTransfers ?? [])
+    .filter((t) => t.savingsAccountId || t.savingsGoalId)
+    .reduce((s, t) => s + t.amount, 0)
+  return fromExpenses + fromTransfers
+}
+
+/**
+ * Live checking (עו"ש) balance: the opening balance plus the net cash flow
+ * (income − spending) of every month from `fromMonth` onward. Spending funded
+ * from a savings account is excluded, since that money left savings, not the
+ * checking account. Without `fromMonth` the balance stays the manual amount
+ * (legacy behavior), so nothing changes until the user opts in.
+ */
+export function effectiveChecking(
+  checking: { amount: number; fromMonth?: MonthKey },
+  months: Record<MonthKey, MonthData>,
+  expenses: Expense[],
+): number {
+  if (!checking.fromMonth) return checking.amount
+  const keys = new Set<MonthKey>(Object.keys(months))
+  for (const e of expenses) keys.add(e.monthKey)
+  let bal = checking.amount
+  for (const mk of keys) {
+    if (mk < checking.fromMonth) continue
+    const month = months[mk]
+    const outflow =
+      monthTotalSpending(expenses, month, mk) -
+      savingsFundedOutflow(expenses, month, mk)
+    bal += monthIncome(month) - outflow
+  }
+  return bal
+}
+
 // סה"כ הון — סכום הקבוצות והעו"ש, פרט למה שהמשתמש סינן החוצה
 export function totalCapital(
   accounts: Account[],

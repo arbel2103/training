@@ -59,8 +59,10 @@ export interface Account {
 }
 
 export interface Checking {
-  amount: number
+  amount: number // יתרת פתיחה בתחילת fromMonth (או היתרה הידנית אם אין fromMonth)
   updatedAt: string
+  /** אם מוגדר — היתרה חיה: פתיחה + תזרים כל החודשים מ-fromMonth והלאה */
+  fromMonth?: MonthKey
 }
 
 export interface InvestmentEntry {

@@ -76,7 +76,7 @@ interface State {
   ) => void
 
   // הון
-  setChecking: (amount: number) => void
+  setChecking: (amount: number, fromMonth?: string) => void
   addAccount: (name: string, group: string) => void
   removeAccount: (id: string) => void
   updateAccountBalance: (id: string, balance: number) => void
@@ -312,8 +312,10 @@ export const useStore = create<State>()(
           }
         }),
 
-      setChecking: (amount) =>
-        set({ checking: { amount, updatedAt: new Date().toISOString() } }),
+      setChecking: (amount, fromMonth) =>
+        set({
+          checking: { amount, updatedAt: new Date().toISOString(), fromMonth },
+        }),
 
       addAccount: (name, group) =>
         set((s) => ({

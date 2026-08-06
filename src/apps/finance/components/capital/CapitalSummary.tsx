@@ -2,11 +2,16 @@ import { useMemo, useState } from 'react'
 import { StatCard } from '../ui/StatCard'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
-import { NumberInput, Field } from '../ui/Input'
+import { NumberInput, Field, Select } from '../ui/Input'
 import { useStore } from '../../store/useStore'
-import { collectSavingLinks, totalByGroup, totalCapital } from '../../store/selectors'
+import {
+  collectSavingLinks,
+  effectiveChecking,
+  totalByGroup,
+  totalCapital,
+} from '../../store/selectors'
 import { formatCurrency } from '../../lib/format'
-import { formatDate } from '../../lib/date'
+import { formatDate, addMonths, currentMonthKey, monthLabel } from '../../lib/date'
 import { accountGroups, groupIconName, CHECKING_KEY } from '../../lib/accountGroups'
 import Icon from '../../../../components/ui/Icon'
 import type { IconName } from '../../../../components/ui/Icon'
@@ -22,20 +27,34 @@ export function CapitalSummary() {
 
   const [open, setOpen] = useState(false)
   const [val, setVal] = useState('')
+  const [live, setLive] = useState(true)
+  const [fromMonth, setFromMonth] = useState(currentMonthKey())
 
   const links = useMemo(
     () => collectSavingLinks(expenses, months, accounts),
     [expenses, months, accounts],
   )
   const groups = accountGroups(accounts)
-  const total = totalCapital(accounts, links, checking.amount, excluded)
+  const effChecking = effectiveChecking(checking, months, expenses)
+  const total = totalCapital(accounts, links, effChecking, excluded)
+
+  // months to offer as the "balance from" anchor: last 12 + any with data
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (let i = 0; i < 12; i++) set.add(addMonths(currentMonthKey(), -i))
+    Object.keys(months).forEach((m) => set.add(m))
+    expenses.forEach((e) => set.add(e.monthKey))
+    return [...set].sort().reverse()
+  }, [months, expenses])
 
   const openChecking = () => {
     setVal(checking.amount ? String(checking.amount) : '')
+    setLive(checking.fromMonth != null)
+    setFromMonth(checking.fromMonth ?? currentMonthKey())
     setOpen(true)
   }
   const save = () => {
-    setChecking(Number(val) || 0)
+    setChecking(Number(val) || 0, live ? fromMonth : undefined)
     setOpen(false)
   }
 
@@ -56,11 +75,13 @@ export function CapitalSummary() {
 
         <StatCard
           label="עו״ש"
-          value={formatCurrency(checking.amount)}
+          value={formatCurrency(effChecking)}
           sub={
             isExcluded(CHECKING_KEY)
               ? 'לא נספר בהון · לחץ לעדכון'
-              : `עודכן ${formatDate(checking.updatedAt)} · לחץ לעדכון`
+              : checking.fromMonth
+                ? `מתעדכן חי מ-${monthLabel(checking.fromMonth)} · לחץ לעדכון`
+                : `עודכן ${formatDate(checking.updatedAt)} · לחץ לעדכון`
           }
           icon={<Icon name="edit" className="w-5 h-5" />}
           onClick={openChecking}
@@ -87,15 +108,49 @@ export function CapitalSummary() {
           </>
         }
       >
-        <Field label="יתרה נוכחית בעו״ש">
-          <NumberInput
-            autoFocus
-            value={val}
-            placeholder="0"
-            onChange={(e) => setVal(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-          />
-        </Field>
+        <div className="space-y-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={live}
+              onChange={(e) => setLive(e.target.checked)}
+              className="accent-accent"
+            />
+            עדכון חי — משכורת והכנסות מתווספות, הוצאות יורדות אוטומטית
+          </label>
+
+          <Field label={live ? 'יתרת עו״ש בתחילת החודש שנבחר' : 'יתרה נוכחית בעו״ש'}>
+            <NumberInput
+              autoFocus
+              value={val}
+              placeholder="0"
+              onChange={(e) => setVal(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && save()}
+            />
+          </Field>
+
+          {live && (
+            <>
+              <Field label="מהחודש">
+                <Select
+                  value={fromMonth}
+                  onChange={(e) => setFromMonth(e.target.value)}
+                >
+                  {monthOptions.map((mk) => (
+                    <option key={mk} value={mk}>
+                      {monthLabel(mk)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <p className="text-xs text-muted leading-relaxed">
+                הזן את היתרה שהייתה בעו״ש <b>בתחילת</b> החודש שבחרת. מהחודש הזה
+                והלאה, כל משכורת/הכנסה שתזין תתווסף, וכל הוצאה שתיטען תרד — אוטומטית.
+                הוצאות שמומנו מחיסכון לא יורדות מהעו״ש.
+              </p>
+            </>
+          )}
+        </div>
       </Modal>
     </>
   )
