@@ -5,6 +5,7 @@ import {
   collectSavingLinks,
   accountEffectiveBalance,
   effectiveChecking,
+  recurringExpenses,
 } from '../selectors'
 
 const month = (partial: Partial<MonthData>): MonthData => ({
@@ -94,5 +95,22 @@ describe('effectiveChecking — live balance from opening + monthly flow', () =>
     expect(
       effectiveChecking({ amount: 10000, fromMonth: '2026-08' }, {}, expenses),
     ).toBe(10000)
+  })
+})
+
+describe('recurringExpenses — detect subscriptions', () => {
+  it('flags a merchant seen in 3+ months and uses the median amount', () => {
+    const es = [
+      expense({ id: '1', monthKey: '2026-06', date: '2026-06-10', txnAmount: 40 }),
+      expense({ id: '2', monthKey: '2026-07', date: '2026-07-10', txnAmount: 44 }),
+      expense({ id: '3', monthKey: '2026-08', date: '2026-08-10', txnAmount: 40 }),
+    ].map((e) => ({ ...e, merchant: 'נטפליקס' }))
+    // a one-off shouldn't be flagged
+    es.push(expense({ id: '4', monthKey: '2026-08', date: '2026-08-11', txnAmount: 999 }))
+    const rec = recurringExpenses(es)
+    expect(rec).toHaveLength(1)
+    expect(rec[0].merchant).toBe('נטפליקס')
+    expect(rec[0].typicalAmount).toBe(40)
+    expect(rec[0].monthsCount).toBe(3)
   })
 })

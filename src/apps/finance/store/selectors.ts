@@ -271,6 +271,71 @@ export function totalCapital(
   return sum
 }
 
+// ===== הוצאות קבועות / מנויים =====
+
+export interface RecurringItem {
+  merchant: string
+  category: string
+  typicalAmount: number // חציון החיובים
+  monthsCount: number // בכמה חודשים שונים הופיע
+  lastDate: string
+}
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0
+  const s = [...nums].sort((a, b) => a - b)
+  const mid = Math.floor(s.length / 2)
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2
+}
+
+function mode<T>(items: T[]): T | undefined {
+  const counts = new Map<T, number>()
+  let best: T | undefined
+  let bestN = 0
+  for (const it of items) {
+    const n = (counts.get(it) ?? 0) + 1
+    counts.set(it, n)
+    if (n > bestN) {
+      bestN = n
+      best = it
+    }
+  }
+  return best
+}
+
+/**
+ * Detect recurring charges (subscriptions, insurance, bills): merchants that
+ * show up in at least `minMonths` distinct months. Returns the typical
+ * (median) amount so a variable bill isn't skewed by one spike.
+ */
+export function recurringExpenses(
+  expenses: Expense[],
+  minMonths = 3,
+): RecurringItem[] {
+  const norm = (m: string) => m.trim().replace(/\s+/g, ' ')
+  const groups = new Map<string, Expense[]>()
+  for (const e of expenses) {
+    if (effectiveAmount(e) <= 0) continue
+    const key = norm(e.merchant)
+    if (!key) continue
+    ;(groups.get(key) ?? groups.set(key, []).get(key)!).push(e)
+  }
+
+  const out: RecurringItem[] = []
+  for (const [merchant, list] of groups) {
+    const months = new Set(list.map((e) => e.monthKey))
+    if (months.size < minMonths) continue
+    out.push({
+      merchant,
+      category: mode(list.map((e) => e.category)) ?? 'אחר',
+      typicalAmount: Math.round(median(list.map((e) => effectiveAmount(e)))),
+      monthsCount: months.size,
+      lastDate: list.reduce((mx, e) => (e.date > mx ? e.date : mx), ''),
+    })
+  }
+  return out.sort((a, b) => b.typicalAmount - a.typicalAmount)
+}
+
 // ===== השקעות =====
 
 export function investmentsByMonth(
