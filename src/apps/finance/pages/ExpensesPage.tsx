@@ -18,7 +18,6 @@ import { Select } from '../components/ui/Input'
 import { MonthPicker } from '../components/expenses/MonthPicker'
 import { SummaryCards } from '../components/expenses/SummaryCards'
 import { CashflowCard } from '../components/expenses/CashflowCard'
-import { RecurringExpenses } from '../components/expenses/RecurringExpenses'
 import { IncomeRow } from '../components/expenses/IncomeRow'
 import { ManualExpenseButton } from '../components/expenses/ManualExpenseButton'
 import { BitModal } from '../components/expenses/BitModal'
@@ -152,7 +151,6 @@ export function ExpensesPage() {
           { id: 'list', label: 'ריכוז ורשימה' },
           { id: 'trend', label: 'מגמה חודשית' },
           { id: 'cattrend', label: 'מגמה לפי קטגוריה' },
-          { id: 'recurring', label: 'הוצאות קבועות' },
         ]}
         active={tab}
         onChange={setTab}
@@ -163,7 +161,6 @@ export function ExpensesPage() {
       )}
       {tab === 'trend' && <TrendTab />}
       {tab === 'cattrend' && <CategoryTrendTab />}
-      {tab === 'recurring' && <RecurringExpenses />}
 
       <BitModal
         open={bitOpen}
