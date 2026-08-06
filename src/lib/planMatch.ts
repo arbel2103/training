@@ -42,8 +42,11 @@ export function weekCompletion(
     const candidates = weekLog.filter(
       (e) => !used.has(e.id) && sessionMatchesEntry(session, e),
     )
-    const pick =
-      candidates.find((e) => e.date === dayISO) ?? candidates[0]
+    // prefer a same-day match, and within that prefer the real Garmin activity
+    // (actual numbers) over a manual placeholder entered from the plan
+    const sameDay = candidates.filter((e) => e.date === dayISO)
+    const pool = sameDay.length ? sameDay : candidates
+    const pick = pool.find((e) => e.source === 'garmin') ?? pool[0]
     if (pick) {
       used.add(pick.id)
       result[session.id] = { done: true, entry: pick }
