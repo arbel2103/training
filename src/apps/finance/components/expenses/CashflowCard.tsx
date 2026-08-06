@@ -1,11 +1,16 @@
 import { Card } from '../ui/Card'
-import Icon from '../../../../components/ui/Icon'
+import Icon, { type IconName } from '../../../../components/ui/Icon'
 import InfoTip from '../../../../components/ui/InfoTip'
 import type { Expense, MonthData, MonthKey } from '../../lib/types'
-import { monthIncome, monthTotalSpending } from '../../store/selectors'
+import { useStore } from '../../store/useStore'
+import {
+  monthIncome,
+  monthTotalSpending,
+  investmentMonthTotal,
+} from '../../store/selectors'
 import { formatCurrency } from '../../lib/format'
 
-/** Income − spending for the month: are you in the black or the red? */
+/** Income − spending − investments for the month: the real plus/minus. */
 export function CashflowCard({
   expenses,
   month,
@@ -15,21 +20,22 @@ export function CashflowCard({
   month: MonthData | undefined
   mk: MonthKey
 }) {
+  const investments = useStore((s) => s.investments)
   const income = monthIncome(month)
   const spending = monthTotalSpending(expenses, month, mk)
-  const net = income - spending
+  const invested = investmentMonthTotal(investments, mk)
+  const net = income - spending - invested
   const positive = net >= 0
-  const rate = income > 0 ? Math.round((net / income) * 100) : null
 
   // relative bar widths (larger side = 100%)
-  const max = Math.max(income, spending, 1)
+  const max = Math.max(income, spending, invested, 1)
 
   return (
     <Card className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-ink flex items-center gap-1.5">
           תזרים החודש
-          <InfoTip text="ההכנסות פחות ההוצאות של החודש. ירוק = נשאר לך כסף (עודף); אדום = הוצאת יותר ממה שנכנס. אחוז החיסכון הוא כמה מההכנסה נשאר." />
+          <InfoTip text="הכנסות פחות הוצאות פחות מה שהשקעת החודש = הפלוס/מינוס האמיתי שנשאר בעו״ש. ירוק = נשאר עודף; אדום = יצא יותר ממה שנכנס. סכום ההשקעה נלקח מ'מעקב השקעה'." />
         </h3>
         <span
           className={`num text-2xl font-semibold ${positive ? 'text-emerald-500' : 'text-run'}`}
@@ -54,20 +60,18 @@ export function CashflowCard({
           color="rgb(var(--c-run))"
           icon="trendDown"
         />
+        <Row
+          label="השקעות"
+          value={invested}
+          pct={(invested / max) * 100}
+          color="rgb(var(--accent))"
+          icon="coins"
+        />
       </div>
 
-      {rate != null && (
-        <div className="text-xs text-muted">
-          {positive ? (
-            <>
-              שיעור חיסכון החודש:{' '}
-              <span className="font-semibold text-emerald-500">{rate}%</span>
-            </>
-          ) : (
-            <span className="text-run font-medium">
-              חריגה מהתקציב — ההוצאות עלו על ההכנסות
-            </span>
-          )}
+      {!positive && (
+        <div className="text-xs text-run font-medium">
+          חריגה — יצא יותר ממה שנכנס החודש
         </div>
       )}
     </Card>
@@ -85,7 +89,7 @@ function Row({
   value: number
   pct: number
   color: string
-  icon: 'trendUp' | 'trendDown'
+  icon: IconName
 }) {
   return (
     <div className="flex items-center gap-3">
