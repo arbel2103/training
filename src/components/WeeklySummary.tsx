@@ -1,7 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore, type Sport, type WorkoutEntry } from '../store/useStore'
 import Modal from './ui/Modal'
 import Icon from './ui/Icon'
+import { getApiKey, hasApiKey } from '../lib/apiKey'
+import { runCoach } from '../lib/coachApi'
+import { SYSTEM_PERSONA, buildContext } from '../lib/coachTools'
 import { addDays, fromISO, toISODate, formatDayMonth, weekDays } from '../lib/dates'
 import { weekCompletion } from '../lib/planMatch'
 import { entryDuration, formatDuration, sportUnit } from '../lib/calc'
@@ -60,6 +63,36 @@ export default function WeeklySummary({
   const log = useStore((s) => s.log)
   const plan = useStore((s) => s.trainingPlan)
   const daily = useStore((s) => s.garminDaily)
+
+  const [review, setReview] = useState<string | null>(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewErr, setReviewErr] = useState<string | null>(null)
+
+  const runReview = async () => {
+    setReviewLoading(true)
+    setReviewErr(null)
+    setReview(null)
+    try {
+      const text = await runCoach({
+        apiKey: getApiKey(),
+        system: SYSTEM_PERSONA + '\n\n[מצב נוכחי]\n' + buildContext(),
+        messages: [
+          {
+            role: 'user',
+            content:
+              'תן לי ביקורת מאמן על השבוע שחלף: נתח את האימונים שביצעתי מול המתוכנן, את הדופק והעצימות בכל אימון, את העומס השבועי הכולל, ואת התחושה (RPE) וההערות שרשמתי. ציין מה הלך טוב, מה חסר או חרג, ומה כדאי להתאים בשבוע הבא. היה קונקרטי, קצר וממוקד (עד ~150 מילים), בלי לחזור על המספרים סתם. אל תשנה את התוכנית — רק נתח.',
+          },
+        ],
+        tools: [],
+        onToolCall: () => '',
+      })
+      setReview(text.trim())
+    } catch (e) {
+      setReviewErr(e instanceof Error ? e.message : 'שגיאה בהפקת הביקורת')
+    } finally {
+      setReviewLoading(false)
+    }
+  }
 
   const data = useMemo(() => {
     const week = weekDays(new Date())
@@ -243,6 +276,44 @@ export default function WeeklySummary({
             </div>
           </div>
         )}
+
+        {/* AI coach review */}
+        <div className="card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-semibold text-sm flex items-center gap-1.5">
+              <Icon name="chat" className="w-4 h-4 text-accent" /> ביקורת מאמן
+            </h4>
+            {hasApiKey() && (
+              <button
+                onClick={() => void runReview()}
+                disabled={reviewLoading}
+                className="btn-accent text-sm py-1.5 px-3 gap-1.5 disabled:opacity-50"
+              >
+                {reviewLoading ? 'מנתח…' : review ? 'נתח שוב' : 'נתח את השבוע'}
+              </button>
+            )}
+          </div>
+
+          {!hasApiKey() ? (
+            <p className="text-sm text-muted mt-2 leading-relaxed">
+              כדי לקבל ניתוח מהמאמן, חבר תחילה מפתח AI דרך <b>המאמן</b> (הכפתור
+              הצף בפינה).
+            </p>
+          ) : reviewErr ? (
+            <p className="text-sm text-run mt-2">{reviewErr}</p>
+          ) : review ? (
+            <p className="text-sm text-ink mt-3 leading-relaxed whitespace-pre-wrap">
+              {review}
+            </p>
+          ) : (
+            !reviewLoading && (
+              <p className="text-sm text-muted mt-2 leading-relaxed">
+                לחץ "נתח את השבוע" והמאמן יעבור על האימונים מול התוכנית, הדופק,
+                העומס והתחושה — וייתן פידבק והמלצות.
+              </p>
+            )
+          )}
+        </div>
       </div>
     </Modal>
   )

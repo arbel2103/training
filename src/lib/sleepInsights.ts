@@ -175,6 +175,50 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
     })
   }
 
+  // sleep debt — cumulative deficit vs an ~8h need (endurance athletes need
+  // more), over the last 7 nights. Debt hurts recovery, power and focus.
+  const NEED_MIN = 480
+  const debt = last7.reduce((s, d) => s + Math.max(0, NEED_MIN - (d.sleepMin ?? NEED_MIN)), 0)
+  if (last7.length >= 5 && debt >= 180) {
+    out.push({
+      icon: 'moon',
+      severity: 'warn',
+      text: `חוב שינה מצטבר של כ-${hoursLabel(debt)} שעות בשבוע האחרון (מול יעד ~8 שעות ללילה).`,
+      tip: 'החזר את החוב בהדרגה — הקדם שינה ב-30–60 דקות בכמה לילות רצופים. חוב שינה מצטבר פוגע בהתאוששות השריר, בכוח ובחדות המנטלית.',
+    })
+  }
+
+  // fragmentation — a lot of awake time breaks up the restorative deep sleep
+  const awake = avg(num(last7, 'awakeMin'))
+  if (avgDur > 0 && awake >= 45) {
+    out.push({
+      icon: 'moon',
+      severity: 'warn',
+      text: `שינה מקוטעת — בממוצע ${Math.round(awake)} דקות ערות במהלך הלילה.`,
+      tip: 'יקיצות מקצרות את השינה העמוקה. חדר קריר וחשוך, הימנעות מאלכוהול/קפאין בערב, והפחתת שתייה סמוך לשינה מפחיתים קיטוע.',
+    })
+  }
+
+  // sleep need scales with training load — after a hard/long day, aim higher
+  const cutoff = new Date(latest.date + 'T00:00:00')
+  cutoff.setDate(cutoff.getDate() - 2)
+  const cutoffISO = cutoff.toISOString().slice(0, 10)
+  const hardLately = log.some(
+    (e) =>
+      e.date >= cutoffISO &&
+      (e.aerobicIntensity === 'intense' ||
+        e.aerobicIntensity === 'long' ||
+        (e.rpe ?? 0) >= 8),
+  )
+  if (hardLately && latest.sleepMin != null && latest.sleepMin < 450) {
+    out.push({
+      icon: 'bulb',
+      severity: 'info',
+      text: 'אחרי אימון עצים/ארוך הגוף זקוק ליותר שינה — ובלילה האחרון ישנת פחות מ-7.5 שעות.',
+      tip: 'כוון ל-8–9 שעות בלילות שאחרי אימוני מפתח; רוב שיקום השריר וההפרשה ההורמונלית מתרחשים בשינה העמוקה.',
+    })
+  }
+
   if (out.length === 0) {
     out.push({ icon: 'checkCircle', severity: 'good', text: 'הנתונים נראים תקינים — המשך כך!' })
   }

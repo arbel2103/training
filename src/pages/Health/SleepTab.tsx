@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import type { DailyHealth } from '../../lib/garmin/types'
 import { sleepInsights, type Severity } from '../../lib/sleepInsights'
+import { getApiKey, hasApiKey } from '../../lib/apiKey'
+import { runCoach } from '../../lib/coachApi'
+import { SYSTEM_PERSONA, buildContext } from '../../lib/coachTools'
 import { hasGarminSetup } from '../../lib/garmin/pat'
 import LineChart from '../../components/ui/LineChart'
 import StackedBarChart, { type StackBar } from '../../components/ui/StackedBarChart'
@@ -42,6 +46,35 @@ export default function SleepTab() {
   const daily = useStore((s) => s.garminDaily)
   const log = useStore((s) => s.log)
   const { inPeriod, controls, customInputs } = usePeriod('30')
+  const [aiText, setAiText] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiErr, setAiErr] = useState<string | null>(null)
+
+  const runSleepAnalysis = async () => {
+    setAiLoading(true)
+    setAiErr(null)
+    setAiText(null)
+    try {
+      const text = await runCoach({
+        apiKey: getApiKey(),
+        system: SYSTEM_PERSONA + '\n\n[מצב נוכחי]\n' + buildContext(),
+        messages: [
+          {
+            role: 'user',
+            content:
+              'נתח לעומק את השינה שלי בשבועות האחרונים כמאמן שינה לספורטאי סיבולת: משך מול צורך (בהתאם לעומס האימונים), מבנה השינה (עמוקה/REM), HRV ודופק מנוחה בזמן שינה מול הבסיס (האם הגוף נכנס למנוחה אמיתית), חוב שינה מצטבר, ועקביות. קשר את הממצאים לאימונים שביצעתי. תן 3–4 תובנות קונקרטיות עם המלצה מעשית לכל אחת. קצר וממוקד, בלי להקריא מספרים סתם.',
+          },
+        ],
+        tools: [],
+        onToolCall: () => '',
+      })
+      setAiText(text.trim())
+    } catch (e) {
+      setAiErr(e instanceof Error ? e.message : 'שגיאה בניתוח')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   if (!hasGarminSetup()) return <GarminConnectPrompt />
 
@@ -136,9 +169,30 @@ export default function SleepTab() {
 
       {/* insights */}
       <div className="card p-5">
-        <h4 className="font-semibold mb-3 flex items-center gap-2">
-          <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
-        </h4>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h4 className="font-semibold flex items-center gap-2">
+            <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
+          </h4>
+          {hasApiKey() && (
+            <button
+              onClick={() => void runSleepAnalysis()}
+              disabled={aiLoading}
+              className="btn-accent text-sm py-1.5 px-3 gap-1.5 disabled:opacity-50"
+            >
+              <Icon name="chat" className="w-4 h-4" />
+              {aiLoading ? 'מנתח…' : aiText ? 'נתח שוב' : 'ניתוח מעמיק'}
+            </button>
+          )}
+        </div>
+        {(aiErr || aiText) && (
+          <div className="mb-3 rounded-xl bg-accent-soft/40 p-3 text-sm leading-relaxed">
+            {aiErr ? (
+              <span className="text-run">{aiErr}</span>
+            ) : (
+              <span className="whitespace-pre-wrap text-ink">{aiText}</span>
+            )}
+          </div>
+        )}
         <div className="grid gap-2">
           {insights.map((ins, i) => (
             <div
