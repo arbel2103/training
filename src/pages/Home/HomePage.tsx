@@ -266,7 +266,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="mb-6 relative">
+      <div className="mb-6">
         <TabBar
           value={tab}
           onChange={setTab}
@@ -275,13 +275,6 @@ export default function HomePage() {
             { value: 'stats', label: 'סטטיסטיקות' },
           ]}
         />
-        <button
-          onClick={() => navigateTo('tri', TRI_PAGE.health, 'weight')}
-          className="absolute bottom-1.5 end-0 flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
-          title="מעבר מהיר למעקב המשקל"
-        >
-          <Icon name="scale" className="w-4 h-4" /> משקל
-        </button>
       </div>
 
       {tab === 'stats' ? (
@@ -357,7 +350,14 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="flex justify-end mb-3">
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => navigateTo('tri', TRI_PAGE.health, 'weight')}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+          title="מעבר מהיר למעקב המשקל"
+        >
+          <Icon name="scale" className="w-4 h-4" /> משקל
+        </button>
         <button
           onClick={() => setCustomizeOpen(true)}
           className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink transition"
