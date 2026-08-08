@@ -36,6 +36,7 @@ export default function App() {
   const indexRef = useRef(0)
   const openGuide = useAppShell((s) => s.openGuide)
   const guideNav = useAppShell((s) => s.guideNav)
+  const appNav = useAppShell((s) => s.appNav)
 
   // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
   useGarminRefreshOnMount()
@@ -67,6 +68,11 @@ export default function App() {
   useEffect(() => {
     if (guideNav && guideNav.app === 'tri') goTo(guideNav.page)
   }, [guideNav, goTo])
+
+  // follow shortcut navigation requests aimed at this app
+  useEffect(() => {
+    if (appNav && appNav.app === 'tri') goTo(appNav.page)
+  }, [appNav, goTo])
 
   return (
     <div className="flex flex-col h-[100dvh]">

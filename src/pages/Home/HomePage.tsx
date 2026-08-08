@@ -23,6 +23,7 @@ import GarminSetupWizard from '../../components/garmin/GarminSetupWizard'
 import LastNightCard from '../../components/garmin/LastNightCard'
 import TabBar from '../../components/ui/TabBar'
 import StatsTab from './StatsTab'
+import { useAppShell, TRI_PAGE } from '../../lib/appShell'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -50,6 +51,7 @@ export default function HomePage() {
   const weighIns = useStore((s) => s.weighIns)
 
   const garminStatus = useStore((s) => s.garminSyncStatus)
+  const navigateTo = useAppShell((s) => s.navigateTo)
 
   const [tab, setTab] = useState<'today' | 'stats'>('today')
   const [quick, setQuick] = useState<PlanSession | null>(null)
@@ -264,7 +266,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 relative">
         <TabBar
           value={tab}
           onChange={setTab}
@@ -273,6 +275,13 @@ export default function HomePage() {
             { value: 'stats', label: 'סטטיסטיקות' },
           ]}
         />
+        <button
+          onClick={() => navigateTo('tri', TRI_PAGE.health, 'weight')}
+          className="absolute bottom-1.5 end-0 flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+          title="מעבר מהיר למעקב המשקל"
+        >
+          <Icon name="scale" className="w-4 h-4" /> משקל
+        </button>
       </div>
 
       {tab === 'stats' ? (

@@ -4,11 +4,29 @@ import { persist } from 'zustand/middleware'
 /** Which mini-app is active in the shell. Extend this union to add more. */
 export type AppId = 'tri' | 'finance'
 
+/** Page indices within the training app, matching the PAGES order in App.tsx. */
+export const TRI_PAGE = {
+  home: 0,
+  program: 1,
+  planning: 2,
+  health: 3,
+} as const
+
 /** A guide navigation intent: which app to show and which page within it. */
 export interface GuideNav {
   app: AppId
   page: number
   /** bumped every step so identical {app,page} still re-triggers navigation */
+  nonce: number
+}
+
+/** A direct navigation intent (e.g. a shortcut), optionally to a sub-tab. */
+export interface AppNav {
+  app: AppId
+  page: number
+  /** sub-tab key within the target page, if any */
+  tab?: string
+  /** bumped every time so an identical target still re-triggers navigation */
   nonce: number
 }
 
@@ -22,6 +40,9 @@ interface ShellState {
   /** where the guide wants the shell to be right now */
   guideNav: GuideNav | null
   setGuideNav: (app: AppId, page: number) => void
+  /** a shortcut navigation request (page + optional sub-tab) */
+  appNav: AppNav | null
+  navigateTo: (app: AppId, page: number, tab?: string) => void
 }
 
 let navNonce = 0
@@ -37,6 +58,9 @@ export const useAppShell = create<ShellState>()(
       guideNav: null,
       setGuideNav: (app, page) =>
         set({ appId: app, guideNav: { app, page, nonce: ++navNonce } }),
+      appNav: null,
+      navigateTo: (app, page, tab) =>
+        set({ appId: app, appNav: { app, page, tab, nonce: ++navNonce } }),
     }),
     {
       name: 'active-app',

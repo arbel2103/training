@@ -1,15 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PageHeader from '../../components/ui/PageHeader'
 import TabBar from '../../components/ui/TabBar'
 import WeightTab from './WeightTab'
 import CheckupsTab from './CheckupsTab'
 import SleepTab from './SleepTab'
 import DailyHealthTab from './DailyHealthTab'
+import { useAppShell, TRI_PAGE } from '../../lib/appShell'
 
 type Tab = 'sleep' | 'daily' | 'weight' | 'checkups'
 
 export default function HealthPage() {
   const [tab, setTab] = useState<Tab>('sleep')
+  const appNav = useAppShell((s) => s.appNav)
+
+  // honor shortcut requests that target a specific Health sub-tab
+  useEffect(() => {
+    if (appNav?.app === 'tri' && appNav.page === TRI_PAGE.health && appNav.tab) {
+      setTab(appNav.tab as Tab)
+    }
+  }, [appNav])
   return (
     <div>
       <PageHeader
