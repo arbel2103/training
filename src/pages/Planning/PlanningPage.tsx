@@ -107,6 +107,7 @@ export default function PlanningPage() {
 
   const trainingPlan = useStore((s) => s.trainingPlan)
   const addPlanned = useStore((s) => s.addPlanned)
+  const alignPlanWeekToBoard = useStore((s) => s.alignPlanWeekToBoard)
 
   // sessions the plan prescribes for this week that aren't on the board yet
   const unscheduled = useMemo(() => {
@@ -240,6 +241,9 @@ export default function PlanningPage() {
   }
 
   async function approve() {
+    // realign this week's plan days to however the board is arranged, so the
+    // "today's workout" tile always reflects the schedule the user set up
+    alignPlanWeekToBoard(weekStart)
     setBusy('מסנכרן ליומן…')
     setError(null)
     try {

@@ -105,6 +105,55 @@ export function unscheduledSessions(
   return week.sessions.filter((s) => !scheduled.has(s.id))
 }
 
+/**
+ * Map each plan session to the weekday (0–6) of the planned workout it was
+ * placed on this week, so the plan's template days can be realigned to however
+ * the user actually arranged the board. Matching mirrors `unscheduledSessions`:
+ * an explicit `planSessionId` link first, then a greedy sport match, each
+ * planned workout consumed at most once. Sessions with no match are omitted.
+ */
+export function boardDaysForWeek(
+  week: PlanWeek,
+  plannedInWeek: PlannedWorkout[],
+): Record<ID, number> {
+  const used = new Set<ID>()
+  const out: Record<ID, number> = {}
+  const dayOf = (dateISO: string) => fromISO(dateISO).getDay()
+
+  // pass 1: sessions explicitly linked to a planned workout
+  for (const session of week.sessions) {
+    const linked = plannedInWeek.find(
+      (p) => p.planSessionId === session.id && !used.has(p.id),
+    )
+    if (linked) {
+      used.add(linked.id)
+      out[session.id] = dayOf(linked.date)
+    }
+  }
+
+  // pass 2: match the rest by sport, preferring a workout whose name matches
+  // the session label so e.g. "רגליים" doesn't grab the "פלג גוף עליון" session
+  for (const session of week.sessions) {
+    if (out[session.id] != null) continue
+    const sameSport = plannedInWeek.filter(
+      (p) => !used.has(p.id) && sessionMatchesPlanned(session, p),
+    )
+    const label = (session.label ?? '').trim()
+    const match =
+      (label &&
+        sameSport.find(
+          (p) => (p.strengthName ?? p.otherName ?? '').trim() === label,
+        )) ||
+      sameSport[0]
+    if (match) {
+      used.add(match.id)
+      out[session.id] = dayOf(match.date)
+    }
+  }
+
+  return out
+}
+
 /** Weekly aerobic targets derived from the plan week whose weekStart matches. */
 export function targetsForWeek(
   plan: TrainingPlan | null,

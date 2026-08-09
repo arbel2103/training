@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DailyHealth } from '../lib/garmin/types'
+import { boardDaysForWeek } from '../lib/planMatch'
+import { addDays, fromISO, toISODate } from '../lib/dates'
 
 export type ID = string
 
@@ -294,6 +296,8 @@ interface State {
   updateCoachProfile: (patch: Partial<CoachProfile>) => void
   setTrainingPlan: (plan: TrainingPlan) => void
   upsertPlanWeek: (week: PlanWeek) => void
+  /** realign a plan week's session days to how the board is arranged */
+  alignPlanWeekToBoard: (weekStart: string) => void
   clearPlan: () => void
   addChatMessage: (role: 'user' | 'assistant', text: string) => void
   clearCoachChat: () => void
@@ -508,6 +512,28 @@ export const useStore = create<State>()(
           const weeks = plan.weeks.some((w) => w.weekStart === week.weekStart)
             ? plan.weeks.map((w) => (w.weekStart === week.weekStart ? week : w))
             : [...plan.weeks, week]
+          return { trainingPlan: { ...plan, weeks } }
+        }),
+      alignPlanWeekToBoard: (weekStart) =>
+        set((s) => {
+          const plan = s.trainingPlan
+          if (!plan) return {}
+          const week = plan.weeks.find((w) => w.weekStart === weekStart)
+          if (!week) return {}
+          const weekEnd = toISODate(addDays(fromISO(weekStart), 6))
+          const inWeek = s.planned.filter(
+            (p) => p.date >= weekStart && p.date <= weekEnd,
+          )
+          const days = boardDaysForWeek(week, inWeek)
+          if (Object.keys(days).length === 0) return {}
+          const sessions = week.sessions.map((se) =>
+            days[se.id] != null && days[se.id] !== se.day
+              ? { ...se, day: days[se.id] }
+              : se,
+          )
+          const weeks = plan.weeks.map((w) =>
+            w.weekStart === weekStart ? { ...w, sessions } : w,
+          )
           return { trainingPlan: { ...plan, weeks } }
         }),
       clearPlan: () => set({ trainingPlan: null }),

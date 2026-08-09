@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanWeek, PlannedWorkout } from '../../store/useStore'
-import { unscheduledSessions } from '../planMatch'
+import { boardDaysForWeek, unscheduledSessions } from '../planMatch'
 
 const week: PlanWeek = {
   id: 'w',
@@ -63,5 +63,49 @@ describe('unscheduledSessions', () => {
   it('does not match a different sport', () => {
     const left = unscheduledSessions(week, [plan({ sport: 'bike' })])
     expect(left).toHaveLength(4)
+  })
+})
+
+// week of 2026-08-02 (Sunday): 08-02=Sun(0) … 08-08=Sat(6)
+describe('boardDaysForWeek', () => {
+  it('realigns each session to the day its workout was placed on', () => {
+    const days = boardDaysForWeek(week, [
+      plan({ sport: 'run', planSessionId: 's-run1', date: '2026-08-06' }), // Thu
+      plan({ sport: 'swim', date: '2026-08-03' }), // Mon, by sport
+      plan({ category: 'strength', strengthName: 'רגליים', date: '2026-08-07' }), // Fri
+    ])
+    expect(days['s-run1']).toBe(4)
+    expect(days['s-swim']).toBe(1)
+    expect(days['s-strength']).toBe(5)
+  })
+
+  it('leaves unscheduled sessions out of the map', () => {
+    const days = boardDaysForWeek(week, [plan({ sport: 'swim', date: '2026-08-05' })])
+    expect(days).toEqual({ 's-swim': 3 })
+  })
+
+  it('honours an explicit link over sport order', () => {
+    const days = boardDaysForWeek(week, [
+      plan({ sport: 'run', planSessionId: 's-run2', date: '2026-08-08' }), // Sat
+    ])
+    expect(days['s-run2']).toBe(6)
+    expect(days['s-run1']).toBeUndefined()
+  })
+
+  it('prefers a matching label so same-sport days do not swap', () => {
+    const twoStrength: PlanWeek = {
+      id: 'w2',
+      weekStart: '2026-08-02',
+      sessions: [
+        { id: 's-legs', day: 1, sport: 'strength', label: 'רגליים' },
+        { id: 's-upper', day: 3, sport: 'strength', label: 'פלג עליון' },
+      ],
+    }
+    const days = boardDaysForWeek(twoStrength, [
+      plan({ category: 'strength', strengthName: 'פלג עליון', date: '2026-08-04' }), // Tue
+      plan({ category: 'strength', strengthName: 'רגליים', date: '2026-08-06' }), // Thu
+    ])
+    expect(days['s-legs']).toBe(4)
+    expect(days['s-upper']).toBe(2)
   })
 })
