@@ -37,23 +37,37 @@ export function weekCompletion(
   const used = new Set<string>()
   const result: Record<string, SessionMatch> = {}
 
-  for (const session of week.sessions) {
-    const dayISO = toISODate(addDays(start, session.day))
-    const candidates = weekLog.filter(
+  // claim the best unused, sport-matching entry from `pool` for a session,
+  // preferring the real Garmin activity (actual numbers) over a manual placeholder
+  const claim = (session: PlanSession, pool: WorkoutEntry[]): boolean => {
+    const avail = pool.filter(
       (e) => !used.has(e.id) && sessionMatchesEntry(session, e),
     )
-    // prefer a same-day match, and within that prefer the real Garmin activity
-    // (actual numbers) over a manual placeholder entered from the plan
-    const sameDay = candidates.filter((e) => e.date === dayISO)
-    const pool = sameDay.length ? sameDay : candidates
-    const pick = pool.find((e) => e.source === 'garmin') ?? pool[0]
-    if (pick) {
-      used.add(pick.id)
-      result[session.id] = { done: true, entry: pick }
-    } else {
-      result[session.id] = { done: false }
-    }
+    const pick = avail.find((e) => e.source === 'garmin') ?? avail[0]
+    if (!pick) return false
+    used.add(pick.id)
+    result[session.id] = { done: true, entry: pick }
+    return true
   }
+
+  // pass 1: every session first claims a workout logged on its own day, so a
+  // same-day match always wins globally — otherwise a same-sport session on a
+  // different day could greedily consume today's entry before today's session
+  // (which is that entry's real match) gets a chance.
+  for (const session of week.sessions) {
+    const dayISO = toISODate(addDays(start, session.day))
+    claim(
+      session,
+      weekLog.filter((e) => e.date === dayISO),
+    )
+  }
+
+  // pass 2: sessions still unmatched fall back to any remaining in-week entry
+  for (const session of week.sessions) {
+    if (result[session.id]?.done) continue
+    if (!claim(session, weekLog)) result[session.id] = { done: false }
+  }
+
   return result
 }
 
