@@ -131,6 +131,8 @@ export default function FuelingPage() {
   const setProfile = useStore((s) => s.setProfile)
 
   const [hot, setHot] = useState(false)
+  /** hours between the pre-workout meal and the start — caps how much can be eaten */
+  const [hoursUntil, setHoursUntil] = useState(2)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -145,6 +147,7 @@ export default function FuelingPage() {
       intensity: sessionIntensity(s),
       weightKg,
       hot,
+      hoursUntil,
       nextSessionSoon: nextSoon,
     })
 
@@ -206,6 +209,34 @@ export default function FuelingPage() {
             {hot ? 'תנאי חום ולחות' : 'תנאים רגילים'}
           </button>
         </div>
+
+        <div className="mt-4">
+          <label className="label">כמה זמן לפני האימון אתה אוכל?</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {[
+              { h: 1, label: 'שעה' },
+              { h: 2, label: 'שעתיים' },
+              { h: 3, label: '3 שעות' },
+              { h: 4, label: '4+ שעות' },
+            ].map((o) => (
+              <button
+                key={o.h}
+                onClick={() => setHoursUntil(o.h)}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  hoursUntil === o.h
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-line bg-surface text-muted hover:bg-ink/5'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted mt-2 leading-relaxed">
+            ככל שיש פחות זמן לעכל, כך אפשר לאכול פחות לפני — והשאר מושלם תוך כדי.
+          </p>
+        </div>
+
         {!weightKg && (
           <p className="text-xs text-muted mt-3">
             הזן משקל כדי שהכמויות יחושבו לפי גרם לק״ג (ברירת מחדל: 70 ק״ג).

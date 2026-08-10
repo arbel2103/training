@@ -131,40 +131,73 @@ export function intraPlan(input: FuelInput): IntraPlan | null {
   }
 }
 
-/** Pre-session plan; the carb load depends on how long before the start. */
+/**
+ * Pre-session carbohydrate in g/kg. Two independent things set it:
+ *  - what the session actually demands (a 45-minute easy jog needs almost
+ *    nothing; a 4-hour ride needs a real meal), and
+ *  - how much time there is to digest, which caps how much can be eaten.
+ * The 1–4 g/kg figure quoted in the literature is the pre-*event* range for
+ * meaningful endurance sessions — it must not be applied to a short easy one.
+ */
+export function preCarbsPerKg(
+  durationMin: number,
+  intensity: Intensity,
+  hoursUntil: number,
+): number {
+  let demand: number
+  if (durationMin < 60) demand = intensity === 'hard' ? 0.75 : 0.3
+  else if (durationMin < 90) demand = intensity === 'easy' ? 0.5 : 1
+  else if (durationMin < 150) demand = intensity === 'easy' ? 1 : 2
+  else if (durationMin < 240) demand = intensity === 'easy' ? 2 : 3
+  else demand = 4
+
+  // no matter the demand, a big load can't be digested right before the start
+  const window = hoursUntil <= 1 ? 1 : hoursUntil <= 2 ? 2 : hoursUntil <= 3 ? 3 : 4
+  return Math.min(demand, window)
+}
+
+/** Pre-session plan: how much to eat, and when. */
 export function prePlan(input: FuelInput): PrePlan {
   const { durationMin, intensity, hoursUntil = 2, hot } = input
   const kg = input.weightKg ?? DEFAULT_WEIGHT
-  const long = durationMin >= 90
+  const perKg = preCarbsPerKg(durationMin, intensity, hoursUntil)
+  const grams = r5(perKg * kg)
 
-  // 1–4 g/kg, scaled by the available digestion window
-  let perKg: number
-  let timing: string
-  if (hoursUntil <= 1) {
-    perKg = 1
-    timing = 'בשעה שלפני — מנה קטנה ונוחה לעיכול (בננה, ג׳ל, פרוסה עם דבש).'
-  } else if (hoursUntil <= 2) {
-    perKg = long ? 2 : 1.5
-    timing = 'כשעתיים לפני — ארוחה קלה ודלת שומן וסיבים.'
-  } else if (hoursUntil <= 4) {
-    perKg = long ? 3 : 2
-    timing = '3–4 שעות לפני — ארוחה מלאה מבוססת פחמימות.'
-  } else {
-    perKg = long ? 4 : 2.5
-    timing = 'ארוחה מלאה מוקדם, ונשנוש פחמימתי קטן בשעה שלפני.'
-  }
-  if (intensity === 'easy' && !long) perKg = Math.min(perKg, 1)
+  const timing =
+    hoursUntil <= 1
+      ? 'בשעה שלפני — מנה קטנה ונוחה לעיכול (בננה, ג׳ל, פרוסה עם דבש).'
+      : hoursUntil <= 2
+        ? 'כשעתיים לפני — ארוחה קלה ודלת שומן וסיבים.'
+        : hoursUntil <= 3
+          ? 'כ-3 שעות לפני — ארוחה מבוססת פחמימות.'
+          : 'ארוחה מלאה מוקדם, ונשנוש פחמימתי קטן בשעה שלפני.'
+
+  // a small load deserves an explanation, otherwise it reads like an error
+  const light =
+    perKg <= 0.5
+      ? intensity === 'easy'
+        ? 'אימון קצר וקל — אין צורך בטעינה. נשנוש קטן מספיק, ואפשר גם לצאת בלי.'
+        : 'אימון קצר — מספיק נשנוש פחמימתי קל, בלי ארוחה גדולה.'
+      : null
+
+  const capped = perKg < preCarbsPerKg(durationMin, intensity, 99)
+  const cappedNote = capped
+    ? ' יש לך מעט זמן לעכל, אז הכמות מוגבלת — השלם את השאר תוך כדי האימון.'
+    : ''
 
   const fluid = r25(clamp(5 * kg, 300, 700))
   return {
-    carbsGrams: r5(perKg * kg),
+    carbsGrams: grams,
     carbsPerKg: perKg,
     fluidMl: fluid,
     sodiumMg: hot ? 500 : 300,
     timing,
-    note: hot
-      ? 'בחום — הקפד לשתות ולהוסיף נתרן כבר לפני היציאה, זה מקטין את הגירעון מההתחלה.'
-      : 'העדף פחמימות פשוטות יחסית ומעט שומן/סיבים כדי למנוע אי-נוחות במעי.',
+    note:
+      (light ??
+        (hot
+          ? 'בחום — הקפד לשתות ולהוסיף נתרן כבר לפני היציאה, זה מקטין את הגירעון מההתחלה.'
+          : 'העדף פחמימות פשוטות יחסית ומעט שומן/סיבים כדי למנוע אי-נוחות במעי.')) +
+      cappedNote,
   }
 }
 

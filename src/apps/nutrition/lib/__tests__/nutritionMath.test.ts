@@ -6,6 +6,7 @@ import {
   fluidMlPerHour,
   intraPlan,
   postPlan,
+  preCarbsPerKg,
   prePlan,
   sessionDurationMin,
   sessionIntensity,
@@ -97,8 +98,50 @@ describe('intraPlan', () => {
   })
 })
 
+describe('preCarbsPerKg', () => {
+  it('scales with how long the session is', () => {
+    const h = 3 // plenty of time to digest, so demand is what shows through
+    const short = preCarbsPerKg(45, 'moderate', h)
+    const hour = preCarbsPerKg(75, 'moderate', h)
+    const twoHours = preCarbsPerKg(120, 'moderate', h)
+    const long = preCarbsPerKg(240, 'moderate', h)
+    expect(short).toBeLessThan(hour)
+    expect(hour).toBeLessThan(twoHours)
+    expect(twoHours).toBeLessThan(long)
+  })
+
+  it('asks for very little before a short easy session', () => {
+    expect(preCarbsPerKg(45, 'easy', 3)).toBeLessThanOrEqual(0.5)
+  })
+
+  it('reaches the top of the 1–4 g/kg range only for a very long session', () => {
+    expect(preCarbsPerKg(300, 'moderate', 4)).toBe(4)
+  })
+
+  it('caps the load by the digestion window, however long the session', () => {
+    // a 4-hour ride starting in an hour still cannot take a 4 g/kg meal
+    expect(preCarbsPerKg(240, 'moderate', 1)).toBe(1)
+    expect(preCarbsPerKg(240, 'moderate', 2)).toBe(2)
+    expect(preCarbsPerKg(240, 'moderate', 3)).toBe(3)
+  })
+
+  it('never exceeds the 4 g/kg ceiling', () => {
+    for (const dur of [30, 60, 120, 240, 600]) {
+      for (const i of ['easy', 'moderate', 'hard'] as const) {
+        for (const h of [1, 2, 3, 6]) {
+          expect(preCarbsPerKg(dur, i, h)).toBeLessThanOrEqual(4)
+        }
+      }
+    }
+  })
+
+  it('asks for less before an easy session than a hard one of the same length', () => {
+    expect(preCarbsPerKg(120, 'easy', 3)).toBeLessThan(preCarbsPerKg(120, 'hard', 3))
+  })
+})
+
 describe('prePlan', () => {
-  it('uses about 1 g/kg when there is only an hour', () => {
+  it('caps at about 1 g/kg when there is only an hour', () => {
     const p = prePlan({ durationMin: 120, intensity: 'moderate', weightKg: 70, hoursUntil: 1 })
     expect(p.carbsPerKg).toBe(1)
     expect(p.carbsGrams).toBe(70)
@@ -112,17 +155,21 @@ describe('prePlan', () => {
 
   it('keeps the load small for a short easy session', () => {
     const p = prePlan({ durationMin: 45, intensity: 'easy', weightKg: 70, hoursUntil: 3 })
-    expect(p.carbsPerKg).toBeLessThanOrEqual(1)
+    expect(p.carbsGrams).toBeLessThanOrEqual(35)
+    expect(p.note).toContain('אין צורך בטעינה')
   })
 
-  it('stays inside the 1–4 g/kg guideline', () => {
-    for (const h of [0.5, 1, 2, 3, 5]) {
-      for (const dur of [45, 90, 180]) {
-        const p = prePlan({ durationMin: dur, intensity: 'moderate', weightKg: 70, hoursUntil: h })
-        expect(p.carbsPerKg).toBeGreaterThanOrEqual(1)
-        expect(p.carbsPerKg).toBeLessThanOrEqual(4)
-      }
-    }
+  it('does not prescribe a long-ride breakfast before a 75-minute run', () => {
+    // the bug this replaced: every session got ~1.5 g/kg regardless of length
+    const run = prePlan({ durationMin: 75, intensity: 'hard', weightKg: 76, hoursUntil: 2 })
+    const ride = prePlan({ durationMin: 240, intensity: 'moderate', weightKg: 76, hoursUntil: 2 })
+    expect(run.carbsGrams).toBeLessThan(ride.carbsGrams)
+    expect(run.carbsGrams).toBeLessThanOrEqual(80)
+  })
+
+  it('explains itself when the digestion window is what limits the amount', () => {
+    const p = prePlan({ durationMin: 240, intensity: 'moderate', weightKg: 70, hoursUntil: 1 })
+    expect(p.note).toContain('מעט זמן לעכל')
   })
 
   it('adds sodium in the heat', () => {
