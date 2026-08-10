@@ -78,9 +78,11 @@ export type IconName =
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
     <>
-      <path d="M2 7c1.2 0 1.8-1 3-1s1.8 1 3 1 1.8-1 3-1 1.8 1 3 1 1.8-1 3-1 1.8 1 3 1" />
-      <path d="M2 12c1.2 0 1.8-1 3-1s1.8 1 3 1 1.8-1 3-1 1.8 1 3 1 1.8-1 3-1 1.8 1 3 1" />
-      <path d="M2 17c1.2 0 1.8-1 3-1s1.8 1 3 1 1.8-1 3-1 1.8 1 3 1 1.8-1 3-1 1.8 1 3 1" />
+      {/* freestyle swimmer: head, forward-reaching arm, body, water */}
+      <circle cx="8" cy="8.5" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M10 11c1.6-.8 3.4-.6 5 .3l1.8 1" />
+      <path d="M10.5 9.6 15 6l3.5 1" />
+      <path d="M3 19.5c1.3 0 1.8-1 3-1s1.8 1 3 1 1.8-1 3-1 1.8 1 3 1 1.8-1 3-1 1.8 1 3 1" />
     </>
   ),
   bike: (
@@ -93,8 +95,11 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   run: (
     <>
-      <path d="M4 16v-2.4C4 11.5 3 10.6 3 8.4 3 5.7 4.4 2.5 7.4 2.5c1.9 0 2.5 1.8 2.5 3.5 0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-3.9 0Z" />
-      <path d="M20 20v-2.4c0-2.1 1-3 1-5.2 0-2.7-1.4-5.9-4.4-5.9-1.9 0-2.5 1.8-2.5 3.5 0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 3.9 0Z" />
+      {/* running person */}
+      <circle cx="13" cy="4" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M4 17l5 1 .75-1.5" />
+      <path d="M15 21v-4l-4-3 1-6" />
+      <path d="M7 12V9l5-1 3 3 3 1" />
     </>
   ),
   strength: (
