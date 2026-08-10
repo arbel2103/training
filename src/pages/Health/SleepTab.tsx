@@ -170,9 +170,12 @@ export default function SleepTab() {
       {/* insights */}
       <div className="card p-5">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <h4 className="font-semibold flex items-center gap-2">
-            <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
-          </h4>
+          <div>
+            <h4 className="font-semibold flex items-center gap-2">
+              <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
+            </h4>
+            <p className="text-xs text-muted mt-0.5">מגמת 7 הלילות האחרונים — לא רק הלילה האחרון</p>
+          </div>
           {hasApiKey() && (
             <button
               onClick={() => void runSleepAnalysis()}

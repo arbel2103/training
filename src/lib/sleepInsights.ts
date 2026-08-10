@@ -109,7 +109,7 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
       out.push({
         icon: 'moon',
         severity: 'warn',
-        text: `שינה עמוקה נמוכה (${Math.round(deepPct)}%) — חשובה להתאוששות הגוף.`,
+        text: `שינה עמוקה נמוכה בשבוע האחרון (ממוצע ${Math.round(deepPct)}%) — חשובה להתאוששות הגוף.`,
         tip: 'חדר קריר וחשוך, הימנעות מאלכוהול ומארוחות כבדות בערב, ופעילות גופנית סדירה מגבירים שינה עמוקה.',
       })
     }
@@ -117,12 +117,12 @@ export function sleepInsights(days: DailyHealth[], log: WorkoutEntry[] = []): In
       out.push({
         icon: 'brain',
         severity: 'warn',
-        text: `שנת REM נמוכה (${Math.round(remPct)}%) — חשובה לריכוז ולזיכרון.`,
+        text: `שנת REM נמוכה בשבוע האחרון (ממוצע ${Math.round(remPct)}%) — חשובה לריכוז ולזיכרון.`,
         tip: 'REM מגיע בעיקר לקראת הבוקר — הארך את זמן השינה הכולל ושמור על שעת קימה קבועה. הפחת אלכוהול בערב.',
       })
     }
     if (deepPct >= 13 && remPct >= 18) {
-      out.push({ icon: 'checkCircle', severity: 'good', text: 'הרכב שלבי השינה (עמוקה + REM) בטווח בריא.' })
+      out.push({ icon: 'checkCircle', severity: 'good', text: 'הרכב שלבי השינה (עמוקה + REM) בטווח בריא בשבוע האחרון.' })
     }
   }
 
