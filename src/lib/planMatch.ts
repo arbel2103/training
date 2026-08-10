@@ -130,27 +130,39 @@ export function boardDaysForWeek(
   week: PlanWeek,
   plannedInWeek: PlannedWorkout[],
 ): Record<ID, number> {
-  const used = new Set<ID>()
-  const out: Record<ID, number> = {}
+  return matchBoard(week, plannedInWeek).days
+}
+
+/**
+ * The single matcher both board-facing helpers share: pair each plan session
+ * with at most one board workout, then report the weekday each matched session
+ * belongs on and which board workouts were claimed.
+ */
+function matchBoard(
+  week: PlanWeek,
+  plannedInWeek: PlannedWorkout[],
+): { days: Record<ID, number>; claimed: Set<ID> } {
+  const claimed = new Set<ID>()
+  const days: Record<ID, number> = {}
   const dayOf = (dateISO: string) => fromISO(dateISO).getDay()
 
   // pass 1: sessions explicitly linked to a planned workout
   for (const session of week.sessions) {
     const linked = plannedInWeek.find(
-      (p) => p.planSessionId === session.id && !used.has(p.id),
+      (p) => p.planSessionId === session.id && !claimed.has(p.id),
     )
     if (linked) {
-      used.add(linked.id)
-      out[session.id] = dayOf(linked.date)
+      claimed.add(linked.id)
+      days[session.id] = dayOf(linked.date)
     }
   }
 
   // pass 2: match the rest by sport, preferring a workout whose name matches
   // the session label so e.g. "רגליים" doesn't grab the "פלג גוף עליון" session
   for (const session of week.sessions) {
-    if (out[session.id] != null) continue
+    if (days[session.id] != null) continue
     const sameSport = plannedInWeek.filter(
-      (p) => !used.has(p.id) && sessionMatchesPlanned(session, p),
+      (p) => !claimed.has(p.id) && sessionMatchesPlanned(session, p),
     )
     const label = (session.label ?? '').trim()
     const match =
@@ -160,12 +172,48 @@ export function boardDaysForWeek(
         )) ||
       sameSport[0]
     if (match) {
-      used.add(match.id)
-      out[session.id] = dayOf(match.date)
+      claimed.add(match.id)
+      days[session.id] = dayOf(match.date)
     }
   }
 
-  return out
+  return { days, claimed }
+}
+
+/** A board workout expressed as a plan session for the day it sits on. */
+function plannedToSession(p: PlannedWorkout, id: ID): PlanSession {
+  const day = fromISO(p.date).getDay()
+  const durationMin = p.durationMin
+  if (p.category === 'strength')
+    return { id, day, sport: 'strength', label: p.strengthName, durationMin }
+  if (p.category === 'other')
+    return { id, day, sport: 'other', label: p.otherName, durationMin }
+  return { id, day, sport: p.sport ?? 'run', distance: p.distance, durationMin }
+}
+
+/**
+ * Reconcile a plan week with the planning board so the two never drift.
+ *
+ * Every workout on the board should be represented by a plan session on the day
+ * it actually sits on: matched sessions move to that weekday, and a board
+ * workout with no session at all (e.g. one the coach just scheduled) gets one
+ * created. Nothing is removed — a session you simply haven't scheduled yet
+ * stays in the plan. Idempotent, so it can safely run after any board change.
+ */
+export function reconcilePlanWeek(
+  week: PlanWeek,
+  plannedInWeek: PlannedWorkout[],
+  newId: () => ID,
+): PlanSession[] {
+  const { days, claimed } = matchBoard(week, plannedInWeek)
+
+  const sessions = week.sessions.map((s) =>
+    days[s.id] != null && days[s.id] !== s.day ? { ...s, day: days[s.id] } : s,
+  )
+  for (const p of plannedInWeek) {
+    if (!claimed.has(p.id)) sessions.push(plannedToSession(p, newId()))
+  }
+  return sessions
 }
 
 /** Weekly aerobic targets derived from the plan week whose weekStart matches. */

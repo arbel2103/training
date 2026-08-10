@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DailyHealth } from '../lib/garmin/types'
-import { boardDaysForWeek } from '../lib/planMatch'
+import { reconcilePlanWeek } from '../lib/planMatch'
 import { addDays, fromISO, toISODate } from '../lib/dates'
 
 export type ID = string
@@ -296,8 +296,12 @@ interface State {
   updateCoachProfile: (patch: Partial<CoachProfile>) => void
   setTrainingPlan: (plan: TrainingPlan) => void
   upsertPlanWeek: (week: PlanWeek) => void
-  /** realign a plan week's session days to how the board is arranged */
-  alignPlanWeekToBoard: (weekStart: string) => void
+  /**
+   * Keep a plan week in step with the planning board: move matched sessions to
+   * the day they were placed on, and create a session for a board workout that
+   * has none (e.g. one the coach just scheduled). Safe to call repeatedly.
+   */
+  syncPlanWeekWithBoard: (weekStart: string) => void
   clearPlan: () => void
   addChatMessage: (role: 'user' | 'assistant', text: string) => void
   clearCoachChat: () => void
@@ -514,26 +518,31 @@ export const useStore = create<State>()(
             : [...plan.weeks, week]
           return { trainingPlan: { ...plan, weeks } }
         }),
-      alignPlanWeekToBoard: (weekStart) =>
+      syncPlanWeekWithBoard: (weekStart) =>
         set((s) => {
-          const plan = s.trainingPlan
-          if (!plan) return {}
-          const week = plan.weeks.find((w) => w.weekStart === weekStart)
-          if (!week) return {}
           const weekEnd = toISODate(addDays(fromISO(weekStart), 6))
           const inWeek = s.planned.filter(
             (p) => p.date >= weekStart && p.date <= weekEnd,
           )
-          const days = boardDaysForWeek(week, inWeek)
-          if (Object.keys(days).length === 0) return {}
-          const sessions = week.sessions.map((se) =>
-            days[se.id] != null && days[se.id] !== se.day
-              ? { ...se, day: days[se.id] }
-              : se,
-          )
-          const weeks = plan.weeks.map((w) =>
-            w.weekStart === weekStart ? { ...w, sessions } : w,
-          )
+          if (inWeek.length === 0) return {}
+
+          const plan: TrainingPlan = s.trainingPlan ?? { weeks: [] }
+          const existing = plan.weeks.find((w) => w.weekStart === weekStart)
+          // a workout scheduled into a week with no plan yet still needs a home,
+          // otherwise it can never show up on the "today" tile
+          const week: PlanWeek = existing ?? { id: uid(), weekStart, sessions: [] }
+
+          const sessions = reconcilePlanWeek(week, inWeek, uid)
+          const unchanged =
+            existing != null &&
+            sessions.length === existing.sessions.length &&
+            sessions.every((x, i) => x === existing.sessions[i])
+          if (unchanged) return {} // don't churn state when nothing moved
+
+          const nextWeek = { ...week, sessions }
+          const weeks = existing
+            ? plan.weeks.map((w) => (w.weekStart === weekStart ? nextWeek : w))
+            : [...plan.weeks, nextWeek]
           return { trainingPlan: { ...plan, weeks } }
         }),
       clearPlan: () => set({ trainingPlan: null }),

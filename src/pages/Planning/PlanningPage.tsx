@@ -107,7 +107,7 @@ export default function PlanningPage() {
 
   const trainingPlan = useStore((s) => s.trainingPlan)
   const addPlanned = useStore((s) => s.addPlanned)
-  const alignPlanWeekToBoard = useStore((s) => s.alignPlanWeekToBoard)
+  const syncPlanWeekWithBoard = useStore((s) => s.syncPlanWeekWithBoard)
 
   // sessions the plan prescribes for this week that aren't on the board yet
   const unscheduled = useMemo(() => {
@@ -243,7 +243,7 @@ export default function PlanningPage() {
   async function approve() {
     // realign this week's plan days to however the board is arranged, so the
     // "today's workout" tile always reflects the schedule the user set up
-    alignPlanWeekToBoard(weekStart)
+    syncPlanWeekWithBoard(weekStart)
     setBusy('מסנכרן ליומן…')
     setError(null)
     try {
@@ -275,9 +275,19 @@ export default function PlanningPage() {
     }, 0)
   }
 
+  /**
+   * Any board change pulls the training plan along, so the plan page and the
+   * "today" tile always reflect the board. Idempotent, so calling it after a
+   * cancelled dialog costs nothing.
+   */
+  const syncPlan = useCallback(() => {
+    setTimeout(() => syncPlanWeekWithBoard(weekStart), 0)
+  }, [syncPlanWeekWithBoard, weekStart])
+
   async function moveTo(p: PlannedWorkout, date: string) {
     if (p.date === date) return
     updatePlanned(p.id, { date })
+    syncPlan()
     if (p.syncedEventId) await pushToCalendar({ ...p, date })
   }
 
@@ -302,6 +312,7 @@ export default function PlanningPage() {
               sessionToPlanned(dragSession, iso) as Omit<PlannedWorkout, 'id'>,
             )
             setDragSession(null)
+            syncPlan()
           }
           const p = planned.find((x) => x.id === dragId)
           if (p) void moveTo(p, iso)
@@ -602,14 +613,20 @@ export default function PlanningPage() {
       <PlanFormModal
         open={formDate !== null}
         date={formDate ?? todayISO}
-        onClose={() => setFormDate(null)}
+        onClose={() => {
+          setFormDate(null)
+          syncPlan()
+        }}
       />
 
       <PlanFormModal
         open={prefill !== null}
         date={prefill?.date ?? selectedDay}
         prefill={prefill}
-        onClose={() => setPrefill(null)}
+        onClose={() => {
+          setPrefill(null)
+          syncPlan()
+        }}
       />
 
       <PlanFormModal
@@ -619,6 +636,7 @@ export default function PlanningPage() {
         onClose={() => {
           setEditing(null)
           afterSave()
+          syncPlan()
         }}
       />
 

@@ -8,6 +8,8 @@ import SyncModal from './components/SyncModal'
 import ErrorBoundary from './components/ErrorBoundary'
 import AppSwitcher from './components/AppSwitcher'
 import { useAppShell } from './lib/appShell'
+import { useStore } from './store/useStore'
+import { startOfWeek, toISODate } from './lib/dates'
 import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 import {
@@ -40,6 +42,15 @@ export default function App() {
 
   // pull fresh Garmin data from the private repo on load (throttled, no-op without setup)
   useGarminRefreshOnMount()
+
+  // Heal any drift between the planning board and the training plan on load, so
+  // a workout scheduled before this reconciliation existed (or through a path
+  // that forgot to sync) still reaches the plan and the "today" tile. The action
+  // is idempotent and writes nothing when the two already agree.
+  const syncPlanWeekWithBoard = useStore((s) => s.syncPlanWeekWithBoard)
+  useEffect(() => {
+    syncPlanWeekWithBoard(toISODate(startOfWeek(new Date())))
+  }, [syncPlanWeekWithBoard])
 
   // derive the active page from the horizontal scroll position
   // (Math.abs handles RTL, where scrollLeft is negative)

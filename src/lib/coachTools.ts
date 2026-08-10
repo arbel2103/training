@@ -5,7 +5,7 @@ import {
   type PlanWeek,
   type TrainingPlan,
 } from '../store/useStore'
-import { HEB_DAYS, addDays, startOfWeek, toISODate, weekDays } from './dates'
+import { HEB_DAYS, addDays, fromISO, startOfWeek, toISODate, weekDays } from './dates'
 import { entryDuration, formatDuration, sportUnit } from './calc'
 import { weekCompletion } from './planMatch'
 import {
@@ -301,7 +301,7 @@ export function executeTool(name: string, input: any): string {
     case 'remove_strength_workout':
       s.removeStrengthWorkout(input.name)
       return `אימון הכוח "${input.name}" הוסר.`
-    case 'add_planned_workout':
+    case 'add_planned_workout': {
       s.addPlanned({
         date: input.date,
         category: input.category,
@@ -313,7 +313,11 @@ export function executeTool(name: string, input: any): string {
         time: input.time,
         durationMin: input.durationMin,
       })
-      return `אימון נוסף ללוח התכנון בתאריך ${input.date}.`
+      // the board is only half the picture — pull the training plan (and with
+      // it the "today" tile) into step, otherwise the workout is invisible there
+      s.syncPlanWeekWithBoard(toISODate(startOfWeek(fromISO(input.date))))
+      return `אימון נוסף ללוח התכנון בתאריך ${input.date}, והתוכנית והאימון של היום עודכנו בהתאם.`
+    }
     case 'remove_planned_workout':
       s.removePlanned(input.id)
       return 'האימון המתוכנן הוסר.'
