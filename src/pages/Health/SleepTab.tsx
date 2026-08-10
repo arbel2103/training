@@ -174,7 +174,7 @@ export default function SleepTab() {
             <h4 className="font-semibold flex items-center gap-2">
               <Icon name="brain" className="w-5 h-5 text-muted" /> מאמן השינה
             </h4>
-            <p className="text-xs text-muted mt-0.5">מגמת 7 הלילות האחרונים — לא רק הלילה האחרון</p>
+            <p className="text-xs text-muted mt-0.5">מגמת 7 הלילות האחרונים</p>
           </div>
           {hasApiKey() && (
             <button
