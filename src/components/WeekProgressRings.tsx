@@ -1,8 +1,10 @@
 import { useStore, type Sport } from '../store/useStore'
 import { weekDays, toISODate } from '../lib/dates'
+import { weekCompletion } from '../lib/planMatch'
 import Ring from './ui/Ring'
+import ProgressBar from './ui/ProgressBar'
 import Icon, { type IconName } from './ui/Icon'
-import { sportLabel, sportColorVar, sportColorClass } from '../lib/labels'
+import { sportColorVar, sportColorClass } from '../lib/labels'
 import { sportUnit } from '../lib/calc'
 
 interface RingData {
@@ -10,17 +12,16 @@ interface RingData {
   iconName: IconName
   colorVar: string // ring stroke color
   colorClass: string // icon text color
-  label: string
   done: number
   target: number
-  unit?: string // undefined for strength (measured by count)
+  unit: string
 }
 
 /**
- * "השבוע שלי" progress — one ring per sport. Swim/bike/run fill by total
- * distance vs the week's planned distance; strength fills by workout count vs
- * the week's planned strength sessions. A sport shows only when it's planned
- * this week or something was logged for it.
+ * "השבוע שלי" progress. One ring per aerobic sport (swim/bike/run) that fills by
+ * total distance logged vs the week's planned distance — the icon says which
+ * sport, so no text label. Below, a single counter + bar shows how many of the
+ * week's workouts were completed (all sports, including strength and extras).
  */
 export default function WeekProgressRings() {
   const plan = useStore((s) => s.trainingPlan)
@@ -34,7 +35,6 @@ export default function WeekProgressRings() {
 
   const round1 = (n: number) => Math.round(n * 10) / 10
   const rings: RingData[] = []
-
   for (const sport of ['swim', 'bike', 'run'] as Sport[]) {
     const target = planWeek
       ? planWeek.sessions
@@ -50,64 +50,79 @@ export default function WeekProgressRings() {
       iconName: sport,
       colorVar: sportColorVar[sport],
       colorClass: sportColorClass[sport],
-      label: sportLabel[sport],
       done: round1(done),
       target: round1(target),
       unit: sportUnit(sport),
     })
   }
 
-  // strength — measured by workout count, not distance
-  const strengthTarget = planWeek
-    ? planWeek.sessions.filter((s) => s.sport === 'strength').length
+  // workouts completed this week (every sport, incl. strength + unplanned) vs plan
+  const totalCount = planWeek?.sessions.length ?? 0
+  const completion = planWeek ? weekCompletion(planWeek, log) : {}
+  const doneCount = planWeek
+    ? planWeek.sessions.filter((s) => completion[s.id]?.done).length
     : 0
-  const strengthDone = weekLog.filter((e) => e.category === 'strength').length
-  if (strengthTarget > 0 || strengthDone > 0) {
-    rings.push({
-      key: 'strength',
-      iconName: 'strength',
-      colorVar: 'rgb(var(--c-strength))',
-      colorClass: sportColorClass.strength,
-      label: 'כוח',
-      done: strengthDone,
-      target: strengthTarget,
-    })
-  }
+  const consumed = new Set(
+    Object.values(completion)
+      .map((m) => m.entry?.id)
+      .filter((v): v is string => !!v),
+  )
+  const extra = weekLog.filter((e) => !consumed.has(e.id)).length
+  const totalDone = doneCount + extra
 
-  if (rings.length === 0) {
+  if (rings.length === 0 && totalCount === 0) {
     return <p className="text-sm text-muted">אין אימונים מתוכננים לשבוע הזה.</p>
   }
 
-  const allDone = rings.every((r) => r.target > 0 && r.done >= r.target)
-
   return (
     <div>
-      <div className="flex items-start justify-around gap-3 flex-wrap">
-        {rings.map((r) => {
-          const frac = r.target > 0 ? r.done / r.target : r.done > 0 ? 1 : 0
-          return (
-            <div key={r.key} className="flex flex-col items-center gap-1.5">
-              <Ring value={frac} max={1} size={74} color={r.colorVar}>
-                <Icon name={r.iconName} className={`w-6 h-6 ${r.colorClass}`} />
-              </Ring>
-              <div className="text-center leading-tight">
+      {rings.length > 0 && (
+        <div className="flex items-start justify-around gap-3 flex-wrap mb-4">
+          {rings.map((r) => {
+            const frac = r.target > 0 ? r.done / r.target : r.done > 0 ? 1 : 0
+            return (
+              <div key={r.key} className="flex flex-col items-center gap-1.5">
+                <Ring value={frac} max={1} size={76} color={r.colorVar}>
+                  <Icon name={r.iconName} className={`w-6 h-6 ${r.colorClass}`} />
+                </Ring>
                 <div className="text-sm font-bold">
                   {r.done}
                   <span className="text-muted font-normal">
-                    /{r.target}
-                    {r.unit ? ` ${r.unit}` : ''}
+                    /{r.target} {r.unit}
                   </span>
                 </div>
-                <div className="text-xs text-muted">{r.label}</div>
               </div>
-            </div>
-          )
-        })}
-      </div>
-      {allDone && (
-        <p className="text-sm text-bike font-semibold mt-3 text-center">
-          כל הכבוד — השבוע הושלם!
-        </p>
+            )
+          })}
+        </div>
+      )}
+
+      {totalCount > 0 && (
+        <>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="font-display text-2xl font-black">
+              {totalDone}/{totalCount}
+            </span>
+            <span className="text-sm text-muted">אימונים בוצעו</span>
+            {extra > 0 && (
+              <span className="text-sm text-bike font-semibold">
+                (+{extra} מעבר לתוכנית)
+              </span>
+            )}
+          </div>
+          <ProgressBar
+            pct={
+              totalCount
+                ? Math.min(100, Math.round((totalDone / totalCount) * 100))
+                : 0
+            }
+          />
+          {doneCount === totalCount && (
+            <p className="text-sm text-bike font-semibold mt-2">
+              כל הכבוד — השבוע הושלם!
+            </p>
+          )}
+        </>
       )}
     </div>
   )
