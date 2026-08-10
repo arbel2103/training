@@ -25,7 +25,7 @@ export default function MealLogPage() {
     setSelectedDate(toISODate(addDays(fromISO(selectedDate), n)))
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-5">
       <div>
         <h2 className="font-display text-2xl font-black tracking-tight">יומן אכילה</h2>
         <p className="text-muted text-sm mt-0.5">
@@ -60,9 +60,9 @@ export default function MealLogPage() {
       {MEAL_SLOTS.map((slot) => {
         const s = slots.find((x) => x.slot === slot)!
         return (
-          <div key={slot} className="card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display text-lg font-bold">
+          <div key={slot} className="card p-4 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="font-display text-base font-bold min-w-0 truncate">
                 {mealSlotLabel[slot]}
                 {s.totals.kcal > 0 && (
                   <span className="text-muted text-sm font-normal">
@@ -71,17 +71,17 @@ export default function MealLogPage() {
                   </span>
                 )}
               </h3>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => setDescribing(slot)}
-                  className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+                  className="flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
                   title="תאר במילים מה אכלת — בלי לשקול"
                 >
                   <Icon name="chat" className="w-4 h-4" /> תאר
                 </button>
                 <button
                   onClick={() => setAdding(slot)}
-                  className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+                  className="flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
                 >
                   <Icon name="plus" className="w-4 h-4" /> הוסף
                 </button>
@@ -91,7 +91,7 @@ export default function MealLogPage() {
             {s.entries.length === 0 ? (
               <p className="text-sm text-muted">לא נרשם עדיין.</p>
             ) : (
-              <div className="grid gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {s.entries.map((e) => (
                   <div
                     key={e.id}
@@ -143,8 +143,8 @@ export default function MealLogPage() {
 
       {/* day totals */}
       {totals.kcal > 0 && (
-        <div className="card p-5">
-          <h3 className="font-display text-lg font-bold mb-2">סה״כ היום</h3>
+        <div className="card p-4 min-w-0">
+          <h3 className="font-display text-base font-bold mb-2">סה״כ היום</h3>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="font-display text-3xl font-black">{totals.kcal}</span>
             <span className="text-sm text-muted">קק״ל</span>

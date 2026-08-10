@@ -140,7 +140,7 @@ export default function NutritionApp() {
         {PAGES.map((p) => (
           <section
             key={p.key}
-            className="min-w-full h-full overflow-y-auto snap-start no-scrollbar"
+            className="min-w-full h-full overflow-y-auto overflow-x-hidden snap-start no-scrollbar"
           >
             <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
               <ErrorBoundary>{p.el}</ErrorBoundary>

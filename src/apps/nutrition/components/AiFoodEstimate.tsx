@@ -123,7 +123,7 @@ export default function AiFoodEstimate({
           ב-TriLife (הכפתור הצף בפינה).
         </p>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <p className="text-sm text-muted leading-relaxed">
             ה-AI יעריך ערכים תזונתיים ל-100 גרם עבור <b>{name}</b>, וגם משקלים
             למנות (כף הגשה, מצקת וכו׳). זו הערכה — אפשר לתקן אחר כך.

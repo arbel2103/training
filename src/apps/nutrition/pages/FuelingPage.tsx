@@ -61,13 +61,13 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
         </div>
       </div>
 
-      <div className="grid gap-3 mt-4">
+      <div className="grid grid-cols-1 gap-3 mt-4">
         {/* before */}
         <section className="rounded-xl bg-ink/5 p-3">
           <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
             <Icon name="clock" className="w-4 h-4 text-muted" /> לפני
           </h4>
-          <div className="grid gap-1">
+          <div className="grid grid-cols-1 gap-1">
             <Row
               label="פחמימות"
               value={`${pre.carbsGrams} ג׳ (${pre.carbsPerKg} ג׳/ק״ג)`}
@@ -89,7 +89,7 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
             </p>
           ) : (
             <>
-              <div className="grid gap-1">
+              <div className="grid grid-cols-1 gap-1">
                 <Row
                   label="פחמימות"
                   value={
@@ -114,7 +114,7 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
           <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
             <Icon name="refresh" className="w-4 h-4 text-muted" /> אחרי
           </h4>
-          <div className="grid gap-1">
+          <div className="grid grid-cols-1 gap-1">
             <Row label="פחמימות" value={`${post.carbsGrams} ג׳`} />
             <Row label="חלבון" value={`${post.proteinGrams} ג׳`} />
             <Row label="נוזלים" value={`${post.fluidMl} מ״ל`} />
@@ -169,7 +169,7 @@ export default function FuelingPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-5">
       <div>
         <h2 className="font-display text-2xl font-black tracking-tight">תדלוק</h2>
         <p className="text-muted text-sm mt-0.5">
@@ -226,7 +226,7 @@ export default function FuelingPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {today.map((s) => (
               <PlanCard key={s.id} session={s} plan={planFor(s, tomorrow.length > 0)} />
             ))}
@@ -238,7 +238,7 @@ export default function FuelingPage() {
       {tomorrow.length > 0 && (
         <div>
           <h3 className="font-display text-lg font-bold mb-3">מחר</h3>
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {tomorrow.map((s) => (
               <PlanCard key={s.id} session={s} plan={planFor(s, false)} />
             ))}

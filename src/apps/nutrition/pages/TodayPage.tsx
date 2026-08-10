@@ -98,7 +98,7 @@ export default function TodayPage() {
     profile.fatTarget == null
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-5">
       <div>
         <h2 className="font-display text-2xl font-black tracking-tight">היום</h2>
         <p className="text-muted text-sm mt-0.5">{formatFullDate(today)}</p>
@@ -181,7 +181,7 @@ export default function TodayPage() {
             <InfoTip text="היעדים מחושבים אוטומטית ממשקל הגוף ומהעומס של היום: יותר פחמימות ביום אימונים כבד, פחות ביום קל. חלבון 1.6–1.8 ג׳ לק״ג." />
           )}
         </div>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <MacroBar
             label="פחמימות"
             value={totals.carbs}
@@ -217,7 +217,7 @@ export default function TodayPage() {
             עוד לא רשמת ארוחות היום — עבור ל<b>יומן אכילה</b> כדי להוסיף.
           </p>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {slots.map((s) => (
               <div
                 key={s.slot}
@@ -238,7 +238,7 @@ export default function TodayPage() {
       {/* training context */}
       <div className="card p-5">
         <h3 className="font-display text-lg font-bold mb-3">אימונים</h3>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <SessionList title="היום" sessions={todaySessions} />
           <SessionList title="מחר" sessions={tomorrow} />
         </div>
@@ -254,7 +254,7 @@ function SessionList({ title, sessions }: { title: string; sessions: FuelSession
       {sessions.length === 0 ? (
         <p className="text-sm text-muted">אין אימונים.</p>
       ) : (
-        <div className="grid gap-1.5">
+        <div className="grid grid-cols-1 gap-1.5">
           {sessions.map((s) => (
             <div
               key={s.id}

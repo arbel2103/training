@@ -108,7 +108,7 @@ export default function FinanceApp() {
         className="flex-1 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar"
       >
         {PAGES.map((p) => (
-          <section key={p.key} className="min-w-full h-full overflow-y-auto snap-start no-scrollbar">
+          <section key={p.key} className="min-w-full h-full overflow-y-auto overflow-x-hidden snap-start no-scrollbar">
             <div className="px-4 sm:px-6 md:px-10 py-6 max-w-6xl mx-auto">
               <ErrorBoundary>{p.el}</ErrorBoundary>
             </div>

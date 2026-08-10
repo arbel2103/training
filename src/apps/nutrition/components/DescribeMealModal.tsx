@@ -109,7 +109,7 @@ export default function DescribeMealModal({
           (הכפתור הצף בפינה).
         </p>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="label">מה אכלת?</label>
             <textarea
@@ -159,7 +159,7 @@ export default function DescribeMealModal({
                 {items.length === 0 ? (
                   <p className="text-sm text-muted">הסרת את כל הפריטים.</p>
                 ) : (
-                  <div className="grid gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {items.map((it, i) => (
                       <div
                         key={i}
