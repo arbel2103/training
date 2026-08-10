@@ -39,20 +39,58 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
+/**
+ * One collapsible phase of the plan. Same affordance as the plan-week cards in
+ * TriLife: tap the header to open or close, ▾ when open and ◂ when closed.
+ */
+function Phase({
+  icon,
+  title,
+  summary,
+  defaultOpen = false,
+  children,
+}: {
+  icon: IconName
+  title: string
+  /** one-line gist shown while collapsed, so the card is still useful closed */
+  summary: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section className="rounded-xl bg-ink/5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 p-3 text-start"
+        title={open ? 'סגור' : 'הרחב'}
+      >
+        <span className="text-muted text-xs w-3 shrink-0">{open ? '▾' : '◂'}</span>
+        <Icon name={icon} className="w-4 h-4 text-muted shrink-0" />
+        <span className="font-semibold text-sm shrink-0">{title}</span>
+        {!open && (
+          <span className="text-xs text-muted truncate ms-auto">{summary}</span>
+        )}
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
+    </section>
+  )
+}
+
 function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
   const { pre, intra, post } = plan
   return (
-    <div className="card p-5">
+    <div className="card p-4 min-w-0">
       <div className="flex items-center gap-2.5 mb-1">
         <Icon
           name={sessionIcon(session.sport)}
           className={`w-6 h-6 shrink-0 ${sportColorClass[session.sport] ?? 'text-muted'}`}
         />
         <div className="min-w-0 flex-1">
-          <div className="font-display text-lg font-bold truncate">
+          <div className="font-display text-base font-bold truncate">
             {sessionName(session)}
           </div>
-          <div className="text-xs text-muted">
+          <div className="text-xs text-muted truncate">
             {formatDuration(plan.durationMin)} · עצימות {intensityLabel[plan.intensity]}
             {session.distance
               ? ` · ${session.distance} ${session.sport === 'swim' ? 'מ׳' : 'ק״מ'}`
@@ -61,28 +99,18 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 mt-4">
-        {/* before */}
-        <section className="rounded-xl bg-ink/5 p-3">
-          <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-            <Icon name="clock" className="w-4 h-4 text-muted" /> לפני
-          </h4>
-          <div className="grid grid-cols-1 gap-1">
-            <Row
-              label="פחמימות"
-              value={`${pre.carbsGrams} ג׳ (${pre.carbsPerKg} ג׳/ק״ג)`}
-            />
-            <Row label="נוזלים" value={`${pre.fluidMl} מ״ל`} />
-            <Row label="נתרן" value={`${pre.sodiumMg} מ״ג`} />
-          </div>
-          <p className="text-xs text-muted mt-2 leading-relaxed">{pre.timing}</p>
-        </section>
-
-        {/* during */}
-        <section className="rounded-xl bg-ink/5 p-3">
-          <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-            <Icon name="flame" className="w-4 h-4 text-muted" /> תוך כדי
-          </h4>
+      <div className="grid grid-cols-1 gap-2 mt-3">
+        {/* during — the one that matters most, so it opens by default */}
+        <Phase
+          icon="flame"
+          title="תוך כדי"
+          defaultOpen
+          summary={
+            intra && intra.carbsPerHour > 0
+              ? `${intra.carbsPerHour} ג׳/שעה`
+              : 'לא נדרש'
+          }
+        >
           {!intra ? (
             <p className="text-sm text-muted">
               אימון קצר — לא צריך תדלוק תוך כדי, רק לשתות לפי צמא.
@@ -107,20 +135,33 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
               <p className="text-xs text-muted mt-2 leading-relaxed">{intra.note}</p>
             </>
           )}
-        </section>
+        </Phase>
 
-        {/* after */}
-        <section className="rounded-xl bg-ink/5 p-3">
-          <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-            <Icon name="refresh" className="w-4 h-4 text-muted" /> אחרי
-          </h4>
+        <Phase icon="clock" title="לפני" summary={`${pre.carbsGrams} ג׳ פחמימות`}>
+          <div className="grid grid-cols-1 gap-1">
+            <Row
+              label="פחמימות"
+              value={`${pre.carbsGrams} ג׳ (${pre.carbsPerKg} ג׳/ק״ג)`}
+            />
+            <Row label="נוזלים" value={`${pre.fluidMl} מ״ל`} />
+            <Row label="נתרן" value={`${pre.sodiumMg} מ״ג`} />
+          </div>
+          <p className="text-xs text-muted mt-2 leading-relaxed">{pre.timing}</p>
+          <p className="text-xs text-muted mt-1 leading-relaxed">{pre.note}</p>
+        </Phase>
+
+        <Phase
+          icon="refresh"
+          title="אחרי"
+          summary={`${post.carbsGrams} ג׳ פחמ׳ · ${post.proteinGrams} ג׳ חלבון`}
+        >
           <div className="grid grid-cols-1 gap-1">
             <Row label="פחמימות" value={`${post.carbsGrams} ג׳`} />
             <Row label="חלבון" value={`${post.proteinGrams} ג׳`} />
             <Row label="נוזלים" value={`${post.fluidMl} מ״ל`} />
           </div>
           <p className="text-xs text-muted mt-2 leading-relaxed">{post.note}</p>
-        </section>
+        </Phase>
       </div>
     </div>
   )
@@ -181,7 +222,7 @@ export default function FuelingPage() {
       </div>
 
       {/* settings */}
-      <div className="card p-5">
+      <div className="card p-4 min-w-0">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <label className="label">משקל גוף (ק״ג)</label>
@@ -251,7 +292,7 @@ export default function FuelingPage() {
           <InfoTip text="הכמויות מחושבות מהעקרונות המקובלים בתזונת ספורט (GSSI/ISSN): פחמימה לשעה לפי משך ועצימות, נוזלים 400–800 מ״ל לשעה, ונתרן לפי כמות הנוזלים. בחום היעדים עולים." />
         </h3>
         {today.length === 0 ? (
-          <div className="card p-5">
+          <div className="card p-4 min-w-0">
             <p className="text-sm text-muted">
               אין אימון היום — יום מנוחה. שמור על חלבון מפוזר לאורך היום והתאוששות.
             </p>
@@ -278,7 +319,7 @@ export default function FuelingPage() {
       )}
 
       {/* AI coach */}
-      <div className="card p-5">
+      <div className="card p-4 min-w-0">
         <h3 className="font-display text-lg font-bold mb-3 flex items-center gap-2">
           <Icon name="chat" className="w-5 h-5 text-accent" /> שאל את המאמן
         </h3>

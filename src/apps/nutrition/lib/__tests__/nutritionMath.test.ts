@@ -246,12 +246,17 @@ describe('dailyTargets', () => {
     expect(heavy.carbs).toBeGreaterThan(rest.carbs)
   })
 
-  it('keeps protein in the 1.6–2.2 g/kg daily range', () => {
+  it('keeps protein in the 1.8–2 g/kg daily band', () => {
     for (const min of [0, 60, 200]) {
       const t = dailyTargets(70, min)
-      expect(t.protein / 70).toBeGreaterThanOrEqual(1.6)
-      expect(t.protein / 70).toBeLessThanOrEqual(2.2)
+      expect(t.protein / 70).toBeGreaterThanOrEqual(1.8)
+      expect(t.protein / 70).toBeLessThanOrEqual(2)
     }
+  })
+
+  it('sits at the top of the protein band on a heavy training day', () => {
+    expect(dailyTargets(70, 200).protein).toBeGreaterThan(dailyTargets(70, 0).protein)
+    expect(dailyTargets(70, 200).protein / 70).toBe(2)
   })
 
   it('passes the measured burn through as the calorie target', () => {

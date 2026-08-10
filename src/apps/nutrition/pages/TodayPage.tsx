@@ -178,7 +178,7 @@ export default function TodayPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold">מאקרו</h3>
           {autoTargets && (
-            <InfoTip text="היעדים מחושבים אוטומטית ממשקל הגוף ומהעומס של היום: יותר פחמימות ביום אימונים כבד, פחות ביום קל. חלבון 1.6–1.8 ג׳ לק״ג." />
+            <InfoTip text="היעדים מחושבים אוטומטית ממשקל הגוף ומהעומס של היום: יותר פחמימות ביום אימונים כבד, פחות ביום קל. חלבון 1.8–2 ג׳ לק״ג." />
           )}
         </div>
         <div className="grid grid-cols-1 gap-3">

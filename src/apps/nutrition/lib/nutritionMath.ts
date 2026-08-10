@@ -273,7 +273,8 @@ export function dailyTargets(
   const hours = trainingMinutes / 60
 
   const carbsPerKg = hours >= 3 ? 8 : hours >= 1.5 ? 6 : hours >= 0.5 ? 4.5 : 3.5
-  const proteinPerKg = hours >= 1.5 ? 1.8 : 1.6
+  // 1.8–2.0 g/kg — the user's chosen band, at the upper end on heavy days
+  const proteinPerKg = hours >= 1.5 ? 2 : 1.8
   const fatPerKg = 1
 
   return {

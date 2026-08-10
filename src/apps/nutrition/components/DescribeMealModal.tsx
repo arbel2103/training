@@ -13,12 +13,6 @@ import {
 } from '../lib/describeMeal'
 import { DESCRIBED_FOOD_ID, mealSlotLabel, type MealSlot } from '../lib/types'
 
-const EXAMPLES = [
-  '6 קציצות קטנות של חדר אוכל עם רוטב',
-  'צלחת אורז עם חזה עוף וסלט',
-  'פיתה עם חומוס וטחינה',
-]
-
 /**
  * Describe a meal in plain Hebrew and let the AI split it into diary items with
  * estimated weights, which the user can correct before logging. Mounted only
@@ -120,19 +114,6 @@ export default function DescribeMealModal({
               placeholder="למשל: 6 קציצות יחסית קטנות של חדר אוכל עם רוטב"
               className="input w-full resize-none"
             />
-            {!items && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex}
-                    onClick={() => setText(ex)}
-                    className="chip text-xs hover:border-accent hover:text-accent transition"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <button

@@ -141,21 +141,7 @@ export default function MealLogPage() {
         )
       })}
 
-      {/* day totals */}
-      {totals.kcal > 0 && (
-        <div className="card p-4 min-w-0">
-          <h3 className="font-display text-base font-bold mb-2">סה״כ היום</h3>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="font-display text-3xl font-black">{totals.kcal}</span>
-            <span className="text-sm text-muted">קק״ל</span>
-          </div>
-          <div className="text-sm text-muted">
-            פחמימות {totals.carbs} · חלבון {totals.protein} · שומן {totals.fat} ג׳
-            {totals.sodium ? ` · נתרן ${totals.sodium} מ״ג` : ''}
-            {totals.fiber ? ` · סיבים ${totals.fiber} ג׳` : ''}
-          </div>
-        </div>
-      )}
+      {/* the full day breakdown lives on the היום page — not repeated here */}
 
       {adding && (
         <AddFoodModal
