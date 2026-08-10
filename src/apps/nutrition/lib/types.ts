@@ -69,7 +69,14 @@ export interface MealEntry {
   unit: PortionUnit
   grams: number // resolved at log time
   nutrients: Nutrients // absolute totals for this entry (not per 100 g)
+  /** the amount is an AI estimate from a description, not a measured portion */
+  estimated?: boolean
+  /** the original sentence, shared by every item parsed out of one description */
+  describedAs?: string
 }
+
+/** foodId used by items that came from a free-text description, not the database. */
+export const DESCRIBED_FOOD_ID = 'described'
 
 /** Body/goal settings used for g/kg math. */
 export interface NutritionProfile {

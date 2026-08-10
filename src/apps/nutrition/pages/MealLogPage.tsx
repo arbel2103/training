@@ -4,6 +4,7 @@ import { dayTotals, slotTotals } from '../store/selectors'
 import { describePortion } from '../lib/portions'
 import { MEAL_SLOTS, mealSlotLabel, type MealSlot } from '../lib/types'
 import AddFoodModal from '../components/AddFoodModal'
+import DescribeMealModal from '../components/DescribeMealModal'
 import Icon from '../../../components/ui/Icon'
 import { addDays, formatFullDate, fromISO, toISODate } from '../../../lib/dates'
 
@@ -14,6 +15,7 @@ export default function MealLogPage() {
   const setSelectedDate = useStore((s) => s.setSelectedDate)
 
   const [adding, setAdding] = useState<MealSlot | null>(null)
+  const [describing, setDescribing] = useState<MealSlot | null>(null)
 
   const todayISO = toISODate(new Date())
   const slots = slotTotals(meals, selectedDate)
@@ -69,12 +71,21 @@ export default function MealLogPage() {
                   </span>
                 )}
               </h3>
-              <button
-                onClick={() => setAdding(slot)}
-                className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
-              >
-                <Icon name="plus" className="w-4 h-4" /> הוסף
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setDescribing(slot)}
+                  className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+                  title="תאר במילים מה אכלת — בלי לשקול"
+                >
+                  <Icon name="chat" className="w-4 h-4" /> תאר
+                </button>
+                <button
+                  onClick={() => setAdding(slot)}
+                  className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent-soft"
+                >
+                  <Icon name="plus" className="w-4 h-4" /> הוסף
+                </button>
+              </div>
             </div>
 
             {s.entries.length === 0 ? (
@@ -87,13 +98,29 @@ export default function MealLogPage() {
                     className="flex items-center gap-2 rounded-xl border border-line px-3 py-2"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{e.foodName}</div>
+                      <div className="font-semibold text-sm truncate">
+                        {e.foodName}
+                        {e.estimated && (
+                          <span className="ms-1.5 text-[10px] font-bold text-accent bg-accent-soft rounded px-1 py-0.5 align-middle">
+                            הערכה
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted truncate">
-                        {describePortion(e.qty, e.unit, e.grams)}
+                        {/* an estimate must never read like a measured portion.
+                            isolate so the ~ stays glued to the left of the digits in RTL */}
+                        {e.estimated
+                          ? `⁦~${Math.round(e.grams)}⁩ ג׳`
+                          : describePortion(e.qty, e.unit, e.grams)}
                         {' · '}
                         פ {e.nutrients.carbs} · ח {e.nutrients.protein} · ש{' '}
                         {e.nutrients.fat}
                       </div>
+                      {e.describedAs && (
+                        <div className="text-[11px] text-muted/80 truncate mt-0.5">
+                          "{e.describedAs}"
+                        </div>
+                      )}
                     </div>
                     <span className="text-sm font-bold shrink-0 whitespace-nowrap">
                       {e.nutrients.kcal}
@@ -136,6 +163,19 @@ export default function MealLogPage() {
           slot={adding}
           date={selectedDate}
           onClose={() => setAdding(null)}
+          onDescribe={() => {
+            const slot = adding
+            setAdding(null)
+            setDescribing(slot)
+          }}
+        />
+      )}
+
+      {describing && (
+        <DescribeMealModal
+          slot={describing}
+          date={selectedDate}
+          onClose={() => setDescribing(null)}
         />
       )}
     </div>

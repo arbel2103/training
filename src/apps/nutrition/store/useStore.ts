@@ -32,6 +32,8 @@ interface State {
     unit: PortionUnit
     grams: number
     nutrients: Nutrients
+    estimated?: boolean
+    describedAs?: string
   }) => void
   updateMeal: (id: string, patch: Partial<MealEntry>) => void
   removeMeal: (id: string) => void

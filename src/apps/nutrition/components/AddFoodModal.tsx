@@ -19,11 +19,14 @@ export default function AddFoodModal({
   slot,
   date,
   onClose,
+  onDescribe,
 }: {
   open: boolean
   slot: MealSlot
   date: string
   onClose: () => void
+  /** hand off to the free-text "describe a meal" flow */
+  onDescribe?: () => void
 }) {
   const customFoods = useStore((s) => s.customFoods)
   const addMeal = useStore((s) => s.addMeal)
@@ -118,12 +121,20 @@ export default function AddFoodModal({
             ))}
             {results.length === 0 && (
               <div className="text-center py-6">
-                <p className="text-sm text-muted mb-3">
-                  לא נמצא "{query}" במאגר.
-                </p>
-                <button onClick={() => setAiOpen(true)} className="btn-accent text-sm">
-                  <Icon name="chat" className="w-4 h-4" /> בקש מה-AI להעריך
-                </button>
+                <p className="text-sm text-muted mb-3">לא נמצא "{query}" במאגר.</p>
+                <div className="flex flex-col items-center gap-2">
+                  <button onClick={() => setAiOpen(true)} className="btn-accent text-sm">
+                    <Icon name="chat" className="w-4 h-4" /> בקש מה-AI להעריך
+                  </button>
+                  {onDescribe && (
+                    <button
+                      onClick={onDescribe}
+                      className="text-sm text-accent hover:opacity-80 transition"
+                    >
+                      או תאר במילים מה אכלת
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
