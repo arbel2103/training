@@ -94,6 +94,9 @@ export function activityToEntry(
     category: kind.category,
     source: 'garmin',
     garminActivityId: a.activityId,
+    // legs of a triathlon/brick carry their parent, so history can show they
+    // were one combined session rather than unrelated workouts
+    multisportId: a.parentId,
     startTime: time,
     durationMin: seconds ? round(seconds / 60, 1) : undefined,
     avgHr: a.averageHR != null ? round(a.averageHR) : undefined,

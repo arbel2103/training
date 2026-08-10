@@ -74,6 +74,8 @@ export type GarminDailyMonth = Record<string, GarminDailyBundle>
 
 export interface GarminActivitySummary {
   activityId: number
+  /** set on a leg of a multisport session — the parent activity id */
+  parentId?: number
   activityName?: string
   activityType: { typeKey: string }
   startTimeLocal?: string

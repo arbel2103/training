@@ -72,9 +72,12 @@ export async function refreshFromRepo(): Promise<void> {
     activities.push(...Object.values(month))
   }
   if (activities.length) {
-    const { creates, updates } = planImport(activities, useStore.getState().log)
-    if (creates.length || updates.length) {
-      store.upsertGarminEntries(creates, updates)
+    const { creates, updates, removes } = planImport(
+      activities,
+      useStore.getState().log,
+    )
+    if (creates.length || updates.length || removes.length) {
+      store.upsertGarminEntries(creates, updates, removes)
     }
   }
 

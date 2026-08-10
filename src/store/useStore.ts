@@ -85,6 +85,8 @@ export interface WorkoutEntry {
   // Garmin-sourced metrics (optional; present when source === 'garmin')
   source?: 'manual' | 'garmin'
   garminActivityId?: number
+  /** activity id of the multisport session this leg belongs to (triathlon/brick) */
+  multisportId?: number
   /** true while aerobicIntensity is an automatic guess; false once the user edits it */
   autoTagged?: boolean
   startTime?: string // HH:MM local
@@ -325,6 +327,7 @@ interface State {
   upsertGarminEntries: (
     creates: Omit<WorkoutEntry, 'id'>[],
     updates: { id: ID; patch: Partial<WorkoutEntry> }[],
+    removes?: ID[],
   ) => void
 }
 
@@ -600,12 +603,13 @@ export const useStore = create<State>()(
             ),
           }
         }),
-      upsertGarminEntries: (creates, updates) =>
+      upsertGarminEntries: (creates, updates, removes = []) =>
         set((s) => {
           const patchById = new Map(updates.map((u) => [u.id, u.patch]))
-          const log = s.log.map((e) =>
-            patchById.has(e.id) ? { ...e, ...patchById.get(e.id) } : e,
-          )
+          const dropped = new Set(removes)
+          const log = s.log
+            .filter((e) => !dropped.has(e.id))
+            .map((e) => (patchById.has(e.id) ? { ...e, ...patchById.get(e.id) } : e))
           for (const c of creates) log.push({ ...c, id: uid() })
           return { log }
         }),

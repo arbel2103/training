@@ -53,6 +53,13 @@ export default function ListView() {
                       {e.source === 'garmin' && (
                         <Icon name="watch" className="w-3.5 h-3.5" />
                       )}
+                      {/* one leg of a triathlon/brick — the numbers are its
+                          own, the badge says it wasn't a standalone workout */}
+                      {e.multisportId != null && (
+                        <span className="text-[10px] font-bold text-accent bg-accent-soft rounded px-1 py-0.5">
+                          ספורט משולב
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-muted">{v.details.join(' · ')}</div>
                   </div>

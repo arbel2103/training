@@ -8,6 +8,8 @@ import { maxHrReference } from './autoTag'
 export interface ImportPlan {
   creates: Omit<WorkoutEntry, 'id'>[]
   updates: { id: ID; patch: Partial<WorkoutEntry> }[]
+  /** entries to delete — a multisport parent imported before it was split */
+  removes: ID[]
 }
 
 function sameKind(a: Omit<WorkoutEntry, 'id'>, e: WorkoutEntry): boolean {
@@ -65,6 +67,7 @@ export function planImport(
 ): ImportPlan {
   const creates: Omit<WorkoutEntry, 'id'>[] = []
   const updates: { id: ID; patch: Partial<WorkoutEntry> }[] = []
+  const removes: ID[] = []
   const usedManualIds = new Set<ID>()
   const seenActivityIds = new Set<number>()
 
@@ -86,8 +89,13 @@ export function planImport(
     seenActivityIds.add(a.activityId)
     // a multisport parent is a container, not a workout — its ride and run are
     // synced as their own activities, so importing it too would double-count
-    // the session and file it under "other"
-    if (isContainerActivity(a)) continue
+    // the session and file it under "other". Anything imported from it before
+    // the split existed is stale and gets removed.
+    if (isContainerActivity(a)) {
+      const stale = byGarminId.get(a.activityId)
+      if (stale) removes.push(stale.id)
+      continue
+    }
 
     const entry = activityToEntry(a, maxHrRef)
     if (!entry.date) continue
@@ -115,5 +123,5 @@ export function planImport(
     creates.push(entry)
   }
 
-  return { creates, updates }
+  return { creates, updates, removes }
 }

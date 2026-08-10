@@ -143,6 +143,41 @@ describe('multisport sessions', () => {
     expect(creates.every((c) => c.category === 'aerobic')).toBe(true)
   })
 
+  it('removes a parent that was imported before the split existed', () => {
+    // exactly the user's situation: "ספורט משולב" already sits in the log
+    const parent = act({ activityId: 23923069575, activityType: { typeKey: 'multi_sport' } })
+    const stale: WorkoutEntry = {
+      id: 'stale',
+      date: '2026-08-10',
+      category: 'other',
+      otherName: 'ספורט משולב',
+      source: 'garmin',
+      garminActivityId: 23923069575,
+    }
+    const { removes, creates } = planImport([parent], [stale])
+    expect(removes).toEqual(['stale'])
+    expect(creates).toHaveLength(0)
+  })
+
+  it('tags each leg with the session it belonged to', () => {
+    const { creates } = planImport(
+      [
+        act({ activityType: { typeKey: 'cycling' }, parentId: 999, distance: 30000, duration: 4500 }),
+        act({ activityType: { typeKey: 'running' }, parentId: 999, distance: 4000, duration: 1200 }),
+      ],
+      [],
+    )
+    expect(creates.every((c) => c.multisportId === 999)).toBe(true)
+  })
+
+  it('leaves a standalone workout untagged', () => {
+    const { creates } = planImport(
+      [act({ activityType: { typeKey: 'running' }, distance: 5000, duration: 1500 })],
+      [],
+    )
+    expect(creates[0].multisportId).toBeUndefined()
+  })
+
   it('does not treat an ordinary activity as a container', () => {
     expect(isContainerActivity(act({ activityType: { typeKey: 'running' } }))).toBe(false)
     expect(isContainerActivity(act({ activityType: { typeKey: 'lap_swimming' } }))).toBe(false)
