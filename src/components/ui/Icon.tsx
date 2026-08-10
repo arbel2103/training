@@ -74,6 +74,8 @@ export type IconName =
   | 'search'
   | 'plus'
   | 'battery'
+  | 'flame'
+  | 'droplet'
 
 const PATHS: Record<IconName, ReactNode> = {
   swim: (
@@ -434,6 +436,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M5 8v13" />
       <path d="M17 3c1.6 1.6 1.6 6 0 8v10" />
     </>
+  ),
+  flame: (
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5Z" />
+  ),
+  droplet: (
+    <path d="M12 2.7 6.9 8.5a7 7 0 1 0 10.2 0Z" />
   ),
   ticket: (
     <>

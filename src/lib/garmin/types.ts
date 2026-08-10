@@ -162,7 +162,8 @@ export interface GarminSyncStatusFile {
 export interface DailyHealth {
   date: string // yyyy-mm-dd
   steps?: number
-  calories?: number
+  calories?: number // total burned (active + resting)
+  activeCalories?: number // burned through movement/training
   restingHr?: number
   maxHr?: number
   stressAvg?: number

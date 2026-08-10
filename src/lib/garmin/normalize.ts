@@ -170,6 +170,7 @@ export function toDailyHealth(date: string, b: GarminDailyBundle): DailyHealth {
   if (s) {
     d.steps = s.totalSteps
     d.calories = s.totalKilocalories
+    d.activeCalories = s.activeKilocalories
     d.restingHr = s.restingHeartRate
     d.maxHr = s.maxHeartRate
   }

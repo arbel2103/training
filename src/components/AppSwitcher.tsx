@@ -13,6 +13,7 @@ interface AppEntry {
 const APPS: AppEntry[] = [
   { id: 'tri', name: 'TriLife', sub: 'טריאתלון ובריאות', icon: 'run' },
   { id: 'finance', name: 'פיננסים', sub: 'הוצאות והון', icon: 'wallet' },
+  { id: 'nutrition', name: 'תזונה', sub: 'תזונת ספורט ותדלוק', icon: 'utensils' },
 ]
 
 /** The header title, turned into a dropdown that switches between the apps. */

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /** Which mini-app is active in the shell. Extend this union to add more. */
-export type AppId = 'tri' | 'finance'
+export type AppId = 'tri' | 'finance' | 'nutrition'
 
 /** Page indices within the training app, matching the PAGES order in App.tsx. */
 export const TRI_PAGE = {

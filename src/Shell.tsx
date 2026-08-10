@@ -3,8 +3,9 @@ import App from './App'
 import GuideOverlay from './components/GuideOverlay'
 import { useAppShell } from './lib/appShell'
 
-// finance is a separate world — load it only when switched to, so TriLife stays light
+// each mini-app is a separate world — loaded only when switched to, so TriLife stays light
 const FinanceApp = lazy(() => import('./apps/finance/FinanceApp'))
+const NutritionApp = lazy(() => import('./apps/nutrition/NutritionApp'))
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -26,7 +27,7 @@ export default function Shell() {
 
   return (
     <>
-      {appId === 'finance' ? (
+      {appId === 'finance' || appId === 'nutrition' ? (
         <Suspense
           fallback={
             <div className="h-[100dvh] grid place-items-center text-muted text-sm">
@@ -34,7 +35,7 @@ export default function Shell() {
             </div>
           }
         >
-          <FinanceApp />
+          {appId === 'finance' ? <FinanceApp /> : <NutritionApp />}
         </Suspense>
       ) : (
         <App />
