@@ -41,6 +41,16 @@ function keepUserTag(
 }
 
 /**
+ * True for a Garmin activity that only groups other activities — a triathlon
+ * or brick recorded as one multisport session, plus the transitions inside it.
+ * The legs are synced separately and are the real workouts.
+ */
+export function isContainerActivity(a: GarminActivitySummary): boolean {
+  const key = (a.activityType?.typeKey || '').toLowerCase()
+  return key.includes('multi_sport') || key.includes('transition')
+}
+
+/**
  * Reconcile synced activities with the existing log.
  *  1. An entry already imported from the same activity → update its metrics
  *     (preserves the user's rpe/note, which activities never carry).
@@ -74,6 +84,10 @@ export function planImport(
   for (const a of activities) {
     if (seenActivityIds.has(a.activityId)) continue
     seenActivityIds.add(a.activityId)
+    // a multisport parent is a container, not a workout — its ride and run are
+    // synced as their own activities, so importing it too would double-count
+    // the session and file it under "other"
+    if (isContainerActivity(a)) continue
 
     const entry = activityToEntry(a, maxHrRef)
     if (!entry.date) continue
