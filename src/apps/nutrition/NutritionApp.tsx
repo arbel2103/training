@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TodayPage from './pages/TodayPage'
+import MealLogPage from './pages/MealLogPage'
 import AppSwitcher from '../../components/AppSwitcher'
 import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
@@ -15,6 +16,13 @@ const PAGES: {
   el: React.ReactNode
 }[] = [
   { key: 'today', label: 'היום', short: 'היום', icon: 'flame', el: <TodayPage /> },
+  {
+    key: 'log',
+    label: 'יומן אכילה',
+    short: 'יומן',
+    icon: 'utensils',
+    el: <MealLogPage />,
+  },
 ]
 
 export default function NutritionApp() {
