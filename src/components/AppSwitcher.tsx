@@ -12,8 +12,8 @@ interface AppEntry {
 
 const APPS: AppEntry[] = [
   { id: 'tri', name: 'TriLife', sub: 'טריאתלון ובריאות', icon: 'run' },
-  { id: 'finance', name: 'פיננסים', sub: 'הוצאות והון', icon: 'wallet' },
   { id: 'nutrition', name: 'תזונה', sub: 'תזונת ספורט ותדלוק', icon: 'utensils' },
+  { id: 'finance', name: 'פיננסים', sub: 'הוצאות והון', icon: 'wallet' },
 ]
 
 /** The header title, turned into a dropdown that switches between the apps. */
@@ -45,9 +45,11 @@ export default function AppSwitcher() {
       </button>
 
       {open && (
+        /* opaque, not the translucent .card — the menu sits over busy content
+           and the app names have to stay readable */
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-full mt-2 start-0 z-50 w-60 card p-1.5 shadow-pop"
+          className="absolute top-full mt-2 start-0 z-50 w-60 rounded-2xl border border-line bg-surface p-1.5 shadow-pop ring-1 ring-ink/5"
         >
           {APPS.map((a) => {
             const on = a.id === appId
@@ -59,13 +61,15 @@ export default function AppSwitcher() {
                   setOpen(false)
                 }}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-start transition ${
-                  on ? 'bg-accent-soft text-accent' : 'hover:bg-ink/5'
+                  on ? 'bg-accent text-white' : 'hover:bg-ink/10'
                 }`}
               >
                 <Icon name={a.icon} className="w-5 h-5 shrink-0" />
                 <span className="min-w-0">
                   <span className="font-semibold block leading-tight">{a.name}</span>
-                  <span className="text-xs text-muted">{a.sub}</span>
+                  <span className={`text-xs ${on ? 'text-white/75' : 'text-muted'}`}>
+                    {a.sub}
+                  </span>
                 </span>
               </button>
             )

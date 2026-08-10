@@ -21,14 +21,36 @@ describe('carbsPerHour', () => {
   })
 
   it('stays at zero for an easy hour but fuels a hard one', () => {
-    expect(carbsPerHour(60, 'easy')).toBe(0)
-    expect(carbsPerHour(60, 'hard')).toBe(30)
+    expect(carbsPerHour(50, 'easy')).toBe(0)
+    expect(carbsPerHour(50, 'hard')).toBe(30)
   })
 
-  it('lands in the 30–60 g/h band for 1–2.5 h', () => {
-    expect(carbsPerHour(90, 'moderate')).toBe(45)
-    expect(carbsPerHour(90, 'hard')).toBe(60)
-    expect(carbsPerHour(150, 'moderate')).toBe(60)
+  it('rises with intensity at every duration, not just with duration', () => {
+    for (const min of [75, 120, 170, 240]) {
+      const easy = carbsPerHour(min, 'easy')
+      const moderate = carbsPerHour(min, 'moderate')
+      const hard = carbsPerHour(min, 'hard')
+      expect(easy, `${min}min`).toBeLessThan(moderate)
+      expect(moderate, `${min}min`).toBeLessThanOrEqual(hard)
+    }
+  })
+
+  it('rises with duration at a fixed intensity', () => {
+    const at = (m: number) => carbsPerHour(m, 'moderate')
+    expect(at(50)).toBeLessThan(at(75))
+    expect(at(75)).toBeLessThan(at(120))
+    expect(at(120)).toBeLessThan(at(170))
+    expect(at(170)).toBeLessThan(at(240))
+  })
+
+  it('stays at or under 60 g/h up to about 2.5 h', () => {
+    for (const min of [75, 120, 149]) {
+      for (const i of ['easy', 'moderate', 'hard'] as const) {
+        const v = carbsPerHour(min, i)
+        expect(v, `${min}/${i}`).toBeGreaterThan(0)
+        expect(v, `${min}/${i}`).toBeLessThanOrEqual(60)
+      }
+    }
   })
 
   it('goes up to 90 g/h beyond three hours', () => {
@@ -42,6 +64,17 @@ describe('carbsPerHour', () => {
         expect(carbsPerHour(min, i)).toBeLessThanOrEqual(90)
       }
     }
+  })
+
+  it('does not fuel a normal gym session like an endurance one', () => {
+    // the bug the user spotted: strength got the same 30 g/h as aerobic work
+    expect(carbsPerHour(60, 'moderate', 'strength')).toBe(0)
+    expect(carbsPerHour(90, 'hard', 'strength')).toBe(0)
+    expect(carbsPerHour(60, 'hard', 'run')).toBeGreaterThan(0)
+  })
+
+  it('allows some carbohydrate through a very long gym session', () => {
+    expect(carbsPerHour(150, 'moderate', 'strength')).toBe(30)
   })
 })
 

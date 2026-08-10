@@ -186,6 +186,7 @@ export default function FuelingPage() {
     buildFuelPlan({
       durationMin: sessionDurationMin(s),
       intensity: sessionIntensity(s),
+      sport: s.sport,
       weightKg,
       hot,
       hoursUntil,

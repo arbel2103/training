@@ -17,9 +17,17 @@ import type { FuelSession } from './triLink'
 
 export type Intensity = 'easy' | 'moderate' | 'hard'
 
+/** Whether the session burns glycogen like endurance work, or is gym work. */
+export type FuelSport = 'run' | 'bike' | 'swim' | 'strength' | 'other'
+
+export const isEndurance = (sport?: FuelSport): boolean =>
+  sport !== 'strength' && sport !== 'other'
+
 export interface FuelInput {
   durationMin: number
   intensity: Intensity
+  /** endurance vs gym work — they fuel very differently during the session */
+  sport?: FuelSport
   weightKg?: number
   /** hot/humid conditions push fluid and sodium up */
   hot?: boolean
@@ -76,14 +84,39 @@ const r5up = (v: number) => Math.ceil(v / 5) * 5
 const r10 = (v: number) => Math.round(v / 10) * 10
 const r25 = (v: number) => Math.round(v / 25) * 25
 
-/** Carbohydrate per hour for a session of this length and intensity. */
-export function carbsPerHour(durationMin: number, intensity: Intensity): number {
-  if (durationMin < 45) return 0 // no fueling needed for a short session
-  if (durationMin < 75) return intensity === 'easy' ? 0 : 30
-  if (durationMin < 150) return intensity === 'hard' ? 60 : 45
-  if (durationMin < 180) return 60
-  // beyond ~3 h, go as high as the gut allows with mixed carb sources
-  return intensity === 'easy' ? 75 : 90
+/**
+ * Carbohydrate per hour during the session.
+ *
+ * Duration sets the band (nothing under ~45 min, 30–60 g/h up to ~2.5 h, up to
+ * 90 g/h beyond that), and **intensity moves you within it**: the harder the
+ * effort the more of the energy comes from carbohydrate rather than fat, so an
+ * easy long ride needs meaningfully less per hour than a threshold session of
+ * the same length.
+ *
+ * Strength/gym work is not endurance work — a normal 45–90 minute session
+ * depletes little glycogen and needs no intra-workout feeding at all; what
+ * matters there is what surrounds it.
+ */
+export function carbsPerHour(
+  durationMin: number,
+  intensity: Intensity,
+  sport?: FuelSport,
+): number {
+  if (!isEndurance(sport)) {
+    // only a genuinely long gym session justifies drinking carbs through it
+    return durationMin >= 120 ? 30 : 0
+  }
+  // [ up to N minutes, easy, moderate, hard ] — grams per hour
+  const BANDS: [number, number, number, number][] = [
+    [45, 0, 0, 0], // nothing is needed this short
+    [75, 0, 0, 30], // under ~75 min only a hard session benefits
+    [90, 20, 30, 45],
+    [150, 40, 50, 60], // the classic 30–60 g/h window
+    [180, 55, 65, 75],
+    [Infinity, 75, 90, 90], // needs glucose+fructose to be absorbed
+  ]
+  const band = BANDS.find(([maxMin]) => durationMin < maxMin)!
+  return intensity === 'easy' ? band[1] : intensity === 'moderate' ? band[2] : band[3]
 }
 
 /** Fluid per hour; heat pushes toward the upper end of the range. */
@@ -100,13 +133,13 @@ export function sodiumMgPerHour(fluidPerHour: number, hot = false): number {
 
 /** During-session plan; null when the session is too short to need fueling. */
 export function intraPlan(input: FuelInput): IntraPlan | null {
-  const { durationMin, intensity, hot } = input
-  const perHour = carbsPerHour(durationMin, intensity)
+  const { durationMin, intensity, hot, sport } = input
+  const perHour = carbsPerHour(durationMin, intensity, sport)
   const hours = durationMin / 60
   const fluidPerHour = fluidMlPerHour(intensity, hot)
   if (perHour === 0) {
     if (durationMin < 45) return null
-    // easy hour: no carbs needed, but still drink
+    // long enough to need drinking, but not to need carbohydrate
     return {
       carbsPerHour: 0,
       carbsTotal: 0,
@@ -114,7 +147,9 @@ export function intraPlan(input: FuelInput): IntraPlan | null {
       fluidMlTotal: r25(fluidPerHour * hours),
       sodiumMgPerHour: sodiumMgPerHour(fluidPerHour, hot),
       needsMultipleCarbSources: false,
-      note: 'אימון קצר וקל — מים מספיקים, אין צורך בפחמימות תוך כדי.',
+      note: isEndurance(sport)
+        ? 'בעצימות הזו הגוף מסתמך בעיקר על שומן ועל מאגרי הגליקוגן — מים מספיקים.'
+        : 'אימון כוח לא מרוקן גליקוגן כמו אימון סיבולת — מספיק לשתות. מה שחשוב הוא הארוחה שאחריו.',
     }
   }
   const needsMulti = perHour > 60
@@ -143,9 +178,13 @@ export function preCarbsPerKg(
   durationMin: number,
   intensity: Intensity,
   hoursUntil: number,
+  sport?: FuelSport,
 ): number {
   let demand: number
-  if (durationMin < 60) demand = intensity === 'hard' ? 0.75 : 0.3
+  if (!isEndurance(sport)) {
+    // a gym session needs to be fuelled, not carb-loaded for
+    demand = durationMin >= 90 ? 1 : 0.5
+  } else if (durationMin < 60) demand = intensity === 'hard' ? 0.75 : 0.3
   else if (durationMin < 90) demand = intensity === 'easy' ? 0.5 : 1
   else if (durationMin < 150) demand = intensity === 'easy' ? 1 : 2
   else if (durationMin < 240) demand = intensity === 'easy' ? 2 : 3
@@ -158,9 +197,9 @@ export function preCarbsPerKg(
 
 /** Pre-session plan: how much to eat, and when. */
 export function prePlan(input: FuelInput): PrePlan {
-  const { durationMin, intensity, hoursUntil = 2, hot } = input
+  const { durationMin, intensity, hoursUntil = 2, hot, sport } = input
   const kg = input.weightKg ?? DEFAULT_WEIGHT
-  const perKg = preCarbsPerKg(durationMin, intensity, hoursUntil)
+  const perKg = preCarbsPerKg(durationMin, intensity, hoursUntil, sport)
   const grams = r5(perKg * kg)
 
   const timing =
@@ -175,12 +214,14 @@ export function prePlan(input: FuelInput): PrePlan {
   // a small load deserves an explanation, otherwise it reads like an error
   const light =
     perKg <= 0.5
-      ? intensity === 'easy'
-        ? 'אימון קצר וקל — אין צורך בטעינה. נשנוש קטן מספיק, ואפשר גם לצאת בלי.'
-        : 'אימון קצר — מספיק נשנוש פחמימתי קל, בלי ארוחה גדולה.'
+      ? !isEndurance(sport)
+        ? 'לפני אימון כוח מספיק משהו קל שמתעכל מהר — אין צורך בטעינת פחמימות.'
+        : intensity === 'easy'
+          ? 'אימון קצר וקל — אין צורך בטעינה. נשנוש קטן מספיק, ואפשר גם לצאת בלי.'
+          : 'אימון קצר — מספיק נשנוש פחמימתי קל, בלי ארוחה גדולה.'
       : null
 
-  const capped = perKg < preCarbsPerKg(durationMin, intensity, 99)
+  const capped = perKg < preCarbsPerKg(durationMin, intensity, 99, sport)
   const cappedNote = capped
     ? ' יש לך מעט זמן לעכל, אז הכמות מוגבלת — השלם את השאר תוך כדי האימון.'
     : ''
@@ -203,25 +244,32 @@ export function prePlan(input: FuelInput): PrePlan {
 
 /** Recovery plan; tighter when another session is coming soon. */
 export function postPlan(input: FuelInput): PostPlan {
-  const { durationMin, intensity, nextSessionSoon } = input
+  const { durationMin, intensity, nextSessionSoon, sport } = input
   const kg = input.weightKg ?? DEFAULT_WEIGHT
   const hours = durationMin / 60
+  const gym = !isEndurance(sport)
 
-  // 1.0–1.2 g/kg/h for the first hours only matters when turnaround is short
-  const carbPerKg = nextSessionSoon
-    ? 1.1
-    : intensity === 'hard' || hours >= 1.5
-      ? 0.8
-      : 0.5
-  const proteinPerKg = intensity === 'hard' || hours >= 1.5 ? 0.35 : 0.25
+  // 1.0–1.2 g/kg/h for the first hours only matters when turnaround is short.
+  // After gym work there is far less glycogen to replace — protein leads.
+  const carbPerKg = gym
+    ? 0.5
+    : nextSessionSoon
+      ? 1.1
+      : intensity === 'hard' || hours >= 1.5
+        ? 0.8
+        : 0.5
+  // 0.25–0.4 g/kg per serving; strength sits at the top of that range
+  const proteinPerKg = gym || intensity === 'hard' || hours >= 1.5 ? 0.35 : 0.25
 
   return {
     carbsGrams: r5(carbPerKg * kg),
     proteinGrams: r5(proteinPerKg * kg),
     fluidMl: r25(clamp(hours * 700 * 1.3, 400, 2000)),
-    note: nextSessionSoon
-      ? 'יש אימון נוסף בקרוב — התחל לאכול בתוך 30–60 דקות, זה החלון שבו מילוי הגליקוגן הכי מהיר.'
-      : 'אין לחץ של אימון קרוב — ארוחה מאוזנת בשעה-שעתיים הקרובות תעשה את העבודה.',
+    note: gym
+      ? 'אחרי אימון כוח החלבון הוא העיקר — מנה של 20–40 גרם בשעה שאחרי, עם פחמימה כדי לתמוך בהתאוששות.'
+      : nextSessionSoon
+        ? 'יש אימון נוסף בקרוב — התחל לאכול בתוך 30–60 דקות, זה החלון שבו מילוי הגליקוגן הכי מהיר.'
+        : 'אין לחץ של אימון קרוב — ארוחה מאוזנת בשעה-שעתיים הקרובות תעשה את העבודה.',
   }
 }
 
