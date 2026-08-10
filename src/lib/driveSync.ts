@@ -53,6 +53,7 @@ export function setDeviceName(name: string): void {
 }
 
 const FINANCE_STORE_KEY = 'finance-store'
+const NUTRITION_STORE_KEY = 'nutrition-store'
 
 export interface BackupPayload {
   version: 1
@@ -60,6 +61,7 @@ export interface BackupPayload {
   deviceName?: string
   store: unknown
   financeStore?: unknown // the finance mini-app's persisted state
+  nutritionStore?: unknown // the nutrition mini-app's persisted state
   geminiKey?: string
   githubPat?: string
 }
@@ -88,12 +90,14 @@ async function readJson(res: Response): Promise<any> {
 export function buildBackup(includeKey: boolean): BackupPayload {
   const raw = localStorage.getItem(STORE_KEY)
   const finance = localStorage.getItem(FINANCE_STORE_KEY)
+  const nutrition = localStorage.getItem(NUTRITION_STORE_KEY)
   return {
     version: 1,
     savedAt: new Date().toISOString(),
     deviceName: getDeviceName(),
     store: raw ? JSON.parse(raw) : null,
     ...(finance ? { financeStore: JSON.parse(finance) } : {}),
+    ...(nutrition ? { nutritionStore: JSON.parse(nutrition) } : {}),
     ...(includeKey && getApiKey() ? { geminiKey: getApiKey() } : {}),
     ...(includeKey && getPat() ? { githubPat: getPat() } : {}),
   }
@@ -106,6 +110,8 @@ export function restoreBackup(payload: BackupPayload): void {
   localStorage.setItem(STORE_KEY, JSON.stringify(payload.store))
   if (payload.financeStore)
     localStorage.setItem(FINANCE_STORE_KEY, JSON.stringify(payload.financeStore))
+  if (payload.nutritionStore)
+    localStorage.setItem(NUTRITION_STORE_KEY, JSON.stringify(payload.nutritionStore))
   if (payload.geminiKey) setApiKey(payload.geminiKey)
   if (payload.githubPat) setPat(payload.githubPat)
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())

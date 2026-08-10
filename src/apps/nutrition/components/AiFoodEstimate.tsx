@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Modal from '../../../components/ui/Modal'
 import Icon from '../../../components/ui/Icon'
 import { getApiKey, hasApiKey } from '../../../lib/apiKey'
@@ -41,14 +41,16 @@ const SYSTEM = `אתה תזונאי ספורט שמעריך ערכים תזונ�
 ב-portions כלול רק יחידות שהגיוניות למזון הזה, והערך הוא משקל בגרמים של יחידה אחת (למשל כף הגשה של אורז ≈ 90 גרם). אם יחידה לא רלוונטית — אל תכלול אותה.
 היה מדויק וריאליסטי. אל תמציא ערכים קיצוניים.`
 
-/** Ask the AI to estimate an unknown food's macros, then save it as a custom food. */
+/**
+ * Ask the AI to estimate an unknown food's macros, then save it as a custom
+ * food. The parent mounts this only while it's open, so each open starts from
+ * clean state — no reset effect needed.
+ */
 export default function AiFoodEstimate({
-  open,
   name,
   onClose,
   onCreated,
 }: {
-  open: boolean
   name: string
   onClose: () => void
   onCreated: (f: Food) => void
@@ -57,14 +59,6 @@ export default function AiFoodEstimate({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [est, setEst] = useState<Estimate | null>(null)
-
-  useEffect(() => {
-    if (!open) {
-      setEst(null)
-      setError(null)
-      setLoading(false)
-    }
-  }, [open])
 
   const run = async () => {
     setLoading(true)
@@ -122,7 +116,7 @@ export default function AiFoodEstimate({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="הערכת ערכים תזונתיים">
+    <Modal open onClose={onClose} title="הערכת ערכים תזונתיים">
       {!hasApiKey() ? (
         <p className="text-sm text-muted leading-relaxed">
           כדי להשתמש בהערכה אוטומטית צריך מפתח AI. חבר אותו דרך <b>המאמן</b>{' '}

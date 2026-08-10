@@ -1,6 +1,7 @@
 import { useStore } from '../store/useStore'
 import { dayTotals, energyBalance, macroSplit, slotTotals } from '../store/selectors'
-import { dayEnergy, upcomingSessions, type FuelSession } from '../lib/triLink'
+import { dayEnergy, latestWeightKg, upcomingSessions, type FuelSession } from '../lib/triLink'
+import { dailyTargets, sessionDurationMin } from '../lib/nutritionMath'
 import { mealSlotLabel } from '../lib/types'
 import Ring from '../../../components/ui/Ring'
 import Icon, { type IconName } from '../../../components/ui/Icon'
@@ -75,8 +76,26 @@ export default function TodayPage() {
   const slots = slotTotals(meals, today)
   const { today: todaySessions, tomorrow } = upcomingSessions()
 
-  const kcalTarget = profile.kcalTarget ?? energy.totalBurned
+  // when the user hasn't set manual targets, derive them from body weight and
+  // the day's training load (carb periodization) so the bars mean something
+  const trainingMinutes = todaySessions.reduce((s, x) => s + sessionDurationMin(x), 0)
+  const auto = dailyTargets(
+    profile.weightKg ?? latestWeightKg(),
+    trainingMinutes,
+    energy.totalBurned,
+  )
+  const target = {
+    kcal: profile.kcalTarget ?? auto.kcal,
+    carbs: profile.carbsTarget ?? auto.carbs,
+    protein: profile.proteinTarget ?? auto.protein,
+    fat: profile.fatTarget ?? auto.fat,
+  }
+  const kcalTarget = target.kcal
   const eatenFrac = kcalTarget && kcalTarget > 0 ? balance.eaten / kcalTarget : 0
+  const autoTargets =
+    profile.carbsTarget == null &&
+    profile.proteinTarget == null &&
+    profile.fatTarget == null
 
   return (
     <div className="grid gap-6">
@@ -156,24 +175,29 @@ export default function TodayPage() {
 
       {/* macros */}
       <div className="card p-5">
-        <h3 className="font-display text-lg font-bold mb-4">מאקרו</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg font-bold">מאקרו</h3>
+          {autoTargets && (
+            <InfoTip text="היעדים מחושבים אוטומטית ממשקל הגוף ומהעומס של היום: יותר פחמימות ביום אימונים כבד, פחות ביום קל. חלבון 1.6–1.8 ג׳ לק״ג." />
+          )}
+        </div>
         <div className="grid gap-3">
           <MacroBar
             label="פחמימות"
             value={totals.carbs}
-            target={profile.carbsTarget}
+            target={target.carbs}
             color="rgb(var(--c-bike))"
           />
           <MacroBar
             label="חלבון"
             value={totals.protein}
-            target={profile.proteinTarget}
+            target={target.protein}
             color="rgb(var(--c-swim))"
           />
           <MacroBar
             label="שומן"
             value={totals.fat}
-            target={profile.fatTarget}
+            target={target.fat}
             color="rgb(var(--c-run))"
           />
         </div>

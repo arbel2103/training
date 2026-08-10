@@ -137,15 +137,16 @@ export default function AddFoodModal({
             </button>
           )}
 
-          <AiFoodEstimate
-            open={aiOpen}
-            name={query}
-            onClose={() => setAiOpen(false)}
-            onCreated={(f) => {
-              setAiOpen(false)
-              choose(f)
-            }}
-          />
+          {aiOpen && (
+            <AiFoodEstimate
+              name={query}
+              onClose={() => setAiOpen(false)}
+              onCreated={(f) => {
+                setAiOpen(false)
+                choose(f)
+              }}
+            />
+          )}
         </div>
       ) : (
         <div className="grid gap-4">
