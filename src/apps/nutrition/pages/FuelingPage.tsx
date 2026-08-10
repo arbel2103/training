@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useStore } from '../store/useStore'
 import {
-  buildFuelPlan,
+  intraPlan,
   sessionDurationMin,
   sessionIntensity,
-  type FuelPlan,
+  type Intensity,
+  type IntraPlan,
 } from '../lib/nutritionMath'
 import { upcomingSessions, latestWeightKg, type FuelSession } from '../lib/triLink'
 import { NUTRITION_PERSONA, buildNutritionContext } from '../lib/fuelCoach'
@@ -14,6 +15,13 @@ import Icon, { type IconName } from '../../../components/ui/Icon'
 import InfoTip from '../../../components/ui/InfoTip'
 import { formatDuration } from '../../../lib/calc'
 import { sportColorClass } from '../../../lib/labels'
+
+/** What this page shows for a session: the during-workout plan and its header. */
+interface SessionPlan {
+  intra: IntraPlan | null
+  durationMin: number
+  intensity: Intensity
+}
 
 const intensityLabel = { easy: 'קל', moderate: 'בינוני', hard: 'עצים' } as const
 
@@ -77,8 +85,8 @@ function Phase({
   )
 }
 
-function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
-  const { pre, intra, post } = plan
+function PlanCard({ session, plan }: { session: FuelSession; plan: SessionPlan }) {
+  const { intra } = plan
   return (
     <div className="card p-4 min-w-0">
       <div className="flex items-center gap-2.5 mb-1">
@@ -99,12 +107,11 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 mt-3">
-        {/* during — the one that matters most, so it opens by default */}
+      <div className="mt-3">
+        {/* only the during-workout plan, closed until asked for */}
         <Phase
           icon="flame"
           title="תוך כדי"
-          defaultOpen
           summary={
             intra && intra.carbsPerHour > 0
               ? `${intra.carbsPerHour} ג׳/שעה`
@@ -136,32 +143,6 @@ function PlanCard({ session, plan }: { session: FuelSession; plan: FuelPlan }) {
             </>
           )}
         </Phase>
-
-        <Phase icon="clock" title="לפני" summary={`${pre.carbsGrams} ג׳ פחמימות`}>
-          <div className="grid grid-cols-1 gap-1">
-            <Row
-              label="פחמימות"
-              value={`${pre.carbsGrams} ג׳ (${pre.carbsPerKg} ג׳/ק״ג)`}
-            />
-            <Row label="נוזלים" value={`${pre.fluidMl} מ״ל`} />
-            <Row label="נתרן" value={`${pre.sodiumMg} מ״ג`} />
-          </div>
-          <p className="text-xs text-muted mt-2 leading-relaxed">{pre.timing}</p>
-          <p className="text-xs text-muted mt-1 leading-relaxed">{pre.note}</p>
-        </Phase>
-
-        <Phase
-          icon="refresh"
-          title="אחרי"
-          summary={`${post.carbsGrams} ג׳ פחמ׳ · ${post.proteinGrams} ג׳ חלבון`}
-        >
-          <div className="grid grid-cols-1 gap-1">
-            <Row label="פחמימות" value={`${post.carbsGrams} ג׳`} />
-            <Row label="חלבון" value={`${post.proteinGrams} ג׳`} />
-            <Row label="נוזלים" value={`${post.fluidMl} מ״ל`} />
-          </div>
-          <p className="text-xs text-muted mt-2 leading-relaxed">{post.note}</p>
-        </Phase>
       </div>
     </div>
   )
@@ -172,8 +153,6 @@ export default function FuelingPage() {
   const setProfile = useStore((s) => s.setProfile)
 
   const [hot, setHot] = useState(false)
-  /** hours between the pre-workout meal and the start — caps how much can be eaten */
-  const [hoursUntil, setHoursUntil] = useState(2)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -182,16 +161,15 @@ export default function FuelingPage() {
   const weightKg = profile.weightKg ?? latestWeightKg()
   const { today, tomorrow } = upcomingSessions()
 
-  const planFor = (s: FuelSession, nextSoon: boolean): FuelPlan =>
-    buildFuelPlan({
-      durationMin: sessionDurationMin(s),
-      intensity: sessionIntensity(s),
-      sport: s.sport,
-      weightKg,
-      hot,
-      hoursUntil,
-      nextSessionSoon: nextSoon,
-    })
+  const planFor = (s: FuelSession): SessionPlan => {
+    const durationMin = sessionDurationMin(s)
+    const intensity = sessionIntensity(s)
+    return {
+      durationMin,
+      intensity,
+      intra: intraPlan({ durationMin, intensity, sport: s.sport, weightKg, hot }),
+    }
+  }
 
   const ask = async (prompt: string) => {
     setLoading(true)
@@ -252,33 +230,6 @@ export default function FuelingPage() {
           </button>
         </div>
 
-        <div className="mt-4">
-          <label className="label">כמה זמן לפני האימון אתה אוכל?</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {[
-              { h: 1, label: 'שעה' },
-              { h: 2, label: 'שעתיים' },
-              { h: 3, label: '3 שעות' },
-              { h: 4, label: '4+ שעות' },
-            ].map((o) => (
-              <button
-                key={o.h}
-                onClick={() => setHoursUntil(o.h)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                  hoursUntil === o.h
-                    ? 'border-accent bg-accent-soft text-accent'
-                    : 'border-line bg-surface text-muted hover:bg-ink/5'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-muted mt-2 leading-relaxed">
-            ככל שיש פחות זמן לעכל, כך אפשר לאכול פחות לפני — והשאר מושלם תוך כדי.
-          </p>
-        </div>
-
         {!weightKg && (
           <p className="text-xs text-muted mt-3">
             הזן משקל כדי שהכמויות יחושבו לפי גרם לק״ג (ברירת מחדל: 70 ק״ג).
@@ -301,7 +252,7 @@ export default function FuelingPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {today.map((s) => (
-              <PlanCard key={s.id} session={s} plan={planFor(s, tomorrow.length > 0)} />
+              <PlanCard key={s.id} session={s} plan={planFor(s)} />
             ))}
           </div>
         )}
@@ -313,7 +264,7 @@ export default function FuelingPage() {
           <h3 className="font-display text-lg font-bold mb-3">מחר</h3>
           <div className="grid grid-cols-1 gap-4">
             {tomorrow.map((s) => (
-              <PlanCard key={s.id} session={s} plan={planFor(s, false)} />
+              <PlanCard key={s.id} session={s} plan={planFor(s)} />
             ))}
           </div>
         </div>
