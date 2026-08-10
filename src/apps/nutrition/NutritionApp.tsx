@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TodayPage from './pages/TodayPage'
 import MealLogPage from './pages/MealLogPage'
+import FuelingPage from './pages/FuelingPage'
 import AppSwitcher from '../../components/AppSwitcher'
 import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
@@ -22,6 +23,13 @@ const PAGES: {
     short: 'יומן',
     icon: 'utensils',
     el: <MealLogPage />,
+  },
+  {
+    key: 'fuel',
+    label: 'תדלוק',
+    short: 'תדלוק',
+    icon: 'droplet',
+    el: <FuelingPage />,
   },
 ]
 
