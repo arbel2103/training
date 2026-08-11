@@ -9,7 +9,7 @@ interface Step {
   /** which mini-app this step belongs to (default 'tri') */
   app?: AppId
   /** page/tab to switch to inside that app (TriLife 0=היום…3=בריאות; finance
-   *  0=הוצאות,1=הון; nutrition 0=היום,1=יומן,2=תדלוק) */
+   *  0=הוצאות,1=הון) */
   page?: number
   /** data-guide id of the element to point at; omit for a centered card */
   target?: string
@@ -259,29 +259,6 @@ const STEPS: Step[] = [
     app: 'finance',
     page: 1,
     target: 'fin-nav-capital',
-  },
-  {
-    icon: 'utensils',
-    title: 'תזונה · מעקב ותדלוק',
-    body: (
-      <ul className="space-y-1 list-disc pr-4">
-        <li>
-          <b>מאזן אנרגיה</b> — מה אכלת מול מה שגרמין מדד שנשרף, כולל פעילות מול
-          מנוחה
-        </li>
-        <li>
-          <b>יומן אכילה</b> עם מנות של חדר אוכל — כף הגשה, מצקת, צלחת — ולא רק
-          גרמים
-        </li>
-        <li>
-          <b>תדלוק</b> — כמה פחמימות, נוזלים ונתרן לפני, תוך כדי ואחרי כל אימון,
-          לפי האימונים שלך מ-TriLife
-        </li>
-      </ul>
-    ),
-    app: 'nutrition',
-    page: 0,
-    target: 'nut-nav-today',
   },
   {
     icon: 'party',

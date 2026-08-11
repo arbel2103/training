@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /** Which mini-app is active in the shell. Extend this union to add more. */
-export type AppId = 'tri' | 'finance' | 'nutrition'
+export type AppId = 'tri' | 'finance'
+
+const APP_IDS: AppId[] = ['tri', 'finance']
 
 /** Page indices within the training app, matching the PAGES order in App.tsx. */
 export const TRI_PAGE = {
@@ -66,6 +68,13 @@ export const useAppShell = create<ShellState>()(
       name: 'active-app',
       // only the active app is persisted; guide state is transient
       partialize: (s) => ({ appId: s.appId }),
+      // a device left on an app that no longer exists must not come back to a
+      // blank shell — fall back to TriLife
+      merge: (persisted, current) => {
+        const saved = (persisted as { appId?: string } | undefined)?.appId
+        const appId = APP_IDS.includes(saved as AppId) ? (saved as AppId) : 'tri'
+        return { ...current, appId }
+      },
     },
   ),
 )
