@@ -12,6 +12,7 @@ import { weekCompletion } from '../../lib/planMatch'
 import { sportColorClass, sportLabel } from '../../lib/labels'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import WeekProgressRings from '../../components/WeekProgressRings'
+import FuelStrip from '../../components/FuelStrip'
 import { entryDuration, formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
@@ -155,33 +156,38 @@ export default function HomePage() {
                   return (
                     <div
                       key={s.id}
-                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+                      className={`rounded-xl border px-3 py-2.5 ${
                         done ? 'border-bike/40 bg-bike/5' : 'border-line'
                       }`}
                     >
-                      <Icon
-                        name={sessionIconName(s)}
-                        className={`w-6 h-6 shrink-0 ${sportColorClass[s.sport]}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold">{sessionTitle(s)}</div>
-                        <div className="text-sm text-muted">
-                          {showSport !== 'strength' && showSport !== 'other' && dist
-                            ? `${dist} ${sportUnit(showSport)}`
-                            : ''}
-                          {dur ? ` · ${formatDuration(dur)}` : ''}
+                      <div className="flex items-center gap-3">
+                        <Icon
+                          name={sessionIconName(s)}
+                          className={`w-6 h-6 shrink-0 ${sportColorClass[s.sport]}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold">{sessionTitle(s)}</div>
+                          <div className="text-sm text-muted">
+                            {showSport !== 'strength' && showSport !== 'other' && dist
+                              ? `${dist} ${sportUnit(showSport)}`
+                              : ''}
+                            {dur ? ` · ${formatDuration(dur)}` : ''}
+                          </div>
                         </div>
+                        {done ? (
+                          <span className="text-bike font-bold shrink-0">בוצע ✓</span>
+                        ) : (
+                          <button
+                            onClick={() => setQuick(s)}
+                            className="btn-accent shrink-0 text-sm px-3 py-1.5"
+                          >
+                            בצעתי ✓
+                          </button>
+                        )}
                       </div>
-                      {done ? (
-                        <span className="text-bike font-bold shrink-0">בוצע ✓</span>
-                      ) : (
-                        <button
-                          onClick={() => setQuick(s)}
-                          className="btn-accent shrink-0 text-sm px-3 py-1.5"
-                        >
-                          בצעתי ✓
-                        </button>
-                      )}
+                      {/* fuelling advice is for the session ahead — once it is
+                          logged, the numbers are history */}
+                      {!done && <FuelStrip session={s} dateISO={todayISO} />}
                     </div>
                   )
                 })}
