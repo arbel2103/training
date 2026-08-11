@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Google Gemini (free tier) — called directly from the browser with the user's key.
-// tried in order — gemini-2.0-flash has the most generous FREE-tier quota;
-// each model has a separate quota, so on 429/404/503 we fall through to the
-// next. (Preview/gemini-3 models require billing → avoided here.)
+// Tried in order; each model has its own FREE-tier quota, so on 404/429/503 we
+// fall through to the next. (Preview/gemini-3 models require billing → avoided.)
+// Ordered by function-calling reliability, not by quota: the coach's whole job
+// is to actually call its tools, and the lite model regularly answers "done!"
+// in prose without emitting the call — which reads as the app ignoring you.
 const MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-2.0-flash',
   'gemini-flash-latest',
+  'gemini-2.0-flash',
+  'gemini-flash-lite-latest',
 ]
 // per Google AI Studio's quickstart: auth via the x-goog-api-key header
 const endpoint = (model: string) =>
@@ -55,7 +57,9 @@ export async function runCoach({
           systemInstruction: { parts: [{ text: system }] },
           contents,
           ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
-          generationConfig: { maxOutputTokens: 8000, temperature: 0.7 },
+          // warm enough to coach in natural Hebrew, cool enough that "move
+          // Tuesday's run to Thursday" reliably becomes a tool call
+          generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
         }),
       })
       if (res.ok) return res.json()
@@ -80,6 +84,14 @@ export async function runCoach({
     )
   }
 
+  // once a tool has run the change is already saved, so a missing closing
+  // sentence must not be reported as "nothing happened"
+  const done: string[] = []
+  const ranSomething = () =>
+    done.length
+      ? `בוצע: ${done.join(', ')}. (לא הצלחתי לנסח סיכום — בדוק בעמוד הרלוונטי.)`
+      : 'לא הצלחתי להשלים את הפעולה — נסה שוב.'
+
   for (let i = 0; i < 6; i++) {
     const data = await generate()
     const cand = data.candidates?.[0]
@@ -91,6 +103,7 @@ export async function runCoach({
       const respParts: any[] = []
       for (const c of calls) {
         const out = await onToolCall(c.functionCall.name, c.functionCall.args ?? {})
+        done.push(c.functionCall.name)
         respParts.push({
           functionResponse: {
             name: c.functionCall.name,
@@ -108,10 +121,10 @@ export async function runCoach({
       .join('\n')
       .trim()
     if (text) return text
-    if (cand?.finishReason && cand.finishReason !== 'STOP')
+    if (cand?.finishReason && cand.finishReason !== 'STOP' && !done.length)
       return 'לא הצלחתי לענות על זה — נסה לנסח אחרת.'
-    return 'לא הצלחתי להשלים את הפעולה — נסה שוב.'
+    return ranSomething()
   }
 
-  return 'לא הצלחתי להשלים את הפעולה — נסה שוב.'
+  return ranSomething()
 }

@@ -130,21 +130,33 @@ export function boardDaysForWeek(
   week: PlanWeek,
   plannedInWeek: PlannedWorkout[],
 ): Record<ID, number> {
-  return matchBoard(week, plannedInWeek).days
+  const days: Record<ID, number> = {}
+  for (const { session, workout } of pairWithBoard(week, plannedInWeek).pairs) {
+    days[session.id] = fromISO(workout.date).getDay()
+  }
+  return days
+}
+
+/** One plan session and the board workout that represents it this week. */
+interface BoardPair {
+  session: PlanSession
+  workout: PlannedWorkout
+  /** the pairing came from a sport match, not an explicit planSessionId link */
+  bySport: boolean
 }
 
 /**
- * The single matcher both board-facing helpers share: pair each plan session
- * with at most one board workout, then report the weekday each matched session
- * belongs on and which board workouts were claimed.
+ * The single matcher every board-facing helper shares: pair each plan session
+ * with at most one board workout — an explicit `planSessionId` link first, then
+ * a greedy sport match — and report what was left over on both sides.
  */
-function matchBoard(
+function pairWithBoard(
   week: PlanWeek,
   plannedInWeek: PlannedWorkout[],
-): { days: Record<ID, number>; claimed: Set<ID> } {
+): { pairs: BoardPair[]; lonelySessions: PlanSession[]; unclaimed: PlannedWorkout[] } {
   const claimed = new Set<ID>()
-  const days: Record<ID, number> = {}
-  const dayOf = (dateISO: string) => fromISO(dateISO).getDay()
+  const pairs: BoardPair[] = []
+  const paired = new Set<ID>()
 
   // pass 1: sessions explicitly linked to a planned workout
   for (const session of week.sessions) {
@@ -153,14 +165,15 @@ function matchBoard(
     )
     if (linked) {
       claimed.add(linked.id)
-      days[session.id] = dayOf(linked.date)
+      paired.add(session.id)
+      pairs.push({ session, workout: linked, bySport: false })
     }
   }
 
   // pass 2: match the rest by sport, preferring a workout whose name matches
   // the session label so e.g. "רגליים" doesn't grab the "פלג גוף עליון" session
   for (const session of week.sessions) {
-    if (days[session.id] != null) continue
+    if (paired.has(session.id)) continue
     const sameSport = plannedInWeek.filter(
       (p) => !claimed.has(p.id) && sessionMatchesPlanned(session, p),
     )
@@ -173,47 +186,203 @@ function matchBoard(
       sameSport[0]
     if (match) {
       claimed.add(match.id)
-      days[session.id] = dayOf(match.date)
+      paired.add(session.id)
+      pairs.push({ session, workout: match, bySport: true })
     }
   }
 
-  return { days, claimed }
+  return {
+    pairs,
+    lonelySessions: week.sessions.filter((s) => !paired.has(s.id)),
+    unclaimed: plannedInWeek.filter((p) => !claimed.has(p.id)),
+  }
 }
 
 /** A board workout expressed as a plan session for the day it sits on. */
 function plannedToSession(p: PlannedWorkout, id: ID): PlanSession {
   const day = fromISO(p.date).getDay()
   const durationMin = p.durationMin
+  // `fromBoard` marks the session as the board's echo rather than something the
+  // plan prescribes, so deleting the workout can take the session with it
+  const base = { id, day, durationMin, fromBoard: true as const }
   if (p.category === 'strength')
-    return { id, day, sport: 'strength', label: p.strengthName, durationMin }
-  if (p.category === 'other')
-    return { id, day, sport: 'other', label: p.otherName, durationMin }
-  return { id, day, sport: p.sport ?? 'run', distance: p.distance, durationMin }
+    return { ...base, sport: 'strength', label: p.strengthName }
+  if (p.category === 'other') return { ...base, sport: 'other', label: p.otherName }
+  return { ...base, sport: p.sport ?? 'run', distance: p.distance }
+}
+
+/** A plan session expressed as the board workout that would schedule it. */
+export function sessionToPlanned(
+  s: PlanSession,
+  date: string,
+): Omit<PlannedWorkout, 'id'> {
+  const base = {
+    date,
+    time: '18:00',
+    durationMin: s.durationMin || 60,
+    planSessionId: s.id,
+  }
+  if (s.sport === 'strength')
+    return { ...base, category: 'strength', strengthName: s.label || undefined }
+  if (s.sport === 'other')
+    return { ...base, category: 'other', otherName: s.label || 'אימון' }
+  return { ...base, category: 'aerobic', sport: s.sport, distance: s.distance }
+}
+
+/** The outcome of a board→plan reconciliation. */
+export interface PlanBoardDiff {
+  sessions: PlanSession[]
+  /** `planSessionId` values the board is missing, so the pairing stops being a guess */
+  links: { id: ID; planSessionId: ID }[]
 }
 
 /**
- * Reconcile a plan week with the planning board so the two never drift.
+ * Reconcile a plan week with the planning board — **the board wins**.
  *
- * Every workout on the board should be represented by a plan session on the day
- * it actually sits on: matched sessions move to that weekday, and a board
- * workout with no session at all (e.g. one the coach just scheduled) gets one
- * created. Nothing is removed — a session you simply haven't scheduled yet
- * stays in the plan. Idempotent, so it can safely run after any board change.
+ * Use after the user rearranges the board: matched sessions move to the weekday
+ * their workout sits on, a workout with no session at all gets one created, and
+ * a session that only ever existed as the board's echo (`fromBoard`) disappears
+ * once its workout is deleted. A session the plan genuinely prescribes is never
+ * removed — it just goes back to being unscheduled. Idempotent.
+ *
+ * Also reports the `planSessionId` links the board should record. Sport matching
+ * is a good guess but only a guess; writing the link back turns every later sync
+ * into an exact lookup, and it is what lets the plan tell an ad-hoc workout from
+ * one it put there itself.
  */
 export function reconcilePlanWeek(
   week: PlanWeek,
   plannedInWeek: PlannedWorkout[],
   newId: () => ID,
-): PlanSession[] {
-  const { days, claimed } = matchBoard(week, plannedInWeek)
-
-  const sessions = week.sessions.map((s) =>
-    days[s.id] != null && days[s.id] !== s.day ? { ...s, day: days[s.id] } : s,
+): PlanBoardDiff {
+  const { pairs, unclaimed } = pairWithBoard(week, plannedInWeek)
+  const dayById = new Map(
+    pairs.map((p) => [p.session.id, fromISO(p.workout.date).getDay()]),
   )
-  for (const p of plannedInWeek) {
-    if (!claimed.has(p.id)) sessions.push(plannedToSession(p, newId()))
+  const links = pairs
+    .filter((p) => p.workout.planSessionId !== p.session.id)
+    .map((p) => ({ id: p.workout.id, planSessionId: p.session.id }))
+
+  const sessions: PlanSession[] = []
+  for (const s of week.sessions) {
+    const day = dayById.get(s.id)
+    if (day == null) {
+      if (s.fromBoard) continue // its workout is gone, and so is its reason to exist
+      sessions.push(s)
+      continue
+    }
+    sessions.push(day === s.day ? s : { ...s, day })
   }
-  return sessions
+  for (const p of unclaimed) {
+    const session = plannedToSession(p, newId())
+    sessions.push(session)
+    links.push({ id: p.id, planSessionId: session.id })
+  }
+  return { sessions, links }
+}
+
+/** What the board has to change for it to match the plan week. */
+export interface BoardPlanDiff {
+  updates: { id: ID; patch: Partial<PlannedWorkout> }[]
+  creates: Omit<PlannedWorkout, 'id'>[]
+  /** board workouts the plan no longer prescribes — surfaced, never deleted */
+  orphans: ID[]
+}
+
+/**
+ * Work out how the board should follow a plan week — **the plan wins**.
+ *
+ * Use after the plan itself changes (the coach edited it, or a proposal was
+ * approved): each session's workout moves to the day the plan now prescribes,
+ * a session with no workout gets one scheduled, and anything touched is flagged
+ * `needsPush` so the user is asked before it is re-sent to Google Calendar.
+ *
+ * A week the user has not started scheduling is left completely alone — the
+ * plan prescribing twelve future weeks shouldn't fill the board with them.
+ * Nothing is ever deleted; a workout the plan dropped is reported as an orphan
+ * for the UI to offer removing.
+ */
+export function boardWorkoutsForPlan(
+  week: PlanWeek,
+  plannedInWeek: PlannedWorkout[],
+): BoardPlanDiff {
+  const empty: BoardPlanDiff = { updates: [], creates: [], orphans: [] }
+  if (plannedInWeek.length === 0) return empty
+
+  const start = fromISO(week.weekStart)
+  const { pairs, lonelySessions, unclaimed } = pairWithBoard(week, plannedInWeek)
+
+  const updates: BoardPlanDiff['updates'] = []
+  for (const { session, workout, bySport } of pairs) {
+    const date = toISODate(addDays(start, session.day))
+    const patch: Partial<PlannedWorkout> = {}
+    if (workout.date !== date) patch.date = date
+    // a sport match means the explicit link was lost (the coach rewrote the
+    // week); re-tie it now so the next edit can move this exact workout
+    if (bySport || workout.planSessionId !== session.id)
+      patch.planSessionId = session.id
+    if (Object.keys(patch).length === 0) continue
+    updates.push({ id: workout.id, patch: { ...patch, needsPush: true } })
+  }
+
+  const creates = lonelySessions
+    // a `fromBoard` session with nothing to pair with is the leftover of a
+    // workout the user deleted — scheduling it again would undo that delete
+    .filter((s) => !s.fromBoard)
+    .map((s) => ({
+      ...sessionToPlanned(s, toISODate(addDays(start, s.day))),
+      needsPush: true,
+    }))
+
+  return { updates, creates, orphans: unclaimed.map((p) => p.id) }
+}
+
+/**
+ * Carry session ids across a rewrite of a plan week.
+ *
+ * The coach hands back a whole week with freshly minted ids even when it only
+ * moved one workout, which would sever every `planSessionId` link the board
+ * holds — and a severed link is what let a later board→plan sync drag the
+ * coach's change back to the old day. Pair the new sessions with the old ones
+ * (same sport, preferring the same label, then the same day) and keep the old
+ * id, so a session that survived an edit stays the same session.
+ */
+export function carryOverSessionIds(
+  previous: PlanSession[],
+  next: PlanSession[],
+): PlanSession[] {
+  const used = new Set<ID>()
+  const takenBy = new Map<ID, ID>() // new session id → id to reuse
+
+  const claim = (s: PlanSession, pool: PlanSession[]): boolean => {
+    const avail = pool.filter((o) => !used.has(o.id) && o.sport === s.sport)
+    if (!avail.length) return false
+    const label = (s.label ?? '').trim()
+    const pick =
+      (label && avail.find((o) => (o.label ?? '').trim() === label)) ||
+      avail.find((o) => o.day === s.day) ||
+      avail[0]
+    used.add(pick.id)
+    takenBy.set(s.id, pick.id)
+    return true
+  }
+
+  // an exact label match is worth more than any same-sport neighbour, so give
+  // every session a shot at one before falling back to day/order matching
+  for (const s of next) {
+    const label = (s.label ?? '').trim()
+    if (!label) continue
+    claim(
+      s,
+      previous.filter((o) => (o.label ?? '').trim() === label),
+    )
+  }
+  for (const s of next) {
+    if (takenBy.has(s.id)) continue
+    claim(s, previous)
+  }
+
+  return next.map((s) => (takenBy.has(s.id) ? { ...s, id: takenBy.get(s.id)! } : s))
 }
 
 /** Weekly aerobic targets derived from the plan week whose weekStart matches. */

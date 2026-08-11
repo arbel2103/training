@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DailyHealth } from '../lib/garmin/types'
-import { reconcilePlanWeek } from '../lib/planMatch'
+import {
+  boardWorkoutsForPlan,
+  carryOverSessionIds,
+  reconcilePlanWeek,
+} from '../lib/planMatch'
 import { addDays, fromISO, toISODate } from '../lib/dates'
 
 export type ID = string
@@ -117,6 +121,12 @@ export interface PlannedWorkout {
   otherName?: string
   durationMin?: number
   syncedEventId?: string
+  /**
+   * The calendar event is out of date — the workout changed after it was sent.
+   * Set automatically on every edit to a synced workout, cleared once the push
+   * succeeds, so "סנכרן ליומן" can say exactly what is waiting.
+   */
+  needsPush?: boolean
   /** links back to the coach-plan session it was imported from (dedup) */
   planSessionId?: string
 }
@@ -169,6 +179,12 @@ export interface PlanSession {
   distance?: number
   durationMin?: number
   note?: string
+  /**
+   * The session exists only because the board has a workout there — it mirrors
+   * an ad-hoc addition rather than something the plan prescribes, so deleting
+   * that workout removes it again.
+   */
+  fromBoard?: boolean
 }
 export interface PlanWeek {
   id: ID
@@ -219,6 +235,44 @@ export interface GarminSyncStatus {
   errorCode?: string
 }
 
+/** The board workouts that fall inside the week starting on `weekStart`. */
+function weekSlice(planned: PlannedWorkout[], weekStart: string): PlannedWorkout[] {
+  const weekEnd = toISODate(addDays(fromISO(weekStart), 6))
+  return planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
+}
+
+/**
+ * Fold a rewritten week into the plan without losing what the board owns.
+ *
+ * Re-uses the ids of the sessions it replaces so the board's links survive the
+ * edit (see `carryOverSessionIds`), and carries over any `fromBoard` session the
+ * rewrite didn't claim. The coach rewrites a whole week even when it only meant
+ * to change one workout, and a session that exists because the user put a
+ * workout on the board is not the coach's to delete by omission — deleting it
+ * would take the workout off the board with it.
+ */
+function keepSessionIdentity(plan: TrainingPlan | null, week: PlanWeek): PlanWeek {
+  const prev = plan?.weeks.find((w) => w.weekStart === week.weekStart)
+  if (!prev) return week
+  const sessions = carryOverSessionIds(prev.sessions, week.sessions)
+  const kept = new Set(sessions.map((s) => s.id))
+  const survivors = prev.sessions.filter((s) => s.fromBoard && !kept.has(s.id))
+  return { ...week, id: prev.id, sessions: [...sessions, ...survivors] }
+}
+
+/** Fields that appear in the Google Calendar event this workout produced. */
+const CALENDAR_FIELDS = [
+  'date',
+  'time',
+  'durationMin',
+  'category',
+  'sport',
+  'distance',
+  'strengthName',
+  'otherName',
+  'aerobicIntensity',
+] as const
+
 function adjustReps(reps: number[], sets: number): number[] {
   const next = reps.slice(0, sets)
   const fill = reps.length ? reps[reps.length - 1] : 10
@@ -240,6 +294,12 @@ interface State {
   planProposals: PlanProposal[]
   calendarQuery: string
   calendarBusy: CalendarBusy[]
+  /**
+   * Google event ids whose workout is already gone locally. The delete needs a
+   * connected calendar, which the store has no access to, so the planning page
+   * drains this the next time it is online.
+   */
+  pendingCalendarDeletes: string[]
   garminSettings: GarminSettings
   garminSyncStatus: GarminSyncStatus
   garminDaily: DailyHealth[]
@@ -299,11 +359,20 @@ interface State {
   setTrainingPlan: (plan: TrainingPlan) => void
   upsertPlanWeek: (week: PlanWeek) => void
   /**
-   * Keep a plan week in step with the planning board: move matched sessions to
-   * the day they were placed on, and create a session for a board workout that
-   * has none (e.g. one the coach just scheduled). Safe to call repeatedly.
+   * Board → plan. Move matched sessions to the day they were placed on, create
+   * a session for a board workout that has none, and drop a session that only
+   * mirrored a workout the user has since deleted. Safe to call repeatedly.
    */
   syncPlanWeekWithBoard: (weekStart: string) => void
+  /**
+   * Plan → board. Move each scheduled workout to the day the plan now
+   * prescribes, schedule a session that has no workout yet, and unschedule one
+   * the plan dropped. Everything it touches is flagged `needsPush`, so the
+   * calendar is only rewritten once the user approves. A week with nothing on
+   * the board yet is left alone.
+   */
+  syncBoardWithPlanWeek: (weekStart: string) => void
+  clearPendingCalendarDeletes: (eventIds: string[]) => void
   clearPlan: () => void
   addChatMessage: (role: 'user' | 'assistant', text: string) => void
   clearCoachChat: () => void
@@ -347,6 +416,7 @@ export const useStore = create<State>()(
       planProposals: [],
       calendarQuery: 'אלבטרוס',
       calendarBusy: [],
+      pendingCalendarDeletes: [],
       garminSettings: { connected: false },
       garminSyncStatus: { state: 'idle' },
       homeLayout: DEFAULT_HOME_LAYOUT,
@@ -491,7 +561,19 @@ export const useStore = create<State>()(
       addPlanned: (p) => set((s) => ({ planned: [...s.planned, { ...p, id: uid() }] })),
       updatePlanned: (id, patch) =>
         set((s) => ({
-          planned: s.planned.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+          planned: s.planned.map((p) => {
+            if (p.id !== id) return p
+            const next = { ...p, ...patch }
+            // an edit to a workout already in the calendar leaves that event
+            // stale until it is pushed again — say so rather than showing "ביומן ✓"
+            if (
+              next.syncedEventId &&
+              patch.needsPush === undefined &&
+              CALENDAR_FIELDS.some((f) => f in patch && patch[f] !== p[f])
+            )
+              next.needsPush = true
+            return next
+          }),
         })),
       removePlanned: (id) =>
         set((s) => ({ planned: s.planned.filter((p) => p.id !== id) })),
@@ -512,32 +594,36 @@ export const useStore = create<State>()(
 
       updateCoachProfile: (patch) =>
         set((s) => ({ coachProfile: { ...(s.coachProfile ?? {}), ...patch } })),
-      setTrainingPlan: (plan) => set({ trainingPlan: plan }),
+      setTrainingPlan: (plan) =>
+        set((s) => ({
+          trainingPlan: {
+            ...plan,
+            weeks: plan.weeks.map((w) => keepSessionIdentity(s.trainingPlan, w)),
+          },
+        })),
       upsertPlanWeek: (week) =>
         set((s) => {
           const plan: TrainingPlan = s.trainingPlan ?? { weeks: [] }
+          const next = keepSessionIdentity(plan, week)
           const weeks = plan.weeks.some((w) => w.weekStart === week.weekStart)
-            ? plan.weeks.map((w) => (w.weekStart === week.weekStart ? week : w))
-            : [...plan.weeks, week]
+            ? plan.weeks.map((w) => (w.weekStart === week.weekStart ? next : w))
+            : [...plan.weeks, next]
           return { trainingPlan: { ...plan, weeks } }
         }),
       syncPlanWeekWithBoard: (weekStart) =>
         set((s) => {
-          const weekEnd = toISODate(addDays(fromISO(weekStart), 6))
-          const inWeek = s.planned.filter(
-            (p) => p.date >= weekStart && p.date <= weekEnd,
-          )
-          if (inWeek.length === 0) return {}
-
+          const inWeek = weekSlice(s.planned, weekStart)
           const plan: TrainingPlan = s.trainingPlan ?? { weeks: [] }
           const existing = plan.weeks.find((w) => w.weekStart === weekStart)
+          if (!existing && inWeek.length === 0) return {}
           // a workout scheduled into a week with no plan yet still needs a home,
           // otherwise it can never show up on the "today" tile
           const week: PlanWeek = existing ?? { id: uid(), weekStart, sessions: [] }
 
-          const sessions = reconcilePlanWeek(week, inWeek, uid)
+          const { sessions, links } = reconcilePlanWeek(week, inWeek, uid)
           const unchanged =
             existing != null &&
+            links.length === 0 &&
             sessions.length === existing.sessions.length &&
             sessions.every((x, i) => x === existing.sessions[i])
           if (unchanged) return {} // don't churn state when nothing moved
@@ -546,7 +632,58 @@ export const useStore = create<State>()(
           const weeks = existing
             ? plan.weeks.map((w) => (w.weekStart === weekStart ? nextWeek : w))
             : [...plan.weeks, nextWeek]
-          return { trainingPlan: { ...plan, weeks } }
+
+          const linkById = new Map(links.map((l) => [l.id, l.planSessionId]))
+          return {
+            trainingPlan: { ...plan, weeks },
+            ...(linkById.size
+              ? {
+                  planned: s.planned.map((p) =>
+                    linkById.has(p.id)
+                      ? { ...p, planSessionId: linkById.get(p.id) }
+                      : p,
+                  ),
+                }
+              : {}),
+          }
+        }),
+      syncBoardWithPlanWeek: (weekStart) =>
+        set((s) => {
+          const week = s.trainingPlan?.weeks.find((w) => w.weekStart === weekStart)
+          if (!week) return {}
+          const inWeek = weekSlice(s.planned, weekStart)
+          const { updates, creates, orphans } = boardWorkoutsForPlan(week, inWeek)
+
+          // only unschedule what the plan itself put there — an ad-hoc workout
+          // the user added by hand is theirs to keep
+          const drop = new Set(
+            orphans.filter((id) => inWeek.some((p) => p.id === id && p.planSessionId)),
+          )
+          if (!updates.length && !creates.length && !drop.size) return {}
+
+          const patchById = new Map(updates.map((u) => [u.id, u.patch]))
+          const planned = s.planned
+            .filter((p) => !drop.has(p.id))
+            .map((p) => (patchById.has(p.id) ? { ...p, ...patchById.get(p.id) } : p))
+          for (const c of creates) planned.push({ ...c, id: uid() })
+
+          const orphanEvents = s.planned
+            .filter((p) => drop.has(p.id) && p.syncedEventId)
+            .map((p) => p.syncedEventId as string)
+
+          return {
+            planned,
+            pendingCalendarDeletes: [...s.pendingCalendarDeletes, ...orphanEvents],
+          }
+        }),
+      clearPendingCalendarDeletes: (eventIds) =>
+        set((s) => {
+          const done = new Set(eventIds)
+          return {
+            pendingCalendarDeletes: s.pendingCalendarDeletes.filter(
+              (id) => !done.has(id),
+            ),
+          }
         }),
       clearPlan: () => set({ trainingPlan: null }),
       addChatMessage: (role, text) =>
@@ -616,11 +753,12 @@ export const useStore = create<State>()(
     }),
     {
       name: 'training-app-v1',
-      version: 1,
+      version: 2,
       migrate: (state) => ({
         garminSettings: { connected: false },
         garminSyncStatus: { state: 'idle' },
         garminDaily: [],
+        pendingCalendarDeletes: [], // added in v2
         ...(state as object),
       }),
     },

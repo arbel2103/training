@@ -24,6 +24,7 @@ const unitFor = (s: PlanSport): string =>
 
 function ProposalCard({ p }: { p: PlanProposal }) {
   const upsertPlanWeek = useStore((s) => s.upsertPlanWeek)
+  const syncBoardWithPlanWeek = useStore((s) => s.syncBoardWithPlanWeek)
   const removePlanProposal = useStore((s) => s.removePlanProposal)
   const [sessions, setSessions] = useState<PlanSession[]>(p.sessions)
 
@@ -42,6 +43,8 @@ function ProposalCard({ p }: { p: PlanProposal }) {
       focus: p.focus,
       sessions,
     })
+    // carry the change through to the board (and so to the calendar approval)
+    syncBoardWithPlanWeek(p.weekStart)
     removePlanProposal(p.id)
   }
 

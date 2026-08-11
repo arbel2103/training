@@ -18,7 +18,7 @@ import {
 } from '../../lib/dates'
 import { describePlanned } from '../../lib/describe'
 import { conflictsFor } from '../../lib/scheduling'
-import { unscheduledSessions } from '../../lib/planMatch'
+import { sessionToPlanned, unscheduledSessions } from '../../lib/planMatch'
 import {
   connect,
   deleteEvent,
@@ -43,21 +43,6 @@ function addMinutes(time: string, mins: number): string {
   const hh = Math.floor((total % 1440) / 60)
   const mm = total % 60
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-}
-
-/** A plan session as the fields a planned workout needs. */
-function sessionToPlanned(s: PlanSession, date: string): Partial<PlannedWorkout> {
-  const base = {
-    date,
-    time: '18:00',
-    durationMin: s.durationMin || 60,
-    planSessionId: s.id,
-  }
-  if (s.sport === 'strength')
-    return { ...base, category: 'strength', strengthName: s.label || undefined }
-  if (s.sport === 'other')
-    return { ...base, category: 'other', otherName: s.label || 'אימון' }
-  return { ...base, category: 'aerobic', sport: s.sport, distance: s.distance }
 }
 
 function sessionChip(s: PlanSession): { iconName: IconName; text: string } {
@@ -108,6 +93,8 @@ export default function PlanningPage() {
   const trainingPlan = useStore((s) => s.trainingPlan)
   const addPlanned = useStore((s) => s.addPlanned)
   const syncPlanWeekWithBoard = useStore((s) => s.syncPlanWeekWithBoard)
+  const clearPendingCalendarDeletes = useStore((s) => s.clearPendingCalendarDeletes)
+  const pendingDeletes = useStore((s) => s.pendingCalendarDeletes)
 
   // sessions the plan prescribes for this week that aren't on the board yet
   const unscheduled = useMemo(() => {
@@ -127,7 +114,17 @@ export default function PlanningPage() {
   const [calendars, setCalendars] = useState<{ id: string; summary: string }[]>([])
   const [calendarMissing, setCalendarMissing] = useState(false)
 
-  const weekPlanned = planned.filter((p) => p.date >= weekStart && p.date <= weekEnd)
+  const weekSlice = useCallback(
+    (list: PlannedWorkout[]) =>
+      list.filter((p) => p.date >= weekStart && p.date <= weekEnd),
+    [weekStart, weekEnd],
+  )
+  const weekPlanned = weekSlice(planned)
+
+  // what "סנכרן ליומן" would actually change right now
+  const pendingCount =
+    weekPlanned.filter((p) => !p.syncedEventId || p.needsPush).length +
+    pendingDeletes.length
 
   // keep the mobile day view inside the displayed week
   useEffect(() => {
@@ -214,9 +211,11 @@ export default function PlanningPage() {
       try {
         if (p.syncedEventId) {
           await updateEvent('primary', p.syncedEventId, planToEvent(p))
+          updatePlanned(p.id, { needsPush: false })
         } else {
           const created = await insertEvent('primary', planToEvent(p))
-          if (created?.id) updatePlanned(p.id, { syncedEventId: created.id })
+          if (created?.id)
+            updatePlanned(p.id, { syncedEventId: created.id, needsPush: false })
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
@@ -238,6 +237,7 @@ export default function PlanningPage() {
       }
     }
     removePlanned(p.id)
+    syncPlan() // the plan and the "today" tile must lose it too
   }
 
   async function approve() {
@@ -250,12 +250,29 @@ export default function PlanningPage() {
       await connect()
       setConnected(true)
       localStorage.setItem(AUTO_CONNECT_KEY, '1')
-      for (const p of weekPlanned) {
+      // events for workouts the plan dropped, still sitting in Google Calendar
+      const stale = useStore.getState().pendingCalendarDeletes
+      const removed: string[] = []
+      for (const eventId of stale) {
+        try {
+          await deleteEvent('primary', eventId)
+          removed.push(eventId)
+        } catch {
+          // already gone, or not ours — either way stop retrying it
+          removed.push(eventId)
+        }
+      }
+      if (removed.length) clearPendingCalendarDeletes(removed)
+
+      // read fresh: the board→plan sync above may have rewritten the week
+      for (const p of weekSlice(useStore.getState().planned)) {
         if (p.syncedEventId) {
           await updateEvent('primary', p.syncedEventId, planToEvent(p))
+          updatePlanned(p.id, { needsPush: false })
         } else {
           const created = await insertEvent('primary', planToEvent(p))
-          if (created?.id) updatePlanned(p.id, { syncedEventId: created.id })
+          if (created?.id)
+            updatePlanned(p.id, { syncedEventId: created.id, needsPush: false })
         }
       }
     } catch (e) {
@@ -308,9 +325,7 @@ export default function PlanningPage() {
         }}
         onDrop={() => {
           if (dragSession) {
-            addPlanned(
-              sessionToPlanned(dragSession, iso) as Omit<PlannedWorkout, 'id'>,
-            )
+            addPlanned(sessionToPlanned(dragSession, iso))
             setDragSession(null)
             syncPlan()
           }
@@ -401,7 +416,13 @@ export default function PlanningPage() {
                   title="שעת האימון ביומן"
                 />
                 <span className="text-muted">{p.durationMin || 60}׳</span>
-                {p.syncedEventId && <span className="text-bike">ביומן ✓</span>}
+                {p.needsPush ? (
+                  <span className="text-accent font-semibold" title="השתנה מאז — לחץ ״סנכרן ליומן״">
+                    ממתין לסנכרון
+                  </span>
+                ) : (
+                  p.syncedEventId && <span className="text-bike">ביומן ✓</span>
+                )}
                 {clash.length > 0 && (
                   <span className="text-run inline-flex items-center gap-1" title={clash.map((c) => c.title).join(' · ')}>
                     <Icon name="warning" className="w-3.5 h-3.5" /> התנגשות
@@ -433,10 +454,20 @@ export default function PlanningPage() {
         actions={
           <button
             onClick={approve}
-            disabled={!!busy || weekPlanned.length === 0}
-            className="btn-primary"
+            disabled={!!busy || (weekPlanned.length === 0 && pendingCount === 0)}
+            className="btn-primary gap-1.5"
+            title={
+              pendingCount > 0
+                ? `${pendingCount} שינויים ממתינים לשליחה ליומן`
+                : 'הכל כבר מסונכרן — לחיצה תשלח שוב'
+            }
           >
             סנכרן ליומן
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-white/25 px-1.5 text-xs font-bold leading-5">
+                {pendingCount}
+              </span>
+            )}
           </button>
         }
       />
@@ -724,8 +755,14 @@ export default function PlanningPage() {
                                   {v.details.join(' · ')}
                                 </span>
                               )}
-                              {p.syncedEventId && (
-                                <span className="text-bike text-sm"> · ביומן ✓</span>
+                              {p.needsPush ? (
+                                <span className="text-accent text-sm font-semibold">
+                                  {' · ממתין לסנכרון'}
+                                </span>
+                              ) : (
+                                p.syncedEventId && (
+                                  <span className="text-bike text-sm"> · ביומן ✓</span>
+                                )
                               )}
                             </div>
                             <span className="flex items-center gap-2 shrink-0">

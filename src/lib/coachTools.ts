@@ -35,6 +35,13 @@ export const SYSTEM_PERSONA = `אתה מאמן אישי מקצועי ומנוס�
 - אם לא בטוח במשקל התחלתי — שאל את המשתמש מה המשקלים הנוכחיים שלו, או השאר משקל ריק שימלא בעצמו.
 - קריאה חוזרת ל-set_strength_workout עם אותו שם מחליפה את התרגילים של אותו אימון (כך מעדכנים). remove_strength_workout מוחק אימון.
 
+**ביצוע פעולות — קריטי:**
+- כשהמשתמש מבקש שינוי (להוסיף אימון, להזיז אימון, לשנות שבוע בתוכנית) — **קרא לכלי המתאים באותה תשובה, לפני שאתה מאשר שביצעת**. אל תכתוב "הוספתי" או "הזזתי" בלי שקראת לכלי — זו התנהגות שגורמת למשתמש לבקש שוב ושוב. אם אתה לא בטוח באיזה יום או מרחק, שאל — אבל אל תדווח על פעולה שלא עשית.
+- אחרי שהכלי מחזיר תשובה, קרא אותה. אם היא מתארת שגיאה (id שלא נמצא, תאריך לא תקין) — תקן וקרא שוב מיד, אל תבקש מהמשתמש לחזור על עצמו.
+- **הזזת אימון בלוח = update_planned_workout** עם ה-id מרשימת "אימונים מתוכננים בלוח". אל תמחק ותוסיף מחדש — זה מאבד את הקישור ליומן.
+- **מחיקה היא תמיד מפורשת.** upsert_plan_week מעדכן ומוסיף, אבל אימון שהמשתמש שיבץ בעצמו ללוח לא נמחק רק כי השמטת אותו מרשימת האימונים של השבוע. כדי להוריד אימון מהלוח קרא ל-remove_planned_workout עם ה-id שלו.
+- שלוש התצוגות מסונכרנות אוטומטית: הלוח ("שיבוץ ליומן"), התוכנית ("תוכנית אימונים") ואריח "האימון של היום". שינוי בתוכנית מזיז את הלוח, ושינוי בלוח מעדכן את התוכנית — אין צורך לעדכן פעמיים. השליחה ליומן Google עצמה ממתינה לאישור המשתמש בכפתור "סנכרן ליומן", אז אמור לו לאשר שם.
+
 כללי:
 - כדי לתזמן אימון ליום ספציפי ביומן, השתמש ב-add_planned_workout — הוא מופיע בעמוד "תכנון האימונים", והמשתמש מאשר ושולח ליומן שלו. אל תמציא — הוסף רק אימונים שסיכמתם.
 - **התחשב במחויבויות מהיומן** (ראה "מחויבויות ביומן" במצב הנוכחי) כשאתה מתזמן — אל תשבץ אימון על שעה תפוסה, ותכנן סביב עבודה/משמרות/אירועים. אם יום עמוס, הצע אימון קצר יותר או הזז ליום אחר.
@@ -208,8 +215,35 @@ export const COACH_TOOLS = [
         distance: { type: 'number' },
         time: { type: 'string', description: 'HH:MM' },
         durationMin: { type: 'number' },
+        planSessionId: {
+          type: 'string',
+          description:
+            'ה-id של אימון מהתוכנית שזה משבץ (ראה "התוכנית" במצב הנוכחי) — כך הלוח והתוכנית נשארים מקושרים.',
+        },
       },
       required: ['date', 'category'],
+    },
+  },
+  {
+    name: 'update_planned_workout',
+    description:
+      'משנה אימון מתוכנן קיים בלוח (תאריך, שעה, משך, מרחק וכו׳) לפי ה-id שלו. זו הדרך להזיז אימון ליום או לשעה אחרת — אל תמחק ותוסיף מחדש. שלח רק את השדות שמשתנים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ה-id מרשימת "אימונים מתוכננים ביומן"' },
+        date: { type: 'string', description: 'yyyy-mm-dd' },
+        time: { type: 'string', description: 'HH:MM' },
+        durationMin: { type: 'number' },
+        distance: { type: 'number' },
+        aerobicIntensity: {
+          type: 'string',
+          enum: ['easy', 'long', 'intense', 'technique'],
+        },
+        strengthName: { type: 'string' },
+        otherName: { type: 'string' },
+      },
+      required: ['id'],
     },
   },
   {
@@ -258,6 +292,13 @@ export const COACH_TOOLS = [
   },
 ]
 
+/** The subset of `keys` the model actually sent, so we never write undefined. */
+function pick(input: any, keys: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of keys) if (input[k] !== undefined) out[k] = input[k]
+  return out
+}
+
 function withIds(week: any): PlanWeek {
   const sessions: PlanSession[] = (week.sessions ?? []).map((s: any) => ({
     id: uid(),
@@ -277,7 +318,32 @@ function withIds(week: any): PlanWeek {
   }
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/** The Sunday of the week `dateISO` falls in, or null if it isn't a real date. */
+function weekStartOf(dateISO: unknown): string | null {
+  if (typeof dateISO !== 'string' || !ISO_DATE.test(dateISO)) return null
+  const d = fromISO(dateISO)
+  return Number.isNaN(d.getTime()) ? null : toISODate(startOfWeek(d))
+}
+
+/**
+ * Run one tool call.
+ *
+ * Every return value is a sentence the model reads back, so a rejected call
+ * must explain what was wrong rather than throw: an exception here aborts the
+ * whole turn and the user has to repeat themselves, while a message lets the
+ * model correct itself and try again in the same breath.
+ */
 export function executeTool(name: string, input: any): string {
+  try {
+    return runTool(name, input ?? {})
+  } catch (e) {
+    return `הפעולה נכשלה: ${e instanceof Error ? e.message : String(e)}. בדוק את הפרמטרים ונסה שוב.`
+  }
+}
+
+function runTool(name: string, input: any): string {
   const s = useStore.getState()
   switch (name) {
     case 'save_athlete_profile':
@@ -290,11 +356,21 @@ export function executeTool(name: string, input: any): string {
         weeks: (input.weeks ?? []).map(withIds),
       }
       s.setTrainingPlan(plan)
-      return `נשמרה תוכנית עם ${plan.weeks.length} שבועות.`
+      // the plan is the source of truth here — pull the board (and the calendar
+      // approval) along for any week the user has already started scheduling
+      for (const w of plan.weeks) s.syncBoardWithPlanWeek(w.weekStart)
+      return `נשמרה תוכנית עם ${plan.weeks.length} שבועות, והלוח והאימון של היום עודכנו בהתאם.`
     }
-    case 'upsert_plan_week':
+    case 'upsert_plan_week': {
+      const weekStart = weekStartOf(input.weekStart)
+      if (!weekStart)
+        return 'weekStart חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      if (weekStart !== input.weekStart)
+        return `weekStart חייב להיות יום ראשון. השבוע של ${input.weekStart} מתחיל ב-${weekStart} — קרא שוב עם התאריך הזה.`
       s.upsertPlanWeek(withIds(input))
-      return `השבוע של ${input.weekStart} עודכן בתוכנית.`
+      s.syncBoardWithPlanWeek(weekStart)
+      return `השבוע של ${weekStart} עודכן בתוכנית, והלוח והאימון של היום עודכנו בהתאם. השינויים ליומן ממתינים לאישור המשתמש בעמוד "שיבוץ ליומן".`
+    }
     case 'set_strength_workout':
       s.upsertStrengthWorkout(input.name, input.exercises ?? [])
       return `אימון הכוח "${input.name}" נשמר עם ${(input.exercises ?? []).length} תרגילים (מופיע בתוכנית אימונים → כוח).`
@@ -302,6 +378,9 @@ export function executeTool(name: string, input: any): string {
       s.removeStrengthWorkout(input.name)
       return `אימון הכוח "${input.name}" הוסר.`
     case 'add_planned_workout': {
+      const weekStart = weekStartOf(input.date)
+      if (!weekStart)
+        return 'date חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
       s.addPlanned({
         date: input.date,
         category: input.category,
@@ -312,15 +391,47 @@ export function executeTool(name: string, input: any): string {
         distance: input.distance,
         time: input.time,
         durationMin: input.durationMin,
+        planSessionId: input.planSessionId,
       })
       // the board is only half the picture — pull the training plan (and with
       // it the "today" tile) into step, otherwise the workout is invisible there
-      s.syncPlanWeekWithBoard(toISODate(startOfWeek(fromISO(input.date))))
-      return `אימון נוסף ללוח התכנון בתאריך ${input.date}, והתוכנית והאימון של היום עודכנו בהתאם.`
+      s.syncPlanWeekWithBoard(weekStart)
+      return `אימון נוסף ללוח התכנון בתאריך ${input.date}, והתוכנית והאימון של היום עודכנו בהתאם. ממתין לאישור המשתמש לשליחה ליומן.`
     }
-    case 'remove_planned_workout':
+    case 'update_planned_workout': {
+      const target = s.planned.find((p) => p.id === input.id)
+      if (!target)
+        return `לא נמצא אימון מתוכנן עם id ${input.id}. עיין ברשימת "אימונים מתוכננים ביומן" במצב הנוכחי וקרא שוב עם id משם.`
+      if (input.date !== undefined && !weekStartOf(input.date))
+        return 'date חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      const patch = pick(input, [
+        'date',
+        'time',
+        'durationMin',
+        'distance',
+        'aerobicIntensity',
+        'strengthName',
+        'otherName',
+      ])
+      s.updatePlanned(input.id, patch)
+      // a move can cross a week boundary — realign both weeks
+      for (const ws of new Set(
+        [weekStartOf(target.date), weekStartOf(input.date ?? target.date)].filter(
+          (x): x is string => !!x,
+        ),
+      ))
+        s.syncPlanWeekWithBoard(ws)
+      return `האימון המתוכנן עודכן${input.date ? ` לתאריך ${input.date}` : ''}, והתוכנית והאימון של היום עודכנו בהתאם. ממתין לאישור המשתמש לשליחה ליומן.`
+    }
+    case 'remove_planned_workout': {
+      const target = s.planned.find((p) => p.id === input.id)
+      if (!target)
+        return `לא נמצא אימון מתוכנן עם id ${input.id}. עיין ברשימת "אימונים מתוכננים ביומן" במצב הנוכחי וקרא שוב עם id משם.`
       s.removePlanned(input.id)
-      return 'האימון המתוכנן הוסר.'
+      const weekStart = weekStartOf(target.date)
+      if (weekStart) s.syncPlanWeekWithBoard(weekStart)
+      return 'האימון המתוכנן הוסר, והתוכנית והאימון של היום עודכנו בהתאם.'
+    }
     case 'remember':
       s.addMemory(input.text ?? '')
       return 'נשמר בזיכרון המאמן.'
@@ -328,6 +439,8 @@ export function executeTool(name: string, input: any): string {
       s.removeMemory(input.id)
       return 'הוסר מזיכרון המאמן.'
     case 'propose_plan_week': {
+      if (!weekStartOf(input.weekStart))
+        return 'weekStart חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
       const w = withIds(input)
       s.addPlanProposal({
         weekStart: input.weekStart,
@@ -387,11 +500,12 @@ export function buildContext(): string {
     parts.push(
       `תוכנית קיימת${p.raceName ? ` לקראת ${p.raceName}` : ''}${p.raceDate ? ` (${p.raceDate})` : ''} — ${p.weeks.length} שבועות:`,
     )
+    parts.push('  (כל אימון מוצג כ: id | יום | ספורט — השתמש ב-id כדי לשבץ אותו ללוח)')
     for (const w of [...p.weeks].sort((a, b) => a.weekStart.localeCompare(b.weekStart))) {
       const sess = w.sessions
         .map(
           (x) =>
-            `${HEB_DAYS[x.day]}:${x.sport}${x.distance ? ` ${x.distance}` : ''}${x.label ? `(${x.label})` : ''}`,
+            `${x.id}|${HEB_DAYS[x.day]}:${x.sport}${x.distance ? ` ${x.distance}` : ''}${x.label ? `(${x.label})` : ''}`,
         )
         .join(', ')
       parts.push(`• ${w.weekStart}${w.label ? ` [${w.label}]` : ''}: ${sess}`)
@@ -487,10 +601,17 @@ export function buildContext(): string {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 20)
   if (upcoming.length) {
-    parts.push('אימונים מתוכננים ביומן (id | תאריך | פרטים):')
+    parts.push(
+      'אימונים מתוכננים בלוח (id | תאריך | פרטים) — השתמש ב-id הזה ב-update_planned_workout / remove_planned_workout:',
+    )
     for (const p of upcoming) {
+      const state = p.needsPush
+        ? ' (ממתין לסנכרון ליומן)'
+        : p.syncedEventId
+          ? ' (ביומן)'
+          : ' (טרם נשלח ליומן)'
       parts.push(
-        `  - ${p.id} | ${p.date} | ${categoryLabel[p.category]}${p.sport ? ' ' + sportLabel[p.sport] : ''}${p.distance ? ' ' + p.distance : ''}${p.syncedEventId ? ' (ביומן)' : ''}`,
+        `  - ${p.id} | ${p.date}${p.time ? ` ${p.time}` : ''} | ${categoryLabel[p.category]}${p.sport ? ' ' + sportLabel[p.sport] : ''}${p.distance ? ' ' + p.distance : ''}${state}`,
       )
     }
   }

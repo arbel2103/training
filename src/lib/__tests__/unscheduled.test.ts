@@ -121,7 +121,7 @@ describe('reconcilePlanWeek', () => {
   it('creates a plan session for a board workout that has none', () => {
     // the reported bug: the coach schedules a workout, the plan never hears
     const empty: PlanWeek = { id: 'w', weekStart: '2026-08-02', sessions: [] }
-    const sessions = reconcilePlanWeek(
+    const { sessions } = reconcilePlanWeek(
       empty,
       [plan({ sport: 'bike', date: '2026-08-05', distance: 40, durationMin: 90 })],
       newId,
@@ -132,7 +132,7 @@ describe('reconcilePlanWeek', () => {
 
   it('carries the name across for strength and other workouts', () => {
     const empty: PlanWeek = { id: 'w', weekStart: '2026-08-02', sessions: [] }
-    const sessions = reconcilePlanWeek(
+    const { sessions } = reconcilePlanWeek(
       empty,
       [
         plan({ category: 'strength', strengthName: 'רגליים', date: '2026-08-03' }),
@@ -147,7 +147,7 @@ describe('reconcilePlanWeek', () => {
   })
 
   it('moves an existing session instead of duplicating it', () => {
-    const sessions = reconcilePlanWeek(
+    const { sessions } = reconcilePlanWeek(
       week,
       [plan({ sport: 'swim', date: '2026-08-06' })], // Thu
       newId,
@@ -157,12 +157,12 @@ describe('reconcilePlanWeek', () => {
   })
 
   it('keeps sessions that are not on the board yet', () => {
-    const sessions = reconcilePlanWeek(week, [], newId)
+    const { sessions } = reconcilePlanWeek(week, [], newId)
     expect(sessions).toEqual(week.sessions)
   })
 
   it('both moves matched sessions and adds unmatched ones', () => {
-    const sessions = reconcilePlanWeek(
+    const { sessions } = reconcilePlanWeek(
       week,
       [
         plan({ sport: 'swim', date: '2026-08-06' }), // matches s-swim → Thu
@@ -181,15 +181,22 @@ describe('reconcilePlanWeek', () => {
       plan({ category: 'strength', strengthName: 'רגליים', date: '2026-08-07' }),
     ]
     const once = reconcilePlanWeek(week, board, newId)
-    const twice = reconcilePlanWeek({ ...week, sessions: once }, board, newId)
-    expect(twice).toHaveLength(once.length)
-    expect(twice.map((s) => [s.sport, s.day])).toEqual(
-      once.map((s) => [s.sport, s.day]),
+    // the app writes the links back to the board, so the second pass sees them
+    const byId = new Map(once.links.map((l) => [l.id, l.planSessionId]))
+    const linked = board.map((b) =>
+      byId.has(b.id) ? { ...b, planSessionId: byId.get(b.id) } : b,
     )
+
+    const twice = reconcilePlanWeek({ ...week, sessions: once.sessions }, linked, newId)
+
+    expect(twice.sessions.map((s) => [s.sport, s.day])).toEqual(
+      once.sessions.map((s) => [s.sport, s.day]),
+    )
+    expect(twice.links).toEqual([]) // links settle after the first pass
   })
 
   it('honours an explicit link rather than creating a duplicate', () => {
-    const sessions = reconcilePlanWeek(
+    const { sessions } = reconcilePlanWeek(
       week,
       [plan({ sport: 'run', planSessionId: 's-run2', date: '2026-08-08' })],
       newId,
