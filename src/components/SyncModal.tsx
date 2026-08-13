@@ -93,7 +93,7 @@ export default function SyncModal({
       )
         return
       const payload = await downloadBackup(info.fileId)
-      restoreBackup(payload) // reloads the page
+      await restoreBackup(payload) // reloads the page
     })
 
   return (
@@ -182,10 +182,14 @@ export default function SyncModal({
         <section className="border-t border-line pt-5">
           <h4 className="font-semibold mb-1">גיבוי לקובץ</h4>
           <p className="text-sm text-muted mb-3">
-            גיבוי מקומי בלי גוגל — קובץ שאפשר לשמור איפה שרוצים.
+            גיבוי מקומי בלי גוגל — קובץ שאפשר לשמור איפה שרוצים. כולל את קבצי
+            תוצאות הבדיקות, אז הוא יכול להיות גדול.
           </p>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => exportToFile()} className="btn-ghost gap-1.5">
+            <button
+              onClick={() => void run('מכין קובץ…', exportToFile)}
+              className="btn-ghost gap-1.5"
+            >
               <Icon name="save" className="w-4 h-4" /> הורד קובץ גיבוי
             </button>
             <button onClick={() => fileRef.current?.click()} className="btn-ghost gap-1.5">

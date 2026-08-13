@@ -12,6 +12,7 @@ interface AppEntry {
 
 const APPS: AppEntry[] = [
   { id: 'tri', name: 'TriLife', sub: 'טריאתלון ובריאות', icon: 'run' },
+  { id: 'habits', name: 'הרגלים', sub: 'מעקב יומי', icon: 'checkCircle' },
   { id: 'finance', name: 'פיננסים', sub: 'הוצאות והון', icon: 'wallet' },
 ]
 

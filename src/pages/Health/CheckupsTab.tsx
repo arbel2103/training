@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useStore, type Checkup } from '../../store/useStore'
 import { addMonths, formatFullDate, toISODate } from '../../lib/dates'
-import { deleteFile, getFile, saveFile } from '../../lib/fileStore'
+import { deleteFile, saveFile } from '../../lib/fileStore'
 import TabBar from '../../components/ui/TabBar'
 import Icon from '../../components/ui/Icon'
+import CheckupFileModal from '../../components/CheckupFileModal'
 
 type Sub = 'new' | 'history'
 
@@ -87,18 +88,11 @@ function CheckupRow({ c }: { c: Checkup }) {
   const updateCheckup = useStore((s) => s.updateCheckup)
   const removeCheckup = useStore((s) => s.removeCheckup)
   const { nextDue, status } = checkupStatus(c)
+  const [viewing, setViewing] = useState(false)
 
   const onUpload = async (file: File) => {
     await saveFile(c.id, file)
     updateCheckup(c.id, { fileName: file.name, fileType: file.type })
-  }
-
-  const openFile = async () => {
-    const blob = await getFile(c.id)
-    if (!blob) return
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   const removeFile = async () => {
@@ -136,7 +130,11 @@ function CheckupRow({ c }: { c: Checkup }) {
       <div className="flex items-center gap-2 shrink-0">
         {c.fileName ? (
           <>
-            <button onClick={openFile} className="btn-soft text-sm gap-1.5" title={c.fileName}>
+            <button
+              onClick={() => setViewing(true)}
+              className="btn-soft text-sm gap-1.5"
+              title={c.fileName}
+            >
               <Icon name="attach" className="w-4 h-4" /> פתח קובץ
             </button>
             <button
@@ -167,6 +165,13 @@ function CheckupRow({ c }: { c: Checkup }) {
           <Icon name="trash" className="w-4 h-4" />
         </button>
       </div>
+
+      <CheckupFileModal
+        checkupId={viewing ? c.id : null}
+        fileName={c.fileName}
+        fileType={c.fileType}
+        onClose={() => setViewing(false)}
+      />
     </div>
   )
 }

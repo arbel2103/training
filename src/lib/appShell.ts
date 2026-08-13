@@ -2,9 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /** Which mini-app is active in the shell. Extend this union to add more. */
-export type AppId = 'tri' | 'finance'
+export type AppId = 'tri' | 'habits' | 'finance'
 
-const APP_IDS: AppId[] = ['tri', 'finance']
+const APP_IDS: AppId[] = ['tri', 'habits', 'finance']
 
 /** Page indices within the training app, matching the PAGES order in App.tsx. */
 export const TRI_PAGE = {

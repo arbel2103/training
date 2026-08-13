@@ -5,6 +5,7 @@ import { useAppShell } from './lib/appShell'
 
 // each mini-app is a separate world — loaded only when switched to, so TriLife stays light
 const FinanceApp = lazy(() => import('./apps/finance/FinanceApp'))
+const HabitsApp = lazy(() => import('./apps/habits/HabitsApp'))
 
 const GUIDE_SEEN_KEY = 'fitness-guide-seen'
 
@@ -26,7 +27,9 @@ export default function Shell() {
 
   return (
     <>
-      {appId === 'finance' ? (
+      {appId === 'tri' ? (
+        <App />
+      ) : (
         <Suspense
           fallback={
             <div className="h-[100dvh] grid place-items-center text-muted text-sm">
@@ -34,10 +37,8 @@ export default function Shell() {
             </div>
           }
         >
-          <FinanceApp />
+          {appId === 'habits' ? <HabitsApp /> : <FinanceApp />}
         </Suspense>
-      ) : (
-        <App />
       )}
       <GuideOverlay open={guideOpen} onClose={close} />
     </>

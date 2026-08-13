@@ -4,13 +4,14 @@
  * drive.appdata scope (see googleCalendar.ts SCOPE) and the Google Drive API
  * enabled on the OAuth project.
  *
- * The backup contains the whole persisted store plus the Gemini key, so a
- * restore on a new device brings everything (checkup result FILES, stored in
- * IndexedDB, are not included).
+ * The backup contains the whole persisted store, the checkup result files
+ * (which live in IndexedDB rather than the store) and the Gemini key, so a
+ * restore on a new device really does bring everything back.
  */
 import { authFetch } from './googleCalendar'
 import { getApiKey, setApiKey } from './apiKey'
 import { getPat, setPat } from './garmin/pat'
+import { allFiles, base64ToBlob, blobToBase64, saveFile } from './fileStore'
 
 const STORE_KEY = 'training-app-v1'
 const FILE_NAME = 'fitness-backup.json'
@@ -53,6 +54,15 @@ export function setDeviceName(name: string): void {
 }
 
 const FINANCE_STORE_KEY = 'finance-store'
+const HABITS_STORE_KEY = 'habits-store'
+
+/** A checkup result file, carried inside the backup as base64. */
+export interface BackupFile {
+  /** the checkup id this file belongs to — also its IndexedDB key */
+  id: string
+  type: string
+  data: string // base64, no data: prefix
+}
 
 export interface BackupPayload {
   version: 1
@@ -60,6 +70,9 @@ export interface BackupPayload {
   deviceName?: string
   store: unknown
   financeStore?: unknown // the finance mini-app's persisted state
+  habitsStore?: unknown // the habits mini-app's persisted state
+  /** checkup result files; absent in backups written before they were included */
+  files?: BackupFile[]
   geminiKey?: string
   githubPat?: string
 }
@@ -85,27 +98,44 @@ async function readJson(res: Response): Promise<any> {
 }
 
 /** Build the backup payload from this device's data. */
-export function buildBackup(includeKey: boolean): BackupPayload {
+export async function buildBackup(includeKey: boolean): Promise<BackupPayload> {
   const raw = localStorage.getItem(STORE_KEY)
   const finance = localStorage.getItem(FINANCE_STORE_KEY)
+  const habits = localStorage.getItem(HABITS_STORE_KEY)
+  const stored = await allFiles()
+  const files: BackupFile[] = await Promise.all(
+    stored.map(async (f) => ({
+      id: f.id,
+      type: f.blob.type,
+      data: await blobToBase64(f.blob),
+    })),
+  )
   return {
     version: 1,
     savedAt: new Date().toISOString(),
     deviceName: getDeviceName(),
     store: raw ? JSON.parse(raw) : null,
     ...(finance ? { financeStore: JSON.parse(finance) } : {}),
+    ...(habits ? { habitsStore: JSON.parse(habits) } : {}),
+    ...(files.length ? { files } : {}),
     ...(includeKey && getApiKey() ? { geminiKey: getApiKey() } : {}),
     ...(includeKey && getPat() ? { githubPat: getPat() } : {}),
   }
 }
 
 /** Apply a backup to this device (overwrites local data) and reload. */
-export function restoreBackup(payload: BackupPayload): void {
+export async function restoreBackup(payload: BackupPayload): Promise<void> {
   if (!payload || payload.version !== 1 || !payload.store)
     throw new Error('קובץ הגיבוי לא תקין או ריק.')
   localStorage.setItem(STORE_KEY, JSON.stringify(payload.store))
   if (payload.financeStore)
     localStorage.setItem(FINANCE_STORE_KEY, JSON.stringify(payload.financeStore))
+  if (payload.habitsStore)
+    localStorage.setItem(HABITS_STORE_KEY, JSON.stringify(payload.habitsStore))
+  // put the checkup files back before reloading, so the Health page finds them
+  for (const f of payload.files ?? []) {
+    await saveFile(f.id, base64ToBlob(f.data, f.type))
+  }
   if (payload.geminiKey) setApiKey(payload.geminiKey)
   if (payload.githubPat) setPat(payload.githubPat)
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
@@ -147,7 +177,7 @@ export async function findCloudBackup(): Promise<CloudInfo> {
  * can see who made the latest backup without downloading the whole file.
  */
 export async function uploadBackup(existingId: string | null): Promise<string> {
-  const payload = buildBackup(true)
+  const payload = await buildBackup(true)
   const content = JSON.stringify(payload)
   const metadata: Record<string, unknown> = {
     appProperties: {
@@ -159,6 +189,22 @@ export async function uploadBackup(existingId: string | null): Promise<string> {
     metadata.name = FILE_NAME
     metadata.parents = ['appDataFolder']
   }
+
+  // Drive caps a multipart upload at 5 MB, and checkup scans push a backup past
+  // that easily — switch to a resumable upload rather than failing on big ones
+  const id =
+    content.length > 4_500_000
+      ? await resumableUpload(existingId, metadata, content)
+      : await multipartUpload(existingId, metadata, content)
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
+  return id
+}
+
+async function multipartUpload(
+  existingId: string | null,
+  metadata: Record<string, unknown>,
+  content: string,
+): Promise<string> {
   const boundary = 'fitness-backup-boundary'
   const body =
     `--${boundary}\r\n` +
@@ -177,7 +223,32 @@ export async function uploadBackup(existingId: string | null): Promise<string> {
     body,
   })
   const result = await readJson(res)
-  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
+  return existingId ?? result.id
+}
+
+/** Two-step upload for payloads over the multipart limit: open a session, then
+ *  send the bytes to the URL Drive hands back. */
+async function resumableUpload(
+  existingId: string | null,
+  metadata: Record<string, unknown>,
+  content: string,
+): Promise<string> {
+  const startUrl = existingId
+    ? `${UPLOAD}/files/${existingId}?uploadType=resumable`
+    : `${UPLOAD}/files?uploadType=resumable`
+  const start = await authFetch(startUrl, {
+    method: existingId ? 'PATCH' : 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify(metadata),
+  })
+  if (!start.ok) await readJson(start) // throws with Drive's message
+  const session = start.headers.get('Location')
+  if (!session)
+    throw new Error('Drive לא החזיר כתובת העלאה — נסה שוב בעוד רגע.')
+
+  const blob = new Blob([content], { type: 'application/json' })
+  const res = await fetch(session, { method: 'PUT', body: blob })
+  const result = await readJson(res)
   return existingId ?? result.id
 }
 
@@ -190,9 +261,9 @@ export async function downloadBackup(fileId: string): Promise<BackupPayload> {
 
 /* ---------- file export / import (offline backup, no Google needed) ---------- */
 
-export function exportToFile(): void {
+export async function exportToFile(): Promise<void> {
   // the key is intentionally NOT included in a file that may get shared
-  const payload = buildBackup(false)
+  const payload = await buildBackup(false)
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: 'application/json',
   })
@@ -203,8 +274,6 @@ export function exportToFile(): void {
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
 }
 
-export function importFromFile(file: File): Promise<void> {
-  return file.text().then((text) => {
-    restoreBackup(JSON.parse(text))
-  })
+export async function importFromFile(file: File): Promise<void> {
+  await restoreBackup(JSON.parse(await file.text()))
 }
