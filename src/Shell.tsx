@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import App from './App'
 import GuideOverlay from './components/GuideOverlay'
+import AppTabs from './components/AppTabs'
 import { useAppShell } from './lib/appShell'
 
 // each mini-app is a separate world — loaded only when switched to, so TriLife stays light
@@ -27,19 +28,24 @@ export default function Shell() {
 
   return (
     <>
-      {appId === 'tri' ? (
-        <App />
-      ) : (
-        <Suspense
-          fallback={
-            <div className="h-[100dvh] grid place-items-center text-muted text-sm">
-              טוען…
-            </div>
-          }
-        >
-          {appId === 'habits' ? <HabitsApp /> : <FinanceApp />}
-        </Suspense>
-      )}
+      <div className="flex flex-col h-[100dvh]">
+        <AppTabs />
+        <div className="flex-1 min-h-0">
+          {appId === 'tri' ? (
+            <App />
+          ) : (
+            <Suspense
+              fallback={
+                <div className="h-full grid place-items-center text-muted text-sm">
+                  טוען…
+                </div>
+              }
+            >
+              {appId === 'habits' ? <HabitsApp /> : <FinanceApp />}
+            </Suspense>
+          )}
+        </div>
+      </div>
       <GuideOverlay open={guideOpen} onClose={close} />
     </>
   )

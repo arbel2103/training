@@ -86,7 +86,7 @@ export default function App() {
   }, [appNav, goTo])
 
   return (
-    <div className="flex flex-col h-[100dvh]">
+    <div className="flex flex-col h-full">
       <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
