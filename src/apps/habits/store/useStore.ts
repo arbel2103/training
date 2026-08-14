@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { toISODate } from '../../../lib/dates'
+import { addDays, fromISO, toISODate } from '../../../lib/dates'
 import type { Category, GlobalFreeze, Habit, ISODate } from '../lib/types'
 import { openFreeze } from '../lib/habitMath'
 
@@ -165,10 +165,13 @@ export const useStore = create<State>()(
         set((s) => {
           const open = openFreeze(s.freezes)
           if (!open) return {}
+          // "continue tracking" means today is a normal day again — close the
+          // freeze at yesterday, not today, or the day you come back would
+          // still read as frozen (isGloballyFrozen is inclusive of `end`) and
+          // every not-yet-ticked habit would show frozen instead of pending
+          const end = toISODate(addDays(fromISO(today()), -1))
           return {
-            freezes: s.freezes.map((f) =>
-              f === open ? { ...f, end: today() } : f,
-            ),
+            freezes: s.freezes.map((f) => (f === open ? { ...f, end } : f)),
           }
         }),
     }),
