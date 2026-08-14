@@ -5,12 +5,14 @@ import { fromISO } from '../../../lib/dates'
 /** The dot for each of the last 7 days: filled = done, ring = missed, etc. */
 export default function MiniHistory({ cells }: { cells: DayCell[] }) {
   return (
-    <div className="flex items-center gap-1.5">
+    /* kept small enough to always sit inline on a phone without pushing the
+       row's edit button off the screen */
+    <div className="flex items-center gap-1">
       {cells.map((c) => (
         <span
           key={c.date}
           title={`${HEB_DAYS_SHORT[fromISO(c.date).getDay()]} · ${label[c.state]}`}
-          className={`w-2.5 h-2.5 rounded-full ${dot[c.state]}`}
+          className={`w-2 h-2 rounded-full ${dot[c.state]}`}
         />
       ))}
     </div>

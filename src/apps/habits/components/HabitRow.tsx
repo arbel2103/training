@@ -25,15 +25,21 @@ export default function HabitRow({
   const frozenToday = isFrozen(today, habit, freezes)
 
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-2.5">
-      <div className="flex items-center gap-3">
+    /* one line, never wrapping and never wider than the card: the edit button
+       is the only way into delete, so it must survive any name length on any
+       phone — overflow-hidden plus a shrinkable middle guarantees that */
+    <div
+      data-habit-row
+      className="rounded-xl border border-line bg-surface px-2.5 py-1.5 overflow-hidden"
+    >
+      <div className="flex items-center gap-2">
         {/* today's checkbox */}
         <button
           onClick={() => !frozenToday && toggleCompletion(habit.id, today)}
           disabled={frozenToday}
           aria-pressed={doneToday}
           aria-label={doneToday ? 'בטל ביצוע היום' : 'סמן שבוצע היום'}
-          className={`shrink-0 w-9 h-9 rounded-xl grid place-items-center border-2 transition active:scale-90 ${
+          className={`shrink-0 w-8 h-8 rounded-lg grid place-items-center border-2 transition active:scale-90 ${
             doneToday
               ? 'bg-accent border-accent text-white'
               : frozenToday
@@ -42,42 +48,38 @@ export default function HabitRow({
           }`}
         >
           {frozenToday && !doneToday ? (
-            <span className="text-sm">❄️</span>
+            <span className="text-xs">❄️</span>
           ) : (
-            <Icon name="check" className="w-5 h-5" />
+            <Icon name="check" className="w-4 h-4" />
           )}
         </button>
 
-        {/* name + streak line */}
-        <button onClick={() => setDetail(true)} className="flex-1 min-w-0 text-start">
-          <div className="font-semibold truncate">{habit.name}</div>
-          <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
-            <span className="inline-flex items-center gap-1 text-accent font-semibold">
-              <span>🔥</span>
-              {stats.currentStreak}
+        {/* name + streak line — the only part allowed to shrink */}
+        <button
+          onClick={() => setDetail(true)}
+          className="flex-1 min-w-0 text-start py-0.5"
+        >
+          <div className="font-semibold text-sm truncate leading-tight">{habit.name}</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted leading-tight truncate">
+            <span className="inline-flex items-center gap-0.5 text-accent font-semibold">
+              🔥{stats.currentStreak}
             </span>
             <span className="text-muted/70">שיא {stats.bestStreak}</span>
             {stats.rate != null && <span className="text-muted/70">· {stats.rate}%</span>}
           </div>
         </button>
 
-        {/* 7-day history — hidden on the narrowest phones, shown below instead */}
-        <div className="shrink-0 hidden min-[380px]:block">
+        <div className="shrink-0">
           <MiniHistory cells={cells} />
         </div>
 
         <button
           onClick={() => setDetail(true)}
-          className="shrink-0 text-muted hover:text-ink w-8 h-8 grid place-items-center rounded-lg"
+          className="shrink-0 text-muted hover:text-ink w-7 h-7 grid place-items-center rounded-lg"
           aria-label="פרטים ועריכה"
         >
           <Icon name="edit" className="w-4 h-4" />
         </button>
-      </div>
-
-      {/* on very narrow screens the dots move to their own line so nothing clips */}
-      <div className="min-[380px]:hidden ps-12 mt-2">
-        <MiniHistory cells={cells} />
       </div>
 
       {detail && (

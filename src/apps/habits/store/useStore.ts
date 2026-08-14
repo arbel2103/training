@@ -177,10 +177,36 @@ export const useStore = create<State>()(
     }),
     {
       name: 'habits-store',
-      version: 1,
+      version: 2,
+      migrate: (persisted) => healFreezes(persisted as State),
     },
   ),
 )
+
+/**
+ * Repair freeze ranges left behind by the version that closed a freeze at
+ * today instead of yesterday.
+ *
+ * That off-by-one meant the day you pressed "המשך מעקב" stayed inside the
+ * frozen range, so every habit you had not already ticked kept showing the
+ * snowflake and could not be checked at all. Fixing the write path only helped
+ * future freezes — devices carried the broken range in localStorage and stayed
+ * stuck. The invariant this restores: if no freeze is open, today is a normal
+ * tracking day, so no *closed* freeze may reach today or beyond.
+ *
+ * Only days at or after today are touched, so real history is never rewritten.
+ */
+export function healFreezes(state: State): State {
+  if (!state?.freezes?.length) return state
+  const now = today()
+  const yesterday = toISODate(addDays(fromISO(now), -1))
+  return {
+    ...state,
+    freezes: state.freezes.map((f) =>
+      f.end !== null && f.end >= now ? { ...f, end: yesterday } : f,
+    ),
+  }
+}
 
 /** Swap an item with its neighbour and renumber `order` to match. */
 function reorder<T extends { id: ID; order: number }>(
