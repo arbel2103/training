@@ -350,7 +350,8 @@ interface State {
   removeWeighIn: (id: ID) => void
 
   // health: checkups
-  addCheckup: (c: Omit<Checkup, 'id'>) => void
+  /** returns the new checkup's id, so a caller can attach a file right after */
+  addCheckup: (c: Omit<Checkup, 'id'>) => ID
   updateCheckup: (id: ID, patch: Partial<Checkup>) => void
   removeCheckup: (id: ID) => void
 
@@ -583,8 +584,11 @@ export const useStore = create<State>()(
       removeWeighIn: (id) =>
         set((s) => ({ weighIns: s.weighIns.filter((w) => w.id !== id) })),
 
-      addCheckup: (c) =>
-        set((s) => ({ checkups: [...s.checkups, { ...c, id: uid() }] })),
+      addCheckup: (c) => {
+        const id = uid()
+        set((s) => ({ checkups: [...s.checkups, { ...c, id }] }))
+        return id
+      },
       updateCheckup: (id, patch) =>
         set((s) => ({
           checkups: s.checkups.map((c) => (c.id === id ? { ...c, ...patch } : c)),

@@ -1,14 +1,41 @@
 import { useState } from 'react'
 import { useStore, type Checkup } from '../../store/useStore'
 import { addMonths, formatFullDate, toISODate } from '../../lib/dates'
-import { deleteFile, saveFile } from '../../lib/fileStore'
+import { deleteFile } from '../../lib/fileStore'
 import TabBar from '../../components/ui/TabBar'
 import Icon from '../../components/ui/Icon'
 import CheckupFileModal from '../../components/CheckupFileModal'
+import CheckupHistoryModal from '../../components/CheckupHistoryModal'
+import RenewCheckupModal from '../../components/RenewCheckupModal'
 
 type Sub = 'new' | 'history'
 
 type CheckupStatus = 'ok' | 'soon' | 'overdue'
+
+interface CheckupGroup {
+  type: string
+  /** newest first */
+  entries: Checkup[]
+}
+
+/** Group entries by their (trimmed) type name — every add under the same
+ *  name joins the same series, which is what lets "history" show one row
+ *  per type instead of one row per test ever taken. */
+function groupByType(checkups: Checkup[]): CheckupGroup[] {
+  const map = new Map<string, Checkup[]>()
+  for (const c of checkups) {
+    const key = c.type.trim()
+    const list = map.get(key)
+    if (list) list.push(c)
+    else map.set(key, [c])
+  }
+  return [...map.entries()]
+    .map(([type, entries]) => ({
+      type,
+      entries: [...entries].sort((a, b) => b.date.localeCompare(a.date)),
+    }))
+    .sort((a, b) => b.entries[0].date.localeCompare(a.entries[0].date))
+}
 
 /** next-due date + status; "soon" = within one month before due. */
 function checkupStatus(c: Checkup): { nextDue: string; status: CheckupStatus } {
@@ -39,6 +66,11 @@ function NewCheckup({ onDone }: { onDone: () => void }) {
   return (
     <div className="card p-5 max-w-xl">
       <h3 className="font-display text-xl font-bold mb-4">בדיקה חדשה</h3>
+      <p className="text-sm text-muted mb-4 leading-relaxed">
+        לבדיקה חוזרת מסוג קיים — אין צורך למלא כאן שוב; יש כפתור <b>בדיקה
+        חדשה</b> ליד כל סוג בדיקה בטאב <b>היסטוריה</b>, שכבר יודע את השם
+        והתוקף הקודם.
+      </p>
       <div className="grid gap-4">
         <div>
           <label className="label">סוג הבדיקה</label>
@@ -84,34 +116,32 @@ function NewCheckup({ onDone }: { onDone: () => void }) {
   )
 }
 
-function CheckupRow({ c }: { c: Checkup }) {
-  const updateCheckup = useStore((s) => s.updateCheckup)
+function CheckupGroupRow({ group }: { group: CheckupGroup }) {
   const removeCheckup = useStore((s) => s.removeCheckup)
-  const { nextDue, status } = checkupStatus(c)
+  const latest = group.entries[0]
+  const { nextDue, status } = checkupStatus(latest)
   const [viewing, setViewing] = useState(false)
+  const [history, setHistory] = useState(false)
+  const [renewing, setRenewing] = useState(false)
 
-  const onUpload = async (file: File) => {
-    await saveFile(c.id, file)
-    updateCheckup(c.id, { fileName: file.name, fileType: file.type })
-  }
-
-  const removeFile = async () => {
-    await deleteFile(c.id)
-    updateCheckup(c.id, { fileName: undefined, fileType: undefined })
-  }
-
-  const remove = async () => {
-    if (c.fileName) await deleteFile(c.id)
-    removeCheckup(c.id)
+  const removeLatest = async () => {
+    if (
+      !window.confirm(
+        group.entries.length > 1
+          ? `למחוק את הבדיקה מתאריך ${formatFullDate(latest.date)}? הבדיקה הקודמת תהפוך לעדכנית.`
+          : `למחוק את "${group.type}"? כל ההיסטוריה שלה תימחק.`,
+      )
+    )
+      return
+    if (latest.fileName) await deleteFile(latest.id)
+    removeCheckup(latest.id)
   }
 
   return (
     <div className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex-1 min-w-0">
-        <div className="font-semibold">{c.type}</div>
-        <div className="text-sm text-muted">
-          בוצע: {formatFullDate(c.date)}
-        </div>
+        <div className="font-semibold">{group.type}</div>
+        <div className="text-sm text-muted">בוצע: {formatFullDate(latest.date)}</div>
         <div
           className={`text-sm ${
             status === 'overdue'
@@ -122,43 +152,37 @@ function CheckupRow({ c }: { c: Checkup }) {
           }`}
         >
           הבא: {formatFullDate(nextDue)}
-          {status === 'overdue' && ' · עבר התוקף · קבע תור'}
-          {status === 'soon' && ' · מתקרב — כדאי לקבוע תור'}
+          {status === 'overdue' && ' · עבר התוקף'}
+          {status === 'soon' && ' · מתקרב'}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {c.fileName ? (
-          <>
-            <button
-              onClick={() => setViewing(true)}
-              className="btn-soft text-sm gap-1.5"
-              title={c.fileName}
-            >
-              <Icon name="attach" className="w-4 h-4" /> פתח קובץ
-            </button>
-            <button
-              onClick={removeFile}
-              className="text-muted hover:text-accent text-sm"
-            >
-              הסר קובץ
-            </button>
-          </>
-        ) : (
-          <label className="btn-ghost text-sm cursor-pointer gap-1.5">
-            <Icon name="upload" className="w-4 h-4" /> העלה קובץ
-            <input
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) onUpload(f)
-              }}
-            />
-          </label>
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <button onClick={() => setRenewing(true)} className="btn-soft text-sm gap-1.5">
+          <Icon name="plus" className="w-4 h-4" /> בדיקה חדשה
+        </button>
+        <button
+          onClick={() => setHistory(true)}
+          className="btn-ghost text-sm gap-1.5"
+          title="כל הבדיקות מהסוג הזה בעבר"
+        >
+          <Icon name="clock" className="w-4 h-4" /> היסטוריה
+          {group.entries.length > 1 && (
+            <span className="text-muted">({group.entries.length})</span>
+          )}
+        </button>
+        {latest.fileName && (
+          <button
+            onClick={() => setViewing(true)}
+            className="text-muted hover:text-accent"
+            title={latest.fileName}
+            aria-label="פתח קובץ"
+          >
+            <Icon name="attach" className="w-4 h-4" />
+          </button>
         )}
         <button
-          onClick={remove}
+          onClick={() => void removeLatest()}
           className="text-muted hover:text-run px-1"
           aria-label="מחק בדיקה"
         >
@@ -167,11 +191,25 @@ function CheckupRow({ c }: { c: Checkup }) {
       </div>
 
       <CheckupFileModal
-        checkupId={viewing ? c.id : null}
-        fileName={c.fileName}
-        fileType={c.fileType}
+        checkupId={viewing ? latest.id : null}
+        fileName={latest.fileName}
+        fileType={latest.fileType}
         onClose={() => setViewing(false)}
       />
+      {history && (
+        <CheckupHistoryModal
+          type={group.type}
+          entries={group.entries}
+          onClose={() => setHistory(false)}
+        />
+      )}
+      {renewing && (
+        <RenewCheckupModal
+          type={group.type}
+          lastValidMonths={latest.validMonths}
+          onClose={() => setRenewing(false)}
+        />
+      )}
     </div>
   )
 }
@@ -179,11 +217,16 @@ function CheckupRow({ c }: { c: Checkup }) {
 export default function CheckupsTab() {
   const checkups = useStore((s) => s.checkups)
   const [sub, setSub] = useState<Sub>('new')
+  const [renewingType, setRenewingType] = useState<{
+    type: string
+    lastValidMonths: number
+  } | null>(null)
 
-  const sorted = [...checkups].sort((a, b) => b.date.localeCompare(a.date))
+  // one row per type, newest instance first
+  const groups = groupByType(checkups)
 
-  const attention = checkups
-    .map((c) => ({ c, ...checkupStatus(c) }))
+  const attention = groups
+    .map((g) => ({ g, ...checkupStatus(g.entries[0]) }))
     .filter((x) => x.status !== 'ok')
     .sort((a, b) => a.nextDue.localeCompare(b.nextDue))
 
@@ -197,15 +240,22 @@ export default function CheckupsTab() {
           <div className="font-semibold mb-2 flex items-center gap-1.5">
             <Icon name="bell" className="w-4 h-4" /> לקבוע תור
           </div>
-          <ul className="grid gap-1 text-sm">
-            {attention.map(({ c, status, nextDue }) => (
-              <li
-                key={c.id}
-                className={status === 'overdue' ? 'text-run' : 'text-accent'}
-              >
-                • <b>{c.type}</b> —{' '}
-                {status === 'overdue' ? 'עבר התוקף' : 'מתקרב לתוקף'} (
-                {formatFullDate(nextDue)})
+          <ul className="grid gap-1.5 text-sm">
+            {attention.map(({ g, status, nextDue }) => (
+              <li key={g.type} className="flex items-center justify-between gap-2">
+                <span className={status === 'overdue' ? 'text-run' : 'text-accent'}>
+                  • <b>{g.type}</b> —{' '}
+                  {status === 'overdue' ? 'עבר התוקף' : 'מתקרב לתוקף'} (
+                  {formatFullDate(nextDue)})
+                </span>
+                <button
+                  onClick={() =>
+                    setRenewingType({ type: g.type, lastValidMonths: g.entries[0].validMonths })
+                  }
+                  className="btn-soft text-xs px-2.5 py-1 shrink-0 gap-1"
+                >
+                  <Icon name="plus" className="w-3.5 h-3.5" /> בדיקה חדשה
+                </button>
               </li>
             ))}
           </ul>
@@ -226,16 +276,24 @@ export default function CheckupsTab() {
 
       {sub === 'new' ? (
         <NewCheckup onDone={() => setSub('history')} />
-      ) : sorted.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="card p-10 text-center text-muted">
           עדיין לא נוספו בדיקות. עבור לטאב <b>בדיקה חדשה</b>.
         </div>
       ) : (
         <div className="grid gap-2">
-          {sorted.map((c) => (
-            <CheckupRow key={c.id} c={c} />
+          {groups.map((g) => (
+            <CheckupGroupRow key={g.type} group={g} />
           ))}
         </div>
+      )}
+
+      {renewingType && (
+        <RenewCheckupModal
+          type={renewingType.type}
+          lastValidMonths={renewingType.lastValidMonths}
+          onClose={() => setRenewingType(null)}
+        />
       )}
     </div>
   )
