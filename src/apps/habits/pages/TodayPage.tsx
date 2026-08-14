@@ -93,13 +93,15 @@ export default function TodayPage() {
 
       {/* categories accordion */}
       <div className="grid gap-3">
-        {sortedCats.map((c) => (
+        {sortedCats.map((c, i) => (
           <CategorySection
             key={c.id}
             category={c}
             habits={habits}
             freezes={freezes}
             today={today}
+            canMoveUp={i > 0}
+            canMoveDown={i < sortedCats.length - 1}
           />
         ))}
       </div>

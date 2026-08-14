@@ -11,13 +11,18 @@ export default function CategorySection({
   habits,
   freezes,
   today,
+  canMoveUp,
+  canMoveDown,
 }: {
   category: Category
   habits: Habit[]
   freezes: GlobalFreeze[]
   today: string
+  canMoveUp: boolean
+  canMoveDown: boolean
 }) {
   const toggleCategory = useStore((s) => s.toggleCategory)
+  const moveCategory = useStore((s) => s.moveCategory)
   const addHabit = useStore((s) => s.addHabit)
   const removeCategory = useStore((s) => s.removeCategory)
   const [adding, setAdding] = useState(false)
@@ -36,21 +41,63 @@ export default function CategorySection({
 
   return (
     <div className="card overflow-hidden">
-      <button
-        onClick={() => toggleCategory(category.id)}
-        className="w-full flex items-center gap-2 px-4 py-3 text-start"
-      >
-        <Icon
-          name="chevronDown"
-          className={`w-4 h-4 text-muted transition-transform ${category.collapsed ? '-rotate-90' : ''}`}
-        />
-        <span className="font-display text-lg font-bold flex-1">{category.name}</span>
-        {mine.length > 0 && (
-          <span className="text-sm text-muted font-semibold">
-            {prog.done}/{prog.total}
+      <div className="flex items-center gap-1 px-2 py-2">
+        {/* reorder without needing to delete and re-add categories */}
+        <div className="flex flex-col shrink-0">
+          <button
+            onClick={() => moveCategory(category.id, -1)}
+            disabled={!canMoveUp}
+            className="text-muted hover:text-accent disabled:opacity-25 disabled:hover:text-muted leading-none px-1.5 text-xs"
+            aria-label="הזז קטגוריה למעלה"
+            title="הזז למעלה"
+          >
+            ▲
+          </button>
+          <button
+            onClick={() => moveCategory(category.id, 1)}
+            disabled={!canMoveDown}
+            className="text-muted hover:text-accent disabled:opacity-25 disabled:hover:text-muted leading-none px-1.5 text-xs"
+            aria-label="הזז קטגוריה למטה"
+            title="הזז למטה"
+          >
+            ▼
+          </button>
+        </div>
+
+        <button
+          onClick={() => toggleCategory(category.id)}
+          className="flex-1 min-w-0 flex items-center gap-2 px-1 py-1 text-start"
+        >
+          <Icon
+            name="chevronDown"
+            className={`w-4 h-4 text-muted shrink-0 transition-transform ${category.collapsed ? '-rotate-90' : ''}`}
+          />
+          <span className="font-display text-lg font-bold flex-1 truncate">
+            {category.name}
           </span>
-        )}
-      </button>
+          {mine.length > 0 && (
+            <span className="text-sm text-muted font-semibold shrink-0">
+              {prog.done}/{prog.total}
+            </span>
+          )}
+        </button>
+
+        {/* always available — an empty category is still a category to delete */}
+        <button
+          onClick={() => {
+            if (
+              mine.length === 0 ||
+              window.confirm(`למחוק את "${category.name}" ואת ${mine.length} ההרגלים שבה?`)
+            )
+              removeCategory(category.id)
+          }}
+          className="shrink-0 text-muted hover:text-run w-8 h-8 grid place-items-center rounded-lg"
+          aria-label="מחק קטגוריה"
+          title="מחק קטגוריה"
+        >
+          <Icon name="trash" className="w-4 h-4" />
+        </button>
+      </div>
 
       {!category.collapsed && (
         <div className="px-3 pb-3 grid gap-2">
@@ -83,27 +130,12 @@ export default function CategorySection({
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setAdding(true)}
-                className="text-sm text-accent font-semibold hover:bg-accent-soft rounded-lg px-2 py-1.5 inline-flex items-center gap-1.5"
-              >
-                <Icon name="plus" className="w-4 h-4" /> הוסף הרגל
-              </button>
-              <button
-                onClick={() => {
-                  if (
-                    mine.length === 0 ||
-                    window.confirm(`למחוק את "${category.name}" ואת ${mine.length} ההרגלים שבה?`)
-                  )
-                    removeCategory(category.id)
-                }}
-                className="text-xs text-muted hover:text-run px-2 py-1"
-                aria-label="מחק קטגוריה"
-              >
-                מחק קטגוריה
-              </button>
-            </div>
+            <button
+              onClick={() => setAdding(true)}
+              className="text-sm text-accent font-semibold hover:bg-accent-soft rounded-lg px-2 py-1.5 inline-flex items-center gap-1.5 w-fit"
+            >
+              <Icon name="plus" className="w-4 h-4" /> הוסף הרגל
+            </button>
           )}
         </div>
       )}
