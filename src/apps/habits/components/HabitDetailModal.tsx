@@ -5,6 +5,7 @@ import { addDays, fromISO, HEB_DAYS_SHORT, toISODate } from '../../../lib/dates'
 import { useStore } from '../store/useStore'
 import { dayState, computeStats } from '../lib/habitMath'
 import type { Habit } from '../lib/types'
+import Heatmap, { HeatmapLegend, type HeatCell } from './Heatmap'
 
 type Mode = 'check' | 'freeze'
 
@@ -39,6 +40,17 @@ export default function HabitDetailModal({
     toISODate(addDays(fromISO(today), i - 27)),
   )
 
+  // half a year for the heat map, so weekday patterns have room to show
+  const heatCells: HeatCell[] = Array.from({ length: 26 * 7 }, (_, i) => {
+    const date = toISODate(addDays(fromISO(today), i - (26 * 7 - 1)))
+    const st = dayState(habit, date, freezes, today)
+    return {
+      date,
+      pct: st === 'done' ? 1 : st === 'missed' ? 0 : null,
+      frozen: st === 'frozen',
+    }
+  })
+
   const onDayTap = (date: string) => {
     if (date < habit.createdDate || date > today) return
     if (mode === 'check') toggleCompletion(habit.id, date)
@@ -53,6 +65,17 @@ export default function HabitDetailModal({
           <Stat label="רצף נוכחי" value={`${stats.currentStreak}`} />
           <Stat label="שיא" value={`${stats.bestStreak}`} />
           <Stat label="אחוז ביצוע" value={stats.rate == null ? '—' : `${stats.rate}%`} />
+        </div>
+
+        {/* the long view — a quarter of a year at a glance */}
+        <div>
+          <span className="label">שנה אחרונה</span>
+          <div className="overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+            <Heatmap cells={heatCells} today={today} weeks={26} />
+          </div>
+          <div className="mt-2">
+            <HeatmapLegend />
+          </div>
         </div>
 
         {/* what a tap on the grid does */}

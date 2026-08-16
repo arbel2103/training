@@ -27,6 +27,12 @@ interface State {
   habits: Habit[]
   /** every global freeze ever; at most one is open (end: null) at a time */
   freezes: GlobalFreeze[]
+  /**
+   * A free-text note per day — why a day went the way it did. Kept at the day
+   * level rather than per habit: the question it answers ("what got in the way
+   * today?") is about the day, not about one checkbox.
+   */
+  dayNotes: Record<ISODate, string>
 
   // categories
   addCategory: (name: string) => void
@@ -45,6 +51,9 @@ interface State {
   toggleCompletion: (habitId: ID, date: ISODate) => void
   toggleDayFreeze: (habitId: ID, date: ISODate) => void
 
+  // day notes
+  setDayNote: (date: ISODate, text: string) => void
+
   // global freeze
   startGlobalFreeze: () => void
   endGlobalFreeze: () => void
@@ -56,6 +65,7 @@ export const useStore = create<State>()(
       categories: seedCategories(),
       habits: [],
       freezes: [],
+      dayNotes: {},
 
       addCategory: (name) =>
         set((s) => ({
@@ -156,6 +166,15 @@ export const useStore = create<State>()(
           }),
         })),
 
+      setDayNote: (date, text) =>
+        set((s) => {
+          const dayNotes = { ...s.dayNotes }
+          const t = text.trim()
+          if (t) dayNotes[date] = t
+          else delete dayNotes[date] // an emptied note is a deleted note
+          return { dayNotes }
+        }),
+
       startGlobalFreeze: () =>
         set((s) => {
           if (openFreeze(s.freezes)) return {} // already frozen
@@ -177,8 +196,11 @@ export const useStore = create<State>()(
     }),
     {
       name: 'habits-store',
-      version: 2,
-      migrate: (persisted) => healFreezes(persisted as State),
+      version: 3,
+      migrate: (persisted) => {
+        const s = healFreezes(persisted as State)
+        return { ...s, dayNotes: s.dayNotes ?? {} } // added in v3
+      },
     },
   ),
 )

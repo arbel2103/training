@@ -6,6 +6,7 @@ import { toISODate } from '../../../lib/dates'
 import { useStore } from '../store/useStore'
 import { freezeLengthDays, openFreeze, todayProgress } from '../lib/habitMath'
 import CategorySection from '../components/CategorySection'
+import DayNote from '../components/DayNote'
 
 /** The one page: today's progress ring, the freeze control, and the accordion. */
 export default function TodayPage() {
@@ -90,6 +91,9 @@ export default function TodayPage() {
           </button>
         </div>
       )}
+
+      {/* a note for the day, offered once something was left undone */}
+      {!frozen && <DayNote date={today} incomplete={prog.total > 0 && prog.done < prog.total} />}
 
       {/* categories accordion */}
       <div className="grid gap-3">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TodayPage from './pages/TodayPage'
+import InsightsPage from './pages/InsightsPage'
 import AppSwitcher from '../../components/AppSwitcher'
 import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
@@ -10,7 +11,7 @@ import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 /**
  * The habits mini-app shell — same chrome as TriLife and the finance app:
  * header with the app switcher, a horizontal snap scroller of pages, a mobile
- * tab bar, and the shared theme/backup/guide buttons. Only one page for now.
+ * tab bar, and the shared theme/backup/guide buttons.
  */
 const PAGES: {
   key: string
@@ -20,6 +21,7 @@ const PAGES: {
   el: React.ReactNode
 }[] = [
   { key: 'today', label: 'הרגלים', short: 'הרגלים', icon: 'checkCircle', el: <TodayPage /> },
+  { key: 'insights', label: 'תובנות', short: 'תובנות', icon: 'chart', el: <InsightsPage /> },
 ]
 
 export default function HabitsApp() {
