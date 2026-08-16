@@ -4,6 +4,8 @@ import Modal from '../../components/ui/Modal'
 import RestTimer from '../../components/RestTimer'
 import ExerciseRow from './ExerciseRow'
 import Icon from '../../components/ui/Icon'
+import ActiveWorkout from '../../components/strength/ActiveWorkout'
+import WeeklyVolume from '../../components/strength/WeeklyVolume'
 
 export default function StrengthProgram() {
   const categories = useStore((s) => s.strengthCategories)
@@ -11,11 +13,14 @@ export default function StrengthProgram() {
   const renameCategory = useStore((s) => s.renameCategory)
   const removeCategory = useStore((s) => s.removeCategory)
   const addExercise = useStore((s) => s.addExercise)
+  const session = useStore((s) => s.activeStrength)
+  const startSession = useStore((s) => s.startStrengthSession)
 
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [showTimer, setShowTimer] = useState(false)
+  const [workoutOpen, setWorkoutOpen] = useState(false)
 
   const active =
     categories.find((c) => c.id === activeId) ?? categories[0] ?? null
@@ -25,6 +30,29 @@ export default function StrengthProgram() {
 
   return (
     <div>
+      <WeeklyVolume />
+
+      {/* a session survives a reload and a locked phone, so offer it back */}
+      {session && !workoutOpen && (
+        <button
+          onClick={() => setWorkoutOpen(true)}
+          className="card p-3 mb-4 w-full flex items-center gap-3 text-right border-accent/40"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-semibold block truncate">
+              אימון פעיל: {session.categoryName}
+            </span>
+            <span className="text-xs text-muted">
+              {session.sets.length === 1
+                ? 'סט אחד נרשם'
+                : `${session.sets.length} סטים נרשמו`}
+            </span>
+          </span>
+          <span className="text-accent text-sm shrink-0">המשך ←</span>
+        </button>
+      )}
+
       {/* workout picker — a compact dropdown instead of a row of tabs */}
       <div className="flex items-center gap-2 flex-wrap mb-4">
         {categories.length > 0 &&
@@ -92,10 +120,31 @@ export default function StrengthProgram() {
         </div>
       ) : (
         <div>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <button
+              onClick={() => {
+                // never silently discard a session in progress
+                if (
+                  session &&
+                  session.categoryId !== active.id &&
+                  !confirm(
+                    `יש אימון פעיל (${session.categoryName}). להתחיל אימון חדש ולבטל אותו?`,
+                  )
+                )
+                  return
+                if (!session || session.categoryId !== active.id)
+                  startSession(active.id)
+                setWorkoutOpen(true)
+              }}
+              disabled={active.exercises.length === 0}
+              className="btn-accent text-sm py-1.5 px-3 disabled:opacity-40"
+            >
+              <Icon name="strength" className="w-4 h-4" />
+              {session?.categoryId === active.id ? 'המשך אימון' : 'התחל אימון'}
+            </button>
             <button
               onClick={() => addExercise(active.id)}
-              className="btn-accent text-sm py-1.5 px-3"
+              className="btn-soft text-sm py-1.5 px-3"
             >
               + תרגיל
             </button>
@@ -132,6 +181,8 @@ export default function StrengthProgram() {
           )}
         </div>
       )}
+
+      <ActiveWorkout open={workoutOpen} onClose={() => setWorkoutOpen(false)} />
 
       {/* remove confirmation */}
       <Modal

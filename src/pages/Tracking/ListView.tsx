@@ -3,6 +3,7 @@ import { useStore, type WorkoutEntry } from '../../store/useStore'
 import { describeEntry } from '../../lib/describe'
 import { formatFullDate } from '../../lib/dates'
 import ActivityDetailModal from '../../components/garmin/ActivityDetailModal'
+import StrengthDetailModal from '../../components/strength/StrengthDetailModal'
 import WorkoutFormModal from './WorkoutFormModal'
 import Icon from '../../components/ui/Icon'
 
@@ -10,6 +11,7 @@ export default function ListView() {
   const log = useStore((s) => s.log)
   const removeEntry = useStore((s) => s.removeEntry)
   const [detail, setDetail] = useState<WorkoutEntry | null>(null)
+  const [strengthDetail, setStrengthDetail] = useState<WorkoutEntry | null>(null)
   const [editing, setEditing] = useState<WorkoutEntry | null>(null)
 
   const groups = useMemo(() => {
@@ -63,6 +65,16 @@ export default function ListView() {
                     </div>
                     <div className="text-sm text-muted">{v.details.join(' · ')}</div>
                   </div>
+                  {!!e.sets?.length && (
+                    <button
+                      onClick={() => setStrengthDetail(e)}
+                      className="text-muted hover:text-accent px-1"
+                      aria-label="פירוט סטים"
+                      title="פירוט סטים"
+                    >
+                      <Icon name="clipboard" className="w-4 h-4" />
+                    </button>
+                  )}
                   {e.garminActivityId != null && (
                     <button
                       onClick={() => setDetail(e)}
@@ -95,6 +107,10 @@ export default function ListView() {
         </div>
       ))}
       <ActivityDetailModal entry={detail} onClose={() => setDetail(null)} />
+      <StrengthDetailModal
+        entry={strengthDetail}
+        onClose={() => setStrengthDetail(null)}
+      />
       <WorkoutFormModal
         open={!!editing}
         date={editing?.date ?? ''}

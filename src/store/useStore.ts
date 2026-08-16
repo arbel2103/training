@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DailyHealth } from '../lib/garmin/types'
+import type { MuscleGroup } from '../lib/strength'
 import {
   boardWorkoutsForPlan,
   carryOverSessionIds,
@@ -21,8 +22,35 @@ export interface Exercise {
   name: string
   sets: number
   reps: number[] // length === sets, e.g. [10, 10, 12]
+  /** free text on purpose — holds "משקל גוף" or "גומייה" as happily as "40 ק״ג" */
   weight: string
+  /** which muscles this drives; drives the weekly volume view */
+  muscles?: MuscleGroup[]
   updatedAt: string // ISO
+}
+
+/**
+ * One set as it was actually performed.
+ *
+ * The exercise name and muscles are copied in rather than looked up, so a set
+ * logged today still reads correctly after the template is renamed, retagged or
+ * deleted — history should record what happened, not what the plan says now.
+ */
+export interface LoggedSet {
+  exerciseId: ID
+  exerciseName: string
+  reps: number
+  weightKg?: number // absent for bodyweight work
+  muscles?: MuscleGroup[]
+}
+
+/** A strength workout in progress. Persisted so locking the phone mid-set
+ *  (which is what phones do in a gym) never loses the session. */
+export interface ActiveStrengthSession {
+  categoryId: ID
+  categoryName: string
+  startedAt: string // ISO
+  sets: LoggedSet[]
 }
 export interface StrengthCategory {
   id: ID
@@ -74,6 +102,8 @@ export interface WorkoutEntry {
   strengthName?: string
   intensity?: StrengthIntensity
   timeOfDay?: TimeOfDay
+  /** the sets actually performed; present once logged through "אימון פעיל" */
+  sets?: LoggedSet[]
   // aerobic
   sport?: Sport
   distance?: number
@@ -323,6 +353,19 @@ interface State {
   removeExercise: (categoryId: ID, exerciseId: ID) => void
   moveExercise: (categoryId: ID, exerciseId: ID, dir: -1 | 1) => void
 
+  // an in-progress strength workout
+  activeStrength: ActiveStrengthSession | null
+  startStrengthSession: (categoryId: ID) => void
+  logStrengthSet: (set: LoggedSet) => void
+  undoLastStrengthSet: () => void
+  cancelStrengthSession: () => void
+  /** turns the session into a log entry; returns false if nothing was logged */
+  finishStrengthSession: (extra?: {
+    rpe?: number
+    note?: string
+    intensity?: StrengthIntensity
+  }) => boolean
+
   // coach-built strength workout (create/replace a category by name, with exercises)
   upsertStrengthWorkout: (
     name: string,
@@ -481,6 +524,74 @@ export const useStore = create<State>()(
             }
           }),
         })),
+      activeStrength: null,
+      startStrengthSession: (categoryId) =>
+        set((s) => {
+          const cat = s.strengthCategories.find((c) => c.id === categoryId)
+          if (!cat) return {}
+          return {
+            activeStrength: {
+              categoryId,
+              categoryName: cat.name,
+              startedAt: new Date().toISOString(),
+              sets: [],
+            },
+          }
+        }),
+      logStrengthSet: (logged) =>
+        set((s) =>
+          s.activeStrength
+            ? {
+                activeStrength: {
+                  ...s.activeStrength,
+                  sets: [...s.activeStrength.sets, logged],
+                },
+              }
+            : {},
+        ),
+      undoLastStrengthSet: () =>
+        set((s) =>
+          s.activeStrength
+            ? {
+                activeStrength: {
+                  ...s.activeStrength,
+                  sets: s.activeStrength.sets.slice(0, -1),
+                },
+              }
+            : {},
+        ),
+      cancelStrengthSession: () => set({ activeStrength: null }),
+      finishStrengthSession: (extra) => {
+        const s = useStore.getState()
+        const session = s.activeStrength
+        if (!session || session.sets.length === 0) return false
+        const started = new Date(session.startedAt)
+        const durationMin = Math.max(
+          1,
+          Math.round((Date.now() - started.getTime()) / 60_000),
+        )
+        set((cur) => ({
+          log: [
+            ...cur.log,
+            {
+              id: uid(),
+              date: toISODate(started),
+              category: 'strength' as Category,
+              strengthName: session.categoryName,
+              durationMin,
+              startTime: `${String(started.getHours()).padStart(2, '0')}:${String(
+                started.getMinutes(),
+              ).padStart(2, '0')}`,
+              sets: session.sets,
+              source: 'manual' as const,
+              ...extra,
+            },
+          ],
+          activeStrength: null,
+        }))
+        return true
+      },
+
       upsertStrengthWorkout: (name, exercises) =>
         set((s) => {
           const built: Exercise[] = (exercises ?? []).map((e) => {

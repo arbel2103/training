@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import Icon from './ui/Icon'
 
 const PRESETS = [30, 45, 60, 90, 120, 180]
@@ -40,8 +40,25 @@ function chime() {
   navigator.vibrate?.([180, 80, 180])
 }
 
-/** Rest-between-sets timer, shown inside a specific strength workout. */
-export default function RestTimer() {
+/** Lets a parent restart the timer from an event — "I finished a set, count my
+ *  rest" — without the parent owning the timer's state. */
+export interface RestTimerHandle {
+  /** (re)start the countdown; defaults to the currently selected preset */
+  start: (sec?: number) => void
+}
+
+/** Rest-between-sets timer, shown inside a specific strength workout.
+ *
+ *  `compact` is for active-workout mode, where the timer is a passenger — it
+ *  starts itself after every set, so it earns one thin row rather than the third
+ *  of the screen the exercises need. */
+export default function RestTimer({
+  ref,
+  compact = false,
+}: {
+  ref?: Ref<RestTimerHandle>
+  compact?: boolean
+}) {
   const [total, setTotal] = useState(60)
   const [left, setLeft] = useState(60)
   const [running, setRunning] = useState(false)
@@ -69,6 +86,8 @@ export default function RestTimer() {
     setRunning(true)
   }
 
+  useImperativeHandle(ref, () => ({ start: (sec?: number) => start(sec ?? total) }))
+
   const toggle = () => {
     if (running) {
       setRunning(false)
@@ -86,6 +105,41 @@ export default function RestTimer() {
 
   const pct = total > 0 ? (left / total) * 100 : 0
   const done = left <= 0 && !running
+
+  if (compact)
+    return (
+      <div className="card px-3 py-2 mb-3 flex items-center gap-2.5">
+        <Icon name="timer" className="w-4 h-4 text-muted shrink-0" />
+        <button
+          onClick={toggle}
+          className={`font-display text-xl font-black tabular-nums w-14 text-center shrink-0 ${
+            done ? 'text-accent' : ''
+          }`}
+          dir="ltr"
+          title={running ? 'השהה' : 'התחל'}
+        >
+          {mmss(left)}
+        </button>
+        <div className="h-1.5 rounded-full bg-line overflow-hidden flex-1">
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-200 ease-linear"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <select
+          value={total}
+          onChange={(e) => start(Number(e.target.value))}
+          className="input text-xs py-1 px-1.5 w-[4.5rem] shrink-0"
+          aria-label="זמן מנוחה"
+        >
+          {PRESETS.map((sec) => (
+            <option key={sec} value={sec}>
+              {sec < 60 ? `${sec} שנ׳` : mmss(sec)}
+            </option>
+          ))}
+        </select>
+      </div>
+    )
 
   return (
     <div className="card p-4 mb-5">

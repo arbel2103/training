@@ -1,5 +1,6 @@
 import type { PlannedWorkout, WorkoutEntry } from '../store/useStore'
 import { entryDuration, formatDuration, formatPace, sportUnit } from './calc'
+import { tonnage } from './strength'
 import type { IconName } from '../components/ui/Icon'
 import {
   aerobicIntensityLabel,
@@ -21,6 +22,13 @@ export interface EntryView {
 export function describeEntry(e: WorkoutEntry): EntryView {
   if (e.category === 'strength') {
     const details: string[] = []
+    // sets logged in active-workout mode: the real work done, ahead of the
+    // subjective labels
+    if (e.sets?.length) {
+      details.push(e.sets.length === 1 ? 'סט אחד' : `${e.sets.length} סטים`)
+      const kg = tonnage(e.sets)
+      if (kg > 0) details.push(`${kg.toLocaleString('he-IL')} ק״ג`)
+    }
     if (e.intensity) details.push(`עצימות ${strengthIntensityLabel[e.intensity]}`)
     if (e.timeOfDay) details.push(timeOfDayLabel[e.timeOfDay])
     if (e.durationMin) details.push(formatDuration(e.durationMin))
