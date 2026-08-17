@@ -56,12 +56,15 @@ export default function ActiveWorkout({
   const finish = useStore((s) => s.finishStrengthSession)
 
   const [draft, setDraft] = useState<Record<ID, Draft>>({})
+  /** finished exercises the user chose to reopen, to squeeze in another set */
+  const [reopened, setReopened] = useState<ID[]>([])
   const [finishing, setFinishing] = useState(false)
   const [rpe, setRpe] = useState(7)
   const [intensity, setIntensity] = useState<StrengthIntensity>('medium')
   const [note, setNote] = useState('')
   const [elapsed, setElapsed] = useState(0)
   const timer = useRef<RestTimerHandle>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   // a ticking clock, so the session header shows real elapsed time
   useEffect(() => {
@@ -76,6 +79,21 @@ export default function ActiveWorkout({
   if (!session) return null
   const category = categories.find((c) => c.id === session.categoryId)
   const exercises = category?.exercises ?? []
+
+  const setsDone = (exId: ID) =>
+    session.sets.filter((s) => s.exerciseId === exId).length
+  const isDone = (exId: ID, target: number) => setsDone(exId) >= target
+
+  /**
+   * Whatever is still to be done floats to the top.
+   *
+   * A finished exercise is not hidden — it sinks to the bottom, collapsed, so
+   * the set you might still add is one tap away while the exercise you're
+   * actually about to do sits at the top without any scrolling.
+   */
+  const pending = exercises.filter((e) => !isDone(e.id, e.sets))
+  const finished = exercises.filter((e) => isDone(e.id, e.sets))
+  const ordered = [...pending, ...finished]
 
   const fieldsFor = (exId: ID): Draft => {
     if (draft[exId]) return draft[exId]
@@ -116,6 +134,11 @@ export default function ActiveWorkout({
       return next
     })
     timer.current?.start()
+
+    // that set finished the exercise: it is about to sink to the bottom, so
+    // bring the list back to the top where the next exercise now sits
+    if (setsDone(exId) + 1 === ex.sets && !reopened.includes(exId))
+      listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const totalSets = session.sets.length
@@ -202,50 +225,69 @@ export default function ActiveWorkout({
               </span>
             </div>
             <div className="text-muted">
+              {exercises.length > 0 && `${finished.length}/${exercises.length} תרגילים · `}
               {setsLabel(totalSets)} · {totalKg.toLocaleString('he-IL')} ק״ג
             </div>
           </div>
 
           <RestTimer ref={timer} compact />
 
+          {exercises.length > 0 && pending.length === 0 && (
+            <div className="card p-3 mb-3 text-sm text-center text-accent border-accent/40">
+              סיימת את כל התרגילים — לחץ <b>סיים</b> כדי לשמור.
+            </div>
+          )}
+
           {exercises.length === 0 ? (
             <div className="card p-6 text-center text-muted">
               אין תרגילים באימון הזה.
             </div>
           ) : (
-            <div className="grid gap-3">
-              {exercises.map((ex) => {
+            <div className="grid gap-3" ref={listRef}>
+              {ordered.map((ex) => {
                 const mine = session.sets.filter((s) => s.exerciseId === ex.id)
                 const f = fieldsFor(ex.id)
                 const last = lastPerformance(log, ex.id, ex.name)
                 const pb = personalBest(log, ex.id, ex.name)
                 const target = ex.reps[mine.length]
+                const done = isDone(ex.id, ex.sets)
+                const open = !done || reopened.includes(ex.id)
 
                 return (
-                  <div key={ex.id} className="card p-4">
+                  <div
+                    key={ex.id}
+                    className={`card transition-opacity ${
+                      done ? 'p-3 opacity-60' : 'p-4'
+                    }`}
+                  >
                     <div className="flex items-baseline justify-between gap-2">
-                      <div className="font-semibold min-w-0 truncate">{ex.name}</div>
+                      <div className="font-semibold min-w-0 truncate flex items-baseline gap-1.5">
+                        {done && <span className="text-accent">✓</span>}
+                        <span className="truncate">{ex.name}</span>
+                      </div>
                       <div className="text-xs text-muted shrink-0">
                         {mine.length}/{ex.sets} סטים
                       </div>
                     </div>
 
                     {/* what you did last time — the number to beat */}
-                    <div className="text-xs text-muted mt-1">
-                      {last
-                        ? `פעם שעברה: ${last.sets
-                            .map(
-                              (s) =>
-                                `${s.reps}${s.weightKg ? `×${s.weightKg}` : ''}`,
-                            )
-                            .join(' · ')}`
-                        : 'אין רישום קודם לתרגיל הזה'}
-                      {pb && ` · שיא: ${pb.weightKg}×${pb.reps}`}
-                    </div>
+                    {!done && (
+                      <div className="text-xs text-muted mt-1">
+                        {last
+                          ? `פעם שעברה: ${last.sets
+                              .map(
+                                (s) =>
+                                  `${s.reps}${s.weightKg ? `×${s.weightKg}` : ''}`,
+                              )
+                              .join(' · ')}`
+                          : 'אין רישום קודם לתרגיל הזה'}
+                        {pb && ` · שיא: ${pb.weightKg}×${pb.reps}`}
+                      </div>
+                    )}
 
                     {/* sets already logged in this session */}
                     {mine.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         {mine.map((s, i) => (
                           <span
                             key={i}
@@ -256,43 +298,53 @@ export default function ActiveWorkout({
                             {s.reps}
                           </span>
                         ))}
+                        {done && !open && (
+                          <button
+                            onClick={() => setReopened((r) => [...r, ex.id])}
+                            className="text-xs text-muted hover:text-accent rounded-full border border-line px-2 py-0.5"
+                          >
+                            + סט נוסף
+                          </button>
+                        )}
                       </div>
                     )}
 
-                    <div className="flex items-end gap-2 mt-3">
-                      <div className="min-w-0">
-                        <label className="label">ק״ג</label>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.5"
-                          className="input w-20 text-center"
-                          placeholder="גוף"
-                          value={f.w}
-                          onChange={(e) => setField(ex.id, { w: e.target.value })}
-                        />
+                    {open && (
+                      <div className="flex items-end gap-2 mt-3">
+                        <div className="min-w-0">
+                          <label className="label">ק״ג</label>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.5"
+                            className="input w-20 text-center"
+                            placeholder="גוף"
+                            value={f.w}
+                            onChange={(e) => setField(ex.id, { w: e.target.value })}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <label className="label">
+                            חזרות{target ? ` (יעד ${target})` : ''}
+                          </label>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            className="input w-20 text-center"
+                            value={f.r}
+                            onChange={(e) => setField(ex.id, { r: e.target.value })}
+                          />
+                        </div>
+                        <button
+                          onClick={() => doLog(ex.id)}
+                          className="btn-accent flex-1 py-2.5"
+                        >
+                          ✓ סט
+                        </button>
                       </div>
-                      <div className="min-w-0">
-                        <label className="label">
-                          חזרות{target ? ` (יעד ${target})` : ''}
-                        </label>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          className="input w-20 text-center"
-                          value={f.r}
-                          onChange={(e) => setField(ex.id, { r: e.target.value })}
-                        />
-                      </div>
-                      <button
-                        onClick={() => doLog(ex.id)}
-                        className="btn-accent flex-1 py-2.5"
-                      >
-                        ✓ סט
-                      </button>
-                    </div>
+                    )}
                   </div>
                 )
               })}
