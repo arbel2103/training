@@ -19,6 +19,44 @@ export interface ApiMessage {
   content: string
 }
 
+/** Google's reply to a bad key, in words the person setting it up can use. */
+export function keyCheckMessage(status: number, detail = ''): string {
+  if (status === 400 || status === 401 || status === 403)
+    return /expired|disabled/i.test(detail)
+      ? 'המפתח הזה בוטל או פג. צור מפתח חדש ב-Google AI Studio ונסה שוב.'
+      : 'גוגל לא מזהה את המפתח הזה. ודא שהעתקת אותו במלואו מ-Google AI Studio, או צור מפתח חדש.'
+  if (status === 429)
+    return 'המפתח תקין, אבל גוגל מגבילה כרגע את מספר הבקשות. המתן דקה ונסה שוב.'
+  return `לא הצלחתי לאמת את המפתח מול גוגל (שגיאה ${status}). בדוק חיבור לאינטרנט ונסה שוב.`
+}
+
+/**
+ * Check a key against Google before saving it.
+ *
+ * Lists the available models rather than generating anything: it is the
+ * cheapest call that still proves the key is real, and it spends none of the
+ * free generation quota. Without this the key is accepted on length alone and
+ * the first sign of a typo is the coach failing mid-sentence later.
+ */
+export async function verifyApiKey(apiKey: string): Promise<void> {
+  let res: Response
+  try {
+    res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      headers: { 'x-goog-api-key': apiKey },
+    })
+  } catch {
+    throw new Error('אין חיבור לאינטרנט, או שגוגל לא זמינה כרגע. נסה שוב.')
+  }
+  if (res.ok) return
+  let detail = ''
+  try {
+    detail = (await res.json())?.error?.message ?? ''
+  } catch {
+    /* the status alone is enough to explain this */
+  }
+  throw new Error(keyCheckMessage(res.status, detail))
+}
+
 interface RunArgs {
   apiKey: string
   system: string

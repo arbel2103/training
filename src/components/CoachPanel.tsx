@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
-import { clearApiKey, getApiKey, hasApiKey, setApiKey } from '../lib/apiKey'
+import { clearApiKey, getApiKey, hasApiKey } from '../lib/apiKey'
 import { runCoach, type ApiMessage } from '../lib/coachApi'
+import CoachSetup from './CoachSetup'
 import {
   COACH_TOOLS,
   SYSTEM_PERSONA,
@@ -31,7 +32,6 @@ export default function CoachPanel({
   const removeMemory = useStore((s) => s.removeMemory)
 
   const [keySet, setKeySet] = useState(hasApiKey())
-  const [keyInput, setKeyInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -184,53 +184,7 @@ export default function CoachPanel({
         )}
 
         {!keySet ? (
-          <div className="flex-1 overflow-auto p-6">
-            <h3 className="font-display text-xl font-bold mb-2">חיבור המאמן</h3>
-            <p className="text-sm text-muted mb-4 leading-relaxed">
-              המאמן פועל עם <b>מפתח Google Gemini API משלך</b> (BYOK) —{' '}
-              <b>חינם</b>, נשמר מקומית בדפדפן בלבד, ונשלח ישירות ל-Google. אין שרת
-              ואין עלות.
-            </p>
-            <ol className="text-sm text-muted list-decimal pr-5 space-y-1 mb-4">
-              <li>
-                היכנס ל-{' '}
-                <a
-                  href="https://aistudio.google.com/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent underline"
-                >
-                  aistudio.google.com/apikey
-                </a>{' '}
-                → התחבר עם גוגל → <b>Create API key</b> (בלי כרטיס אשראי).
-              </li>
-              <li>העתק את המפתח (מתחיל ב-<code>AQ.</code> או <code>AIza</code>) והדבק כאן.</li>
-            </ol>
-            <input
-              type="password"
-              dir="ltr"
-              className="input mb-3"
-              placeholder="AQ...."
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-            />
-            <button
-              onClick={() => {
-                if (keyInput.trim().length < 20) {
-                  setError('המפתח קצר מדי — ודא שהעתקת את כולו (Copy key).')
-                  return
-                }
-                setApiKey(keyInput)
-                setKeyInput('')
-                setError(null)
-                setKeySet(true)
-              }}
-              className="btn-primary"
-            >
-              שמור והתחל
-            </button>
-            {error && <p className="text-run text-sm mt-3">{error}</p>}
-          </div>
+          <CoachSetup onDone={() => setKeySet(true)} />
         ) : (
           <>
             <div ref={scrollRef} className="flex-1 overflow-auto p-4 flex flex-col gap-3">
