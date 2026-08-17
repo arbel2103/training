@@ -49,16 +49,17 @@ function WeekCard({
 }) {
   const log = useStore((s) => s.log)
   const completion = weekCompletion(week, log)
+  const weekSessions = week.sessions ?? []
   const start = fromISO(week.weekStart)
   // only the current week starts open; click a header to expand another
   const [collapsed, setCollapsed] = useState(!isCurrent)
 
-  const doneCount = week.sessions.filter((s) => completion[s.id]?.done).length
+  const doneCount = weekSessions.filter((s) => completion[s.id]?.done).length
 
   // one column per sport that actually has sessions this week
   const columns = SPORT_ORDER.map((sport) => ({
     sport,
-    sessions: week.sessions
+    sessions: weekSessions
       .filter((s) => s.sport === sport)
       .sort((a, b) => a.day - b.day),
   })).filter((c) => c.sessions.length > 0)
@@ -78,13 +79,13 @@ function WeekCard({
           )}
         </h3>
         <span className="flex items-center gap-2 shrink-0">
-          {week.sessions.length > 0 && (
+          {weekSessions.length > 0 && (
             <span
               className={`text-sm font-semibold ${
-                doneCount === week.sessions.length ? 'text-bike' : 'text-muted'
+                doneCount === weekSessions.length ? 'text-bike' : 'text-muted'
               }`}
             >
-              {doneCount}/{week.sessions.length} ✓
+              {doneCount}/{weekSessions.length} ✓
             </span>
           )}
           <span className="text-sm text-muted">
@@ -177,7 +178,7 @@ export default function AerobicProgram() {
   const plan = useStore((s) => s.trainingPlan)
   const currentWeekStart = toISODate(weekDays(new Date())[0])
 
-  if (!plan || plan.weeks.length === 0) {
+  if (!plan || !plan.weeks?.length) {
     return (
       <div className="card p-10 text-center">
         <div className="flex justify-center gap-3 mb-3 text-muted">
@@ -195,7 +196,9 @@ export default function AerobicProgram() {
     )
   }
 
-  const weeks = [...plan.weeks].sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+  const weeks = [...plan.weeks].sort((a, b) =>
+    (a.weekStart ?? '').localeCompare(b.weekStart ?? ''),
+  )
 
   return (
     <div>

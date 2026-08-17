@@ -30,8 +30,13 @@ export function weekCompletion(
   week: PlanWeek,
   log: WorkoutEntry[],
 ): Record<string, SessionMatch> {
-  const start = fromISO(week.weekStart)
   const startISO = week.weekStart
+  // a week with no real start date can't be matched to anything — say so
+  // instead of throwing, which used to blank the whole program page
+  if (typeof startISO !== 'string' || Number.isNaN(fromISO(startISO).getTime())) {
+    return Object.fromEntries((week.sessions ?? []).map((s) => [s.id, { done: false }]))
+  }
+  const start = fromISO(startISO)
   const endISO = toISODate(addDays(start, 6))
   const weekLog = log.filter((e) => e.date >= startISO && e.date <= endISO)
   const used = new Set<string>()

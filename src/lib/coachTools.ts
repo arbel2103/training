@@ -5,9 +5,10 @@ import {
   type PlanWeek,
   type TrainingPlan,
 } from '../store/useStore'
-import { HEB_DAYS, addDays, fromISO, startOfWeek, toISODate, weekDays } from './dates'
+import { HEB_DAYS, addDays, startOfWeek, toISODate, weekDays } from './dates'
 import { entryDuration, formatDuration, sportUnit } from './calc'
 import { weekCompletion } from './planMatch'
+import { weekStartOf } from './planSanitize'
 import {
   aerobicIntensityLabel,
   categoryLabel,
@@ -318,14 +319,6 @@ function withIds(week: any): PlanWeek {
   }
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-
-/** The Sunday of the week `dateISO` falls in, or null if it isn't a real date. */
-function weekStartOf(dateISO: unknown): string | null {
-  if (typeof dateISO !== 'string' || !ISO_DATE.test(dateISO)) return null
-  const d = fromISO(dateISO)
-  return Number.isNaN(d.getTime()) ? null : toISODate(startOfWeek(d))
-}
 
 /**
  * Run one tool call.
@@ -350,16 +343,26 @@ function runTool(name: string, input: any): string {
       s.updateCoachProfile(input ?? {})
       return 'הפרופיל עודכן.'
     case 'set_training_plan': {
+      const rawWeeks: any[] = Array.isArray(input.weeks) ? input.weeks : []
+      // a plan replaces everything, so a half-valid one is worse than none:
+      // reject it and say exactly what to resend rather than saving a week the
+      // program page can't render
+      const bad = rawWeeks.filter((w) => !weekStartOf(w?.weekStart))
+      if (bad.length)
+        return `לכל שבוע חייב להיות weekStart בפורמט yyyy-mm-dd. ${bad.length} מתוך ${rawWeeks.length} השבועות הגיעו בלי תאריך תקין, והתוכנית לא נשמרה. קרא שוב עם weekStart מלא (תאריך יום ראשון) לכל שבוע.`
       const plan: TrainingPlan = {
         raceName: input.raceName,
         raceDate: input.raceDate,
-        weeks: (input.weeks ?? []).map(withIds),
+        weeks: rawWeeks.map(withIds),
       }
       s.setTrainingPlan(plan)
       // the plan is the source of truth here — pull the board (and the calendar
-      // approval) along for any week the user has already started scheduling
-      for (const w of plan.weeks) s.syncBoardWithPlanWeek(w.weekStart)
-      return `נשמרה תוכנית עם ${plan.weeks.length} שבועות, והלוח והאימון של היום עודכנו בהתאם.`
+      // approval) along for any week the user has already started scheduling.
+      // Read the weeks back from the store: a date that wasn't a Sunday was
+      // snapped to one on the way in, and the board follows the saved week.
+      const saved = useStore.getState().trainingPlan?.weeks ?? []
+      for (const w of saved) s.syncBoardWithPlanWeek(w.weekStart)
+      return `נשמרה תוכנית עם ${saved.length} שבועות, והלוח והאימון של היום עודכנו בהתאם.`
     }
     case 'upsert_plan_week': {
       const weekStart = weekStartOf(input.weekStart)
@@ -439,8 +442,13 @@ function runTool(name: string, input: any): string {
       s.removeMemory(input.id)
       return 'הוסר מזיכרון המאמן.'
     case 'propose_plan_week': {
-      if (!weekStartOf(input.weekStart))
+      const proposedStart = weekStartOf(input.weekStart)
+      if (!proposedStart)
         return 'weekStart חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      // a proposal is approved straight into the plan, so it has to carry the
+      // same Sunday-only weekStart the plan itself is keyed by
+      if (proposedStart !== input.weekStart)
+        return `weekStart חייב להיות יום ראשון. השבוע של ${input.weekStart} מתחיל ב-${proposedStart} — קרא שוב עם התאריך הזה.`
       const w = withIds(input)
       s.addPlanProposal({
         weekStart: input.weekStart,

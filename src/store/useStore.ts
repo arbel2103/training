@@ -8,13 +8,11 @@ import {
   reconcilePlanWeek,
 } from '../lib/planMatch'
 import { addDays, fromISO, toISODate } from '../lib/dates'
+import { sanitizePlan, sanitizePlanWeek } from '../lib/planSanitize'
+import { type ID, uid } from '../lib/ids'
 
-export type ID = string
-
-export const uid = (): ID =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36)
+export { uid } from '../lib/ids'
+export type { ID } from '../lib/ids'
 
 /* ---------------- Program: Strength ---------------- */
 export interface Exercise {
@@ -709,19 +707,28 @@ export const useStore = create<State>()(
 
       updateCoachProfile: (patch) =>
         set((s) => ({ coachProfile: { ...(s.coachProfile ?? {}), ...patch } })),
+      // the plan comes from the AI coach, so it is sanitized on the way in
+      // rather than trusted: a week the views can't render would take the whole
+      // "תוכנית" page down, and it would do it again on every reload
       setTrainingPlan: (plan) =>
-        set((s) => ({
-          trainingPlan: {
-            ...plan,
-            weeks: plan.weeks.map((w) => keepSessionIdentity(s.trainingPlan, w)),
-          },
-        })),
+        set((s) => {
+          const clean = sanitizePlan(plan)
+          if (!clean) return {}
+          return {
+            trainingPlan: {
+              ...clean,
+              weeks: clean.weeks.map((w) => keepSessionIdentity(s.trainingPlan, w)),
+            },
+          }
+        }),
       upsertPlanWeek: (week) =>
         set((s) => {
+          const clean = sanitizePlanWeek(week)
+          if (!clean) return {}
           const plan: TrainingPlan = s.trainingPlan ?? { weeks: [] }
-          const next = keepSessionIdentity(plan, week)
-          const weeks = plan.weeks.some((w) => w.weekStart === week.weekStart)
-            ? plan.weeks.map((w) => (w.weekStart === week.weekStart ? next : w))
+          const next = keepSessionIdentity(plan, clean)
+          const weeks = plan.weeks.some((w) => w.weekStart === clean.weekStart)
+            ? plan.weeks.map((w) => (w.weekStart === clean.weekStart ? next : w))
             : [...plan.weeks, next]
           return { trainingPlan: { ...plan, weeks } }
         }),
@@ -868,14 +875,21 @@ export const useStore = create<State>()(
     }),
     {
       name: 'training-app-v1',
-      version: 2,
-      migrate: (state) => ({
-        garminSettings: { connected: false },
-        garminSyncStatus: { state: 'idle' },
-        garminDaily: [],
-        pendingCalendarDeletes: [], // added in v2
-        ...(state as object),
-      }),
+      version: 3,
+      migrate: (state) => {
+        const prev = (state ?? {}) as { trainingPlan?: unknown }
+        return {
+          garminSettings: { connected: false },
+          garminSyncStatus: { state: 'idle' },
+          garminDaily: [],
+          pendingCalendarDeletes: [], // added in v2
+          ...(prev as object),
+          // v3: a plan saved before the coach's input was validated can hold a
+          // week with no weekStart, which throws while rendering the program
+          // page. Repair it on load so a bad save heals itself.
+          trainingPlan: sanitizePlan(prev.trainingPlan),
+        }
+      },
     },
   ),
 )
