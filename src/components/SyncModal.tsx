@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Modal from './ui/Modal'
 import Icon from './ui/Icon'
 import GarminSyncSection from './garmin/GarminSyncSection'
+import GoogleConsentNote from './GoogleConsentNote'
 import { isConfigured, preloadGis } from '../lib/googleCalendar'
 import {
   downloadBackup,
@@ -125,9 +126,16 @@ export default function SyncModal({
           ) : (
             <>
               {cloud === null ? (
-                <button onClick={checkCloud} disabled={!!busy} className="btn-soft gap-1.5">
-                  <Icon name="link" className="w-4 h-4" /> התחבר ובדוק גיבוי
-                </button>
+                <div className="grid gap-2 justify-items-start">
+                  <button
+                    onClick={checkCloud}
+                    disabled={!!busy}
+                    className="btn-soft gap-1.5"
+                  >
+                    <Icon name="link" className="w-4 h-4" /> התחבר ובדוק גיבוי
+                  </button>
+                  <GoogleConsentNote />
+                </div>
               ) : (
                 <div className="grid gap-3">
                   <div className="flex flex-wrap gap-2">

@@ -39,6 +39,33 @@ let tokenExpiry = 0
 export const isConfigured = () => !!CLIENT_ID
 export const isConnected = () => !!accessToken && Date.now() < tokenExpiry
 
+/**
+ * Turn Google's raw OAuth error code into something the person in front of the
+ * screen can act on alone.
+ *
+ * These codes used to reach the UI verbatim ("access_denied"), which tells a
+ * user nothing and turns every first connection into a support call. The one
+ * that matters is `access_denied`: Google returns it both when the user backs
+ * out of the consent screen and when the app is still in Testing mode and
+ * their address isn't on its tester list.
+ */
+export function oauthErrorMessage(code: string): string {
+  switch (code) {
+    case 'access_denied':
+      return 'החיבור לא אושר. אם ביטלת בטעות — נסה שוב. אם גוגל הציגה מסך "האפליקציה לא מאומתת", לחץ "מתקדם" (Advanced) ואז "המשך אל TriLife" — זו האפליקציה הזו, והיא ניגשת רק ליומן ולגיבוי שלך.'
+    case 'admin_policy_enforced':
+      return 'מנהל המערכת של חשבון הגוגל הזה חוסם את החיבור. נסה עם חשבון גוגל פרטי במקום חשבון של ארגון או בית ספר.'
+    case 'invalid_client':
+    case 'unauthorized_client':
+      return 'הגדרת החיבור לגוגל אינה תקינה באתר הזה. נסה שוב מאוחר יותר.'
+    case 'server_error':
+    case 'temporarily_unavailable':
+      return 'גוגל לא זמינה כרגע. נסה שוב בעוד כמה דקות.'
+    default:
+      return `שגיאה בחיבור לגוגל: ${code}`
+  }
+}
+
 let gisPromise: Promise<void> | null = null
 
 /**
@@ -100,7 +127,8 @@ export async function connect(): Promise<void> {
       scope: SCOPE,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callback: (resp: any) => {
-        if (resp.error) return done(() => reject(new Error(resp.error)))
+        if (resp.error)
+          return done(() => reject(new Error(oauthErrorMessage(resp.error))))
         accessToken = resp.access_token
         tokenExpiry = Date.now() + (Number(resp.expires_in) - 60) * 1000
         done(resolve)

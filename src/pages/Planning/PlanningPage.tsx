@@ -31,6 +31,7 @@ import {
   updateEvent,
   type GCalEvent,
 } from '../../lib/googleCalendar'
+import GoogleConsentNote from '../../components/GoogleConsentNote'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
@@ -534,7 +535,13 @@ export default function PlanningPage() {
             )}
           </>
         )}
-        {error && <span className="text-sm text-run">שגיאה: {error}</span>}
+        {error && <span className="w-full text-sm text-run leading-relaxed">{error}</span>}
+        {/* what Google's consent screen will look like, before it appears */}
+        {isConfigured() && !connected && (
+          <div className="w-full">
+            <GoogleConsentNote />
+          </div>
+        )}
         {calendarMissing && (
           <div
             className="w-full text-sm rounded-xl px-3 py-2 bg-run/10 text-run flex items-start gap-1.5"
