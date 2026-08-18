@@ -59,7 +59,7 @@ export default function HabitDetailModal({
 
   return (
     <Modal open onClose={onClose} title={habit.name}>
-      <div className="grid gap-5">
+      <div className="grid gap-4 min-w-0">
         {/* headline stats */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <Stat label="רצף נוכחי" value={`${stats.currentStreak}`} />
@@ -67,9 +67,12 @@ export default function HabitDetailModal({
           <Stat label="אחוז ביצוע" value={stats.rate == null ? '—' : `${stats.rate}%`} />
         </div>
 
-        {/* the long view — a quarter of a year at a glance */}
-        <div>
-          <span className="label">שנה אחרונה</span>
+        {/* The long view. min-w-0 is load-bearing: a grid item defaults to
+            min-width:auto, so without it the 26-week strip sets the modal's
+            width instead of scrolling inside it, and the whole body — stats,
+            calendar and all — slides sideways off a phone screen. */}
+        <div className="min-w-0">
+          <span className="label">חצי שנה אחרונה</span>
           <div className="overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
             <Heatmap cells={heatCells} today={today} weeks={26} />
           </div>
@@ -79,7 +82,7 @@ export default function HabitDetailModal({
         </div>
 
         {/* what a tap on the grid does */}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="label mb-0">עריכת יומן (חודש אחרון)</span>
             <div className="inline-flex rounded-lg border border-line overflow-hidden text-xs">
