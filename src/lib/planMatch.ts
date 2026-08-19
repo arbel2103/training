@@ -1,4 +1,5 @@
 import type {
+  AerobicIntensity,
   AerobicTargets,
   ID,
   PlanSession,
@@ -22,6 +23,57 @@ function sessionMatchesEntry(session: PlanSession, e: WorkoutEntry): boolean {
 }
 
 /**
+ * The intensity a plan session's free-text label implies, or null.
+ *
+ * The plan says "טמפו" or "ארוכה" where a logged workout says `intense` or
+ * `long`, so the two only line up through the words the coach actually writes.
+ * An unrecognised label is null rather than a guess — scoring treats "unknown"
+ * as neutral, and a wrong guess would be worse than no opinion at all.
+ */
+export function sessionIntensity(label?: string): AerobicIntensity | null {
+  const t = (label ?? '').toLowerCase()
+  if (!t) return null
+  if (/טכניק|drill|technique/.test(t)) return 'technique'
+  if (/אינטרוול|טמפו|סף|מהיר|עצים|ספרינט|interval|tempo|threshold|sprint|vo2/.test(t))
+    return 'intense'
+  if (/ארוכ|ארוך|לונג|long/.test(t)) return 'long'
+  if (/קל|נוח|שחרור|התאושש|easy|recovery/.test(t)) return 'easy'
+  return null
+}
+
+// distance drives the pairing; intensity only breaks near-ties, because the
+// plan's label is free text and a logged intensity is often auto-tagged
+const INTENSITY_WEIGHT = 0.35
+// a hair, so a Garmin activity still wins against an identical manual entry
+const GARMIN_BONUS = 0.01
+
+/**
+ * How poorly `e` stands in for `session` — lower is a better match.
+ *
+ * Sport is already guaranteed by `sessionMatchesEntry`; this is what separates
+ * two sessions of the same sport. A 3 km run belongs against the planned 4 km,
+ * not the planned 10 km, and until this existed the tie was settled by array
+ * order — so an easy run could land on the week's long run and leave the short
+ * one showing as missed.
+ */
+function pairCost(session: PlanSession, e: WorkoutEntry): number {
+  // relative, not absolute: 1 km off a 4 km run matters, 1 km off 40 km doesn't
+  const planned = session.distance
+  const actual = e.distance
+  const distance =
+    planned && actual ? Math.abs(actual - planned) / Math.max(planned, actual) : 0.5
+
+  const want = sessionIntensity(session.label)
+  const got = e.aerobicIntensity
+  // an auto-tagged intensity is a guess about the workout, so it gets to nudge
+  // the choice rather than decide it
+  const weight = INTENSITY_WEIGHT * (e.autoTagged ? 0.5 : 1)
+  const intensity = want && got ? (want === got ? 0 : 1) : 0.5
+
+  return distance + intensity * weight - (e.source === 'garmin' ? GARMIN_BONUS : 0)
+}
+
+/**
  * For one plan week, match each planned session to a logged workout in that
  * calendar week. Greedy: prefers a same-day log entry, then any in the week;
  * each log entry is consumed at most once.
@@ -42,36 +94,49 @@ export function weekCompletion(
   const used = new Set<string>()
   const result: Record<string, SessionMatch> = {}
 
-  // claim the best unused, sport-matching entry from `pool` for a session,
-  // preferring the real Garmin activity (actual numbers) over a manual placeholder
-  const claim = (session: PlanSession, pool: WorkoutEntry[]): boolean => {
-    const avail = pool.filter(
-      (e) => !used.has(e.id) && sessionMatchesEntry(session, e),
-    )
-    const pick = avail.find((e) => e.source === 'garmin') ?? avail[0]
-    if (!pick) return false
-    used.add(pick.id)
-    result[session.id] = { done: true, entry: pick }
-    return true
+  /**
+   * Pair up whatever `poolFor` offers, best match first.
+   *
+   * Deliberately not per-session in array order: taking sessions one at a time
+   * lets whichever happens to come first swallow the only available workout,
+   * which is how a 3 km run ended up crediting the planned 10 km and leaving
+   * the planned 4 km missed. Scoring every candidate pair and claiming the
+   * cheapest ones first means each workout lands on the session it resembles,
+   * whatever order the sessions are stored in.
+   */
+  const claimBest = (poolFor: (s: PlanSession) => WorkoutEntry[]) => {
+    const pairs: { session: PlanSession; entry: WorkoutEntry; cost: number }[] = []
+    for (const session of week.sessions) {
+      if (result[session.id]?.done) continue
+      for (const entry of poolFor(session)) {
+        if (used.has(entry.id) || !sessionMatchesEntry(session, entry)) continue
+        pairs.push({ session, entry, cost: pairCost(session, entry) })
+      }
+    }
+    // ties fall back to the earlier workout, so the result never depends on
+    // the order the log happens to be in
+    pairs.sort((a, b) => a.cost - b.cost || a.entry.date.localeCompare(b.entry.date))
+    for (const { session, entry } of pairs) {
+      if (used.has(entry.id) || result[session.id]?.done) continue
+      used.add(entry.id)
+      result[session.id] = { done: true, entry }
+    }
   }
 
   // pass 1: every session first claims a workout logged on its own day, so a
   // same-day match always wins globally — otherwise a same-sport session on a
   // different day could greedily consume today's entry before today's session
   // (which is that entry's real match) gets a chance.
-  for (const session of week.sessions) {
+  claimBest((session) => {
     const dayISO = toISODate(addDays(start, session.day))
-    claim(
-      session,
-      weekLog.filter((e) => e.date === dayISO),
-    )
-  }
+    return weekLog.filter((e) => e.date === dayISO)
+  })
 
   // pass 2: sessions still unmatched fall back to any remaining in-week entry
-  for (const session of week.sessions) {
-    if (result[session.id]?.done) continue
-    if (!claim(session, weekLog)) result[session.id] = { done: false }
-  }
+  claimBest(() => weekLog)
+
+  for (const session of week.sessions)
+    if (!result[session.id]?.done) result[session.id] = { done: false }
 
   return result
 }
