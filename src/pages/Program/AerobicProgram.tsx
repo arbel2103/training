@@ -12,6 +12,8 @@ import {
   weekDays,
 } from '../../lib/dates'
 import { weekCompletion } from '../../lib/planMatch'
+import { isTaperWeek } from '../../lib/taper'
+import TaperGuidance from '../../components/TaperGuidance'
 import PlanProposals from './PlanProposals'
 
 const planSportMeta: Record<PlanSport, { iconName: IconName; label: string }> = {
@@ -42,9 +44,11 @@ function unitFor(sport: PlanSport): string {
 
 function WeekCard({
   week,
+  allWeeks,
   isCurrent,
 }: {
   week: PlanWeek
+  allWeeks: PlanWeek[]
   isCurrent: boolean
 }) {
   const log = useStore((s) => s.log)
@@ -97,6 +101,8 @@ function WeekCard({
       {collapsed ? null : (
         <div className="mt-3">
       {week.focus && <p className="text-sm text-muted mb-3">{week.focus}</p>}
+      {/* a taper week is where the details start deciding the race */}
+      {isTaperWeek(week) && <TaperGuidance week={week} allWeeks={allWeeks} />}
 
       {columns.length === 0 ? (
         <p className="text-sm text-muted">מנוחה / אין אימונים מתוכננים.</p>
@@ -219,6 +225,7 @@ export default function AerobicProgram() {
           <WeekCard
             key={w.id}
             week={w}
+            allWeeks={weeks}
             isCurrent={w.weekStart === currentWeekStart}
           />
         ))}
