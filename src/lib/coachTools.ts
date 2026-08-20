@@ -4,10 +4,19 @@ import {
   type PlanSession,
   type PlanWeek,
   type TrainingPlan,
+  type WorkoutEntry,
 } from '../store/useStore'
-import { HEB_DAYS, addDays, startOfWeek, toISODate, weekDays } from './dates'
+import { HEB_DAYS, addDays, fromISO, startOfWeek, toISODate, weekDays } from './dates'
 import { entryDuration, formatDuration, sportUnit } from './calc'
 import { weekCompletion } from './planMatch'
+import {
+  MUSCLE_GROUPS,
+  MEV,
+  MRV,
+  muscleLabel,
+  tonnage,
+  volumeByMuscle,
+} from './strength'
 import { weekStartOf } from './planSanitize'
 import {
   aerobicIntensityLabel,
@@ -42,6 +51,15 @@ export const SYSTEM_PERSONA = `אתה מאמן אישי מקצועי ומנוס�
 - **הזזת אימון בלוח = update_planned_workout** עם ה-id מרשימת "אימונים מתוכננים בלוח". אל תמחק ותוסיף מחדש — זה מאבד את הקישור ליומן.
 - **מחיקה היא תמיד מפורשת.** upsert_plan_week מעדכן ומוסיף, אבל אימון שהמשתמש שיבץ בעצמו ללוח לא נמחק רק כי השמטת אותו מרשימת האימונים של השבוע. כדי להוריד אימון מהלוח קרא ל-remove_planned_workout עם ה-id שלו.
 - שלוש התצוגות מסונכרנות אוטומטית: הלוח ("שיבוץ ליומן"), התוכנית ("תוכנית אימונים") ואריח "האימון של היום". שינוי בתוכנית מזיז את הלוח, ושינוי בלוח מעדכן את התוכנית — אין צורך לעדכן פעמיים. השליחה ליומן Google עצמה ממתינה לאישור המשתמש בכפתור "סנכרן ליומן", אז אמור לו לאשר שם.
+
+רישום אימונים ותחושות:
+- **אימוני גרמין נכנסים לבד.** אל תרשום אימון שכבר מופיע ברשימת "אימונים שבוצעו" — זו כפילות שמנפחת את העומס השבועי. log_workout הוא רק למה שלא הגיע מהשעון (אימון כוח בלי שעון, שחייה שלא נמדדה, אימון שהמשתמש מספר עליו בדיעבד).
+- **תחושה חסרה זו הזדמנות.** לאימוני גרמין אין RPE — הם מודדים דופק, לא איך זה הרגיש. אם המשתמש מספר לך איך היה אימון, שמור את זה עם set_workout_debrief לפי ה-id. אם אתה רואה אימון מפתח (ארוך/עצים) מהימים האחרונים בלי תחושה — שאל אותו איך היה, בקצרה, אגב השיחה.
+- שקילה נרשמת עם log_weight.
+
+מעקב כוח (נתוני הסטים):
+- ברשימת "אימונים שבוצעו" מופיעים גם **הסטים שבוצעו בפועל** לכל תרגיל (למשל "לחיצת חזה: 3×8 @55"). זה מה שמאפשר אוברלוד פרוגרסיבי אמיתי — השווה לאימון הקודם של אותו תרגיל והמלץ קונקרטית מתי להעלות משקל, חזרות או סטים.
+- **נפח כוח** מוצג כסטים לקבוצת שריר, מול MEV/MRV — גם ב-28 הימים האחרונים וגם בכל סיכום שבוע. כשאתה מסכם שבוע, התייחס אליו: אילו קבוצות מתחת ל-MEV, אילו מעל MRV, ומה להזיז. סטים בתרגילים שלא תויגו לקבוצת שריר מדווחים בנפרד — אם יש הרבה כאלה, אמור למשתמש לתייג אותם בעמוד הכוח כדי שהתמונה תהיה מלאה.
 
 כללי:
 - כדי לתזמן אימון ליום ספציפי ביומן, השתמש ב-add_planned_workout — הוא מופיע בעמוד "תכנון האימונים", והמשתמש מאשר ושולח ליומן שלו. אל תמציא — הוסף רק אימונים שסיכמתם.
@@ -276,6 +294,59 @@ export const COACH_TOOLS = [
     },
   },
   {
+    name: 'log_workout',
+    description:
+      'רושם אימון שכבר בוצע ליומן האימונים. השתמש כשהמשתמש מספר על אימון שעשה ולא מופיע ברשימת "אימונים שבוצעו" — אימוני גרמין נכנסים לבד, אז בדוק קודם שהוא לא שם כדי לא ליצור כפילות.',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'yyyy-mm-dd; אם לא צוין — היום' },
+        category: { type: 'string', enum: ['strength', 'aerobic', 'other'] },
+        sport: { type: 'string', enum: ['run', 'bike', 'swim'] },
+        distance: {
+          type: 'number',
+          description: 'ריצה/אופניים בק"מ, שחייה במטרים',
+        },
+        durationMin: { type: 'number' },
+        aerobicIntensity: {
+          type: 'string',
+          enum: ['easy', 'long', 'intense', 'technique'],
+        },
+        strengthName: { type: 'string', description: 'שם אימון הכוח' },
+        otherName: { type: 'string' },
+        rpe: { type: 'integer', description: 'תחושת מאמץ 1–10' },
+        note: { type: 'string' },
+      },
+      required: ['category'],
+    },
+  },
+  {
+    name: 'set_workout_debrief',
+    description:
+      'מוסיף תחושה (RPE) והערה לאימון שכבר רשום — כולל אימונים שהגיעו מגרמין בלי תחושה. ה-id מרשימת "אימונים שבוצעו".',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ה-id של האימון מרשימת "אימונים שבוצעו"' },
+        rpe: { type: 'integer', description: 'תחושת מאמץ 1–10' },
+        note: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'log_weight',
+    description: 'רושם שקילה (ק"ג) לתאריך מסוים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        weightKg: { type: 'number' },
+        date: { type: 'string', description: 'yyyy-mm-dd; אם לא צוין — היום' },
+      },
+      required: ['weightKg'],
+    },
+  },
+  {
     name: 'propose_plan_week',
     description:
       'מציע שינוי לשבוע בתוכנית לאישור המשתמש (לא מחיל אותו!). כלול rationale קצר שמסביר למה. השתמש בזה כשמבקשים המלצות להמשך התוכנית.',
@@ -441,6 +512,64 @@ function runTool(name: string, input: any): string {
     case 'forget':
       s.removeMemory(input.id)
       return 'הוסר מזיכרון המאמן.'
+    case 'log_workout': {
+      const date = typeof input.date === 'string' ? input.date : toISODate(new Date())
+      if (!weekStartOf(date))
+        return 'date חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      const category = input.category
+      if (!['strength', 'aerobic', 'other'].includes(category))
+        return 'category חייב להיות strength / aerobic / other.'
+      if (category === 'aerobic' && !['run', 'bike', 'swim'].includes(input.sport))
+        return 'לאימון אירובי צריך sport: run / bike / swim.'
+      // a Garmin activity for the same day and sport is already the truth —
+      // logging over it would double-count the week and the training load
+      const clash = s.log.find(
+        (e) =>
+          e.date === date &&
+          e.category === category &&
+          (category !== 'aerobic' || e.sport === input.sport),
+      )
+      if (clash)
+        return `כבר רשום אימון כזה ב-${date} (id ${clash.id}). אם רצית להוסיף תחושה או הערה — השתמש ב-set_workout_debrief עם ה-id הזה במקום לרשום אימון חדש.`
+      s.addEntry({
+        date,
+        category,
+        ...pick(input, [
+          'sport',
+          'distance',
+          'durationMin',
+          'aerobicIntensity',
+          'strengthName',
+          'otherName',
+          'rpe',
+          'note',
+        ]),
+      } as Omit<WorkoutEntry, 'id'>)
+      return `האימון נרשם ל-${date}. הוא מסומן אוטומטית מול התוכנית אם הוא מתאים לאימון מתוכנן.`
+    }
+    case 'set_workout_debrief': {
+      const entry = s.log.find((e) => e.id === input.id)
+      if (!entry)
+        return 'לא נמצא אימון עם ה-id הזה. בדוק ברשימת "אימונים שבוצעו" במצב הנוכחי.'
+      const rpe = input.rpe == null ? undefined : Math.round(Number(input.rpe))
+      if (rpe != null && (!Number.isFinite(rpe) || rpe < 1 || rpe > 10))
+        return 'rpe חייב להיות מספר שלם בין 1 ל-10.'
+      s.updateEntry(entry.id, {
+        ...(rpe != null ? { rpe } : {}),
+        ...(typeof input.note === 'string' ? { note: input.note } : {}),
+      })
+      return `התחושה נשמרה על האימון של ${entry.date}.`
+    }
+    case 'log_weight': {
+      const date = typeof input.date === 'string' ? input.date : toISODate(new Date())
+      if (!weekStartOf(date))
+        return 'date חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      const kg = Number(input.weightKg)
+      if (!Number.isFinite(kg) || kg <= 0 || kg > 400)
+        return 'weightKg חייב להיות משקל סביר בקילוגרמים.'
+      s.addWeighIn(date, kg)
+      return `נרשמה שקילה של ${kg} ק"ג ל-${date}.`
+    }
     case 'propose_plan_week': {
       const proposedStart = weekStartOf(input.weekStart)
       if (!proposedStart)
@@ -465,6 +594,59 @@ function runTool(name: string, input: any): string {
 }
 
 /** Planned-vs-done summary for one plan week, or null if no plan that week. */
+
+/**
+ * One logged strength session, exercise by exercise.
+ *
+ * The coach was only ever shown the strength *template* ("3×[8,8,8] @55"), so
+ * it could describe the plan but never tell whether last week actually moved —
+ * which is the one thing progressive overload needs. Sets are grouped in the
+ * order they were worked and collapsed into "3×8 @55" runs, because a flat list
+ * of twelve sets costs tokens without adding anything.
+ */
+function describeLoggedSets(e: WorkoutEntry): string[] {
+  const byExercise: { name: string; sets: { reps: number; weightKg?: number }[] }[] = []
+  for (const set of e.sets ?? []) {
+    const last = byExercise[byExercise.length - 1]
+    if (last && last.name === set.exerciseName) last.sets.push(set)
+    else byExercise.push({ name: set.exerciseName, sets: [set] })
+  }
+  return byExercise.map(({ name, sets }) => {
+    const runs: string[] = []
+    let i = 0
+    while (i < sets.length) {
+      let n = 1
+      while (
+        i + n < sets.length &&
+        sets[i + n].reps === sets[i].reps &&
+        sets[i + n].weightKg === sets[i].weightKg
+      )
+        n += 1
+      const w = sets[i].weightKg
+      runs.push(`${n}×${sets[i].reps}${w ? ` @${w}` : ''}`)
+      i += n
+    }
+    return `${name}: ${runs.join(', ')}`
+  })
+}
+
+/** Sets per muscle group for a date range, against the MEV/MRV band. */
+function volumeLines(from: string, to: string): string[] {
+  const s = useStore.getState()
+  const { byMuscle, untaggedSets } = volumeByMuscle(s.log, from, to)
+  const worked = MUSCLE_GROUPS.filter((m) => byMuscle[m] > 0)
+  if (!worked.length && !untaggedSets) return []
+  const lines = worked.map(
+    (m) =>
+      `${muscleLabel[m]} ${byMuscle[m]}` +
+      (byMuscle[m] < MEV ? ' (מתחת ל-MEV)' : byMuscle[m] > MRV ? ' (מעל MRV)' : ''),
+  )
+  const out = [`    נפח כוח (סטים לקבוצת שריר, MEV ${MEV} / MRV ${MRV}): ${lines.join(', ') || 'אין'}`]
+  if (untaggedSets)
+    out.push(`    ועוד ${untaggedSets} סטים בתרגילים שלא תויגו לקבוצת שריר.`)
+  return out
+}
+
 function weekReview(weekStartISO: string, label: string): string | null {
   const s = useStore.getState()
   const w = s.trainingPlan?.weeks.find((x) => x.weekStart === weekStartISO)
@@ -482,6 +664,9 @@ function weekReview(weekStartISO: string, label: string): string | null {
           .map((x) => `${HEB_DAYS[x.day]} ${x.sport}${x.label ? `(${x.label})` : ''}`)
           .join(', '),
     )
+  // what the strength work actually amounted to, so a week summary can talk
+  // about volume per muscle instead of just "3/4 sessions done"
+  lines.push(...volumeLines(weekStartISO, toISODate(addDays(fromISO(weekStartISO), 6))))
   return lines.join('\n')
 }
 
@@ -537,14 +722,23 @@ export function buildContext(): string {
     parts.push('אין עדיין תוכנית כוח.')
   }
 
+  const volFrom = toISODate(addDays(new Date(), -27))
+  const vol = volumeLines(volFrom, today)
+  if (vol.length) {
+    parts.push(`נפח כוח מצטבר (28 יום, ${volFrom} – ${today}):`)
+    parts.push(...vol.map((l) => l.trim()).map((l) => '  ' + l))
+  }
+
   const recent = [...s.log]
     .filter((e) => e.date >= toISODate(new Date(Date.now() - 21 * 86400000)))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 25)
   if (recent.length) {
-    parts.push('אימונים שבוצעו (21 יום אחרונים):')
+    parts.push(
+      'אימונים שבוצעו (21 יום אחרונים; id | פרטים — השתמש ב-id ב-set_workout_debrief):',
+    )
     for (const e of recent) {
-      const bits = [e.date, categoryLabel[e.category]]
+      const bits = [e.id, e.date, categoryLabel[e.category]]
       if (e.sport) bits.push(sportLabel[e.sport])
       if (e.distance) bits.push(`${e.distance} ${e.sport ? sportUnit(e.sport) : ''}`)
       if (e.aerobicIntensity) bits.push(aerobicIntensityLabel[e.aerobicIntensity])
@@ -553,8 +747,14 @@ export function buildContext(): string {
       if (e.avgHr) bits.push(`דופק ${e.avgHr}${e.maxHr ? `/${e.maxHr}` : ''}`)
       if (e.rpe) bits.push(`תחושה RPE ${e.rpe}/10`)
       if (e.source === 'garmin') bits.push('(גרמין)')
+      if (e.sets?.length) {
+        const kg = tonnage(e.sets)
+        bits.push(`${e.sets.length} סטים${kg ? ` · ${kg} ק״ג סה״כ` : ''}`)
+      }
       if (e.note) bits.push(`"${e.note}"`)
       parts.push('  - ' + bits.join(' · '))
+      // the actual sets, so progressive overload has something to stand on
+      for (const line of describeLoggedSets(e)) parts.push('      ' + line)
     }
   } else {
     parts.push('אין אימונים שבוצעו לאחרונה.')
