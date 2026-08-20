@@ -320,6 +320,8 @@ interface State {
   coachMessages: ChatMessage[]
   coachMemory: CoachMemory[]
   planProposals: PlanProposal[]
+  /** nudge id → dismissal date */
+  dismissedNudges: Record<string, string>
   calendarQuery: string
   calendarBusy: CalendarBusy[]
   /**
@@ -422,6 +424,8 @@ interface State {
   // coach memory / brief / plan proposals
   addMemory: (text: string) => void
   removeMemory: (id: ID) => void
+  /** nudge id → the date it was dismissed, so it can come back tomorrow */
+  dismissNudge: (id: string) => void
   setPlanProposals: (proposals: PlanProposal[]) => void
   addPlanProposal: (proposal: Omit<PlanProposal, 'id'>) => void
   removePlanProposal: (id: ID) => void
@@ -456,6 +460,7 @@ export const useStore = create<State>()(
       coachMessages: [],
       coachMemory: [],
       planProposals: [],
+      dismissedNudges: {},
       calendarQuery: 'אלבטרוס',
       calendarBusy: [],
       pendingCalendarDeletes: [],
@@ -829,6 +834,10 @@ export const useStore = create<State>()(
         }),
       removeMemory: (id) =>
         set((s) => ({ coachMemory: s.coachMemory.filter((m) => m.id !== id) })),
+      dismissNudge: (id) =>
+        set((st) => ({
+          dismissedNudges: { ...st.dismissedNudges, [id]: toISODate(new Date()) },
+        })),
       setPlanProposals: (proposals) => set({ planProposals: proposals }),
       addPlanProposal: (proposal) =>
         set((s) => ({
@@ -875,7 +884,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'training-app-v1',
-      version: 3,
+      version: 4,
       migrate: (state) => {
         const prev = (state ?? {}) as { trainingPlan?: unknown }
         return {
@@ -883,6 +892,7 @@ export const useStore = create<State>()(
           garminSyncStatus: { state: 'idle' },
           garminDaily: [],
           pendingCalendarDeletes: [], // added in v2
+          dismissedNudges: {}, // added in v4
           ...(prev as object),
           // v3: a plan saved before the coach's input was validated can hold a
           // week with no weekStart, which throws while rendering the program

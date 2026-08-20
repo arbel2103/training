@@ -21,9 +21,14 @@ function buildSystem() {
 export default function CoachPanel({
   open,
   onClose,
+  ask,
+  onAsked,
 }: {
   open: boolean
   onClose: () => void
+  /** a question handed in from outside — asked once, on open */
+  ask?: string | null
+  onAsked?: () => void
 }) {
   const messages = useStore((s) => s.coachMessages)
   const addChatMessage = useStore((s) => s.addChatMessage)
@@ -50,6 +55,16 @@ export default function CoachPanel({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, keySet])
+
+  // a question routed in from a nudge card: ask it as though it were typed,
+  // and clear it so reopening the panel doesn't ask again
+  useEffect(() => {
+    if (!open || !keySet || !ask) return
+    kickedOff.current = true // it is the opener; no need for the introduction
+    onAsked?.()
+    void send(ask)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, keySet, ask])
 
   async function callCoach(apiMessages: ApiMessage[]): Promise<string> {
     return runCoach({

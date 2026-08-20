@@ -13,6 +13,8 @@ import { sportColorClass, sportLabel } from '../../lib/labels'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import WeekProgressRings from '../../components/WeekProgressRings'
 import FuelStrip from '../../components/FuelStrip'
+import CoachNudges from '../../components/CoachNudges'
+import DebriefPrompt from '../../components/DebriefPrompt'
 import { entryDuration, formatDuration, sportUnit } from '../../lib/calc'
 import { lastBackupAt } from '../../lib/driveSync'
 import { hasGarminSetup } from '../../lib/garmin/pat'
@@ -239,6 +241,9 @@ export default function HomePage() {
         <StatsTab />
       ) : (
         <>
+      {/* the coach speaking first, and the feel the watch could not record */}
+      <CoachNudges />
+      <DebriefPrompt />
       {showGarminBanner && (
         <div
           className="card p-3.5 mb-5 text-sm bg-accent-soft/40"

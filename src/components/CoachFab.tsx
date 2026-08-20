@@ -1,9 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CoachPanel from './CoachPanel'
+import { onAskCoach } from '../lib/coachBus'
 import Icon from './ui/Icon'
 
 export default function CoachFab() {
   const [open, setOpen] = useState(false)
+  // a question sent from elsewhere in the app (a nudge card, a debrief prompt)
+  const [ask, setAsk] = useState<string | null>(null)
+
+  useEffect(() => {
+    onAskCoach((prompt) => {
+      setAsk(prompt)
+      setOpen(true)
+    })
+    return () => onAskCoach(null)
+  }, [])
+
   return (
     <>
       {!open && (
@@ -17,7 +29,15 @@ export default function CoachFab() {
           <span className="hidden sm:inline">המאמן</span>
         </button>
       )}
-      <CoachPanel open={open} onClose={() => setOpen(false)} />
+      <CoachPanel
+        open={open}
+        ask={ask}
+        onAsked={() => setAsk(null)}
+        onClose={() => {
+          setOpen(false)
+          setAsk(null)
+        }}
+      />
     </>
   )
 }
