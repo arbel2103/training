@@ -115,12 +115,19 @@ export default function HabitDetailModal({
                   key={date}
                   onClick={() => onDayTap(date)}
                   disabled={!editable}
-                  title={date}
-                  className={`aspect-square rounded-lg grid place-items-center text-[10px] font-semibold transition ${cellClass(st)} ${
+                  title={`${date}${st === 'frozen' ? ' · מוקפא' : ''}`}
+                  className={`relative aspect-square rounded-lg grid place-items-center text-[10px] font-semibold transition ${cellClass(st)} ${
                     editable ? 'active:scale-95' : 'opacity-40 cursor-default'
                   }`}
                 >
                   {fromISO(date).getDate()}
+                  {/* a tint alone was indistinguishable from a missed day, so a
+                      frozen day says so with a mark rather than a shade */}
+                  {st === 'frozen' && (
+                    <span className="absolute -top-1 -right-1 text-[9px] leading-none">
+                      ❄️
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -180,7 +187,7 @@ function cellClass(state: ReturnType<typeof dayState>): string {
     case 'missed':
       return 'bg-run/15 text-run'
     case 'frozen':
-      return 'bg-bike/20 text-bike'
+      return 'bg-bike/25 text-bike ring-2 ring-inset ring-bike/70'
     case 'pending':
       return 'border border-dashed border-muted/50 text-muted'
     default:

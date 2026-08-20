@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   computeStats,
   dayState,
+  freezeDays,
   freezeLengthDays,
   isFrozen,
   lastNDays,
@@ -212,5 +213,51 @@ describe('freeze helpers', () => {
     expect(freezeLengthDays({ start: day(-2), end: day(-1) }, TODAY)).toBe(2)
     expect(freezeLengthDays({ start: day(-3), end: null }, TODAY)).toBe(4)
     expect(freezeLengthDays({ start: TODAY, end: null }, TODAY)).toBe(1)
+  })
+})
+
+describe('freezeDays', () => {
+  it('lists every day a closed freeze covered, ends included', () => {
+    const f: GlobalFreeze = { start: day(-4), end: day(-2) }
+    expect(freezeDays(f, TODAY)).toEqual([day(-4), day(-3), day(-2)])
+  })
+
+  it('runs an open freeze up to today', () => {
+    const f: GlobalFreeze = { start: day(-2), end: null }
+    expect(freezeDays(f, TODAY)).toEqual([day(-2), day(-1), TODAY])
+  })
+
+  it('gives a single day for a freeze that started and ended the same day', () => {
+    expect(freezeDays({ start: day(-1), end: day(-1) }, TODAY)).toEqual([day(-1)])
+  })
+})
+
+describe('ticking a day inside a freeze — coming back from a trip', () => {
+  const freeze: GlobalFreeze[] = [{ start: day(-4), end: day(-2) }]
+
+  it('reads as done, not frozen, once it is ticked', () => {
+    const h = habit({ completions: { [day(-3)]: true } })
+    expect(dayState(h, day(-3), freeze, TODAY)).toBe('done')
+    // the days left alone stay excused
+    expect(dayState(h, day(-4), freeze, TODAY)).toBe('frozen')
+  })
+
+  it('counts towards the rate while the untouched days stay out of it', () => {
+    const h = habit({ createdDate: day(-4), completions: { [day(-3)]: true } })
+    const stats = computeStats(h, freeze, TODAY)
+    // of the 3 frozen days only the ticked one counts; yesterday is a plain
+    // miss, and today is still pending so it stays out of the maths
+    expect(stats.doneDays).toBe(1)
+    expect(stats.countedDays).toBe(2)
+    expect(stats.rate).toBe(50)
+  })
+
+  it('carries the streak across days left frozen', () => {
+    const h = habit({
+      createdDate: day(-4),
+      completions: { [day(-4)]: true, [day(-2)]: true, [day(-1)]: true },
+    })
+    // day(-3) was left frozen — it neither adds nor resets
+    expect(computeStats(h, freeze, TODAY).currentStreak).toBe(3)
   })
 })

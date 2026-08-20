@@ -4,9 +4,12 @@ import Ring from '../../../components/ui/Ring'
 import Icon from '../../../components/ui/Icon'
 import { toISODate } from '../../../lib/dates'
 import { useStore } from '../store/useStore'
-import { freezeLengthDays, openFreeze, todayProgress } from '../lib/habitMath'
+import { freezeDays, freezeLengthDays, openFreeze, todayProgress } from '../lib/habitMath'
 import CategorySection from '../components/CategorySection'
 import DayNote from '../components/DayNote'
+import Snowfall from '../components/Snowfall'
+import UnfreezeReview from '../components/UnfreezeReview'
+import type { GlobalFreeze } from '../lib/types'
 
 /** The one page: today's progress ring, the freeze control, and the accordion. */
 export default function TodayPage() {
@@ -23,6 +26,10 @@ export default function TodayPage() {
 
   const [addingCat, setAddingCat] = useState(false)
   const [catName, setCatName] = useState('')
+  const [snowing, setSnowing] = useState(false)
+  // the freeze that just ended, held so its days can be reviewed after the
+  // store has already closed it — leaving everything frozen if this is dismissed
+  const [reviewing, setReviewing] = useState<GlobalFreeze | null>(null)
 
   const sortedCats = [...categories].sort((a, b) => a.order - b.order)
 
@@ -64,7 +71,19 @@ export default function TodayPage() {
                 לך, שום דבר לא נשבר.
               </div>
             </div>
-            <button onClick={endGlobalFreeze} className="btn-primary shrink-0 text-sm">
+            <button
+              onClick={() => {
+                endGlobalFreeze()
+                // read the range back after it is closed rather than reusing
+                // the open one: the review is about the days that stay frozen,
+                // and today is a normal day again the moment you come back
+                const closed = useStore
+                  .getState()
+                  .freezes.find((f) => f.start === frozen.start)
+                if (closed && freezeDays(closed, today).length) setReviewing(closed)
+              }}
+              className="btn-primary shrink-0 text-sm"
+            >
               המשך מעקב
             </button>
           </div>
@@ -82,8 +101,10 @@ export default function TodayPage() {
                 window.confirm(
                   'להקפיא את כל ההרגלים? הימים עד שתבטל את ההקפאה לא ייספרו ולא ישברו רצף.',
                 )
-              )
+              ) {
                 startGlobalFreeze()
+                setSnowing(true)
+              }
             }}
             className="btn-soft text-sm gap-1.5"
           >
@@ -152,6 +173,15 @@ export default function TodayPage() {
           </button>
         )}
       </div>
+
+      {snowing && <Snowfall onDone={() => setSnowing(false)} />}
+      {reviewing && (
+        <UnfreezeReview
+          freeze={reviewing}
+          today={today}
+          onClose={() => setReviewing(null)}
+        />
+      )}
     </div>
   )
 }

@@ -149,6 +149,15 @@ export function todayProgress(
 export const openFreeze = (freezes: GlobalFreeze[]): GlobalFreeze | undefined =>
   freezes.find((f) => f.end === null)
 
+/** Every calendar day a freeze covered, oldest first. An open range runs to `today`. */
+export function freezeDays(freeze: GlobalFreeze, today: ISODate): ISODate[] {
+  const end = freeze.end ?? today
+  const days: ISODate[] = []
+  for (let d = fromISO(freeze.start); toISODate(d) <= end; d = addDays(d, 1))
+    days.push(toISODate(d))
+  return days
+}
+
 /** Whole days a freeze has been running, counting the day it started as 1. */
 export function freezeLengthDays(freeze: GlobalFreeze, today: ISODate): number {
   const end = freeze.end ?? today

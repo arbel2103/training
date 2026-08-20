@@ -298,3 +298,39 @@ input[type='number'] {
 .no-spinner {
   -moz-appearance: textfield;
 }
+
+/* Snowfall — the flourish when every habit is put on ice. Two transforms in
+   one animation: `fall` carries the flake down the viewport while `drift`
+   sways it sideways, so no two paths look alike once the durations differ. */
+@keyframes snow-fall {
+  from {
+    transform: translate3d(0, -12vh, 0);
+  }
+  to {
+    transform: translate3d(0, 108vh, 0);
+  }
+}
+@keyframes snow-drift {
+  from {
+    transform: translateX(-14px) rotate(0deg);
+  }
+  to {
+    transform: translateX(14px) rotate(220deg);
+  }
+}
+.snowflake {
+  position: absolute;
+  top: 0;
+  will-change: transform;
+  animation: snow-fall linear forwards;
+}
+.snowflake > span {
+  display: block;
+  animation: snow-drift ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .snowflake,
+  .snowflake > span {
+    animation: none;
+  }
+}
