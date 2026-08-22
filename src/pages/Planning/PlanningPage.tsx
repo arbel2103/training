@@ -32,6 +32,8 @@ import {
   type GCalEvent,
 } from '../../lib/googleCalendar'
 import GoogleConsentNote from '../../components/GoogleConsentNote'
+import WeekDigestSheet from '../../components/WeekDigestSheet'
+import { weekDigest } from '../../lib/weekDigest'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import PlanFormModal from './PlanFormModal'
@@ -114,6 +116,8 @@ export default function PlanningPage() {
   const [calEvents, setCalEvents] = useState<Record<string, GCalEvent[]>>({})
   const [calendars, setCalendars] = useState<{ id: string; summary: string }[]>([])
   const [calendarMissing, setCalendarMissing] = useState(false)
+  // the week as shareable text, shown once a sync actually lands
+  const [digest, setDigest] = useState<{ text: string; synced: boolean } | null>(null)
 
   const weekSlice = useCallback(
     (list: PlannedWorkout[]) =>
@@ -276,6 +280,11 @@ export default function PlanningPage() {
             updatePlanned(p.id, { syncedEventId: created.id, needsPush: false })
         }
       }
+      // the schedule is settled now — offer it as something to send on
+      setDigest({
+        text: weekDigest(useStore.getState().planned, weekStart, weekEnd),
+        synced: true,
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -473,6 +482,18 @@ export default function PlanningPage() {
         }
       />
 
+      {/* the same summary on demand, without having to re-sync to get it back */}
+      {weekPlanned.length > 0 && (
+        <button
+          onClick={() =>
+            setDigest({ text: weekDigest(planned, weekStart, weekEnd), synced: false })
+          }
+          className="btn-ghost text-sm gap-1.5 mb-3"
+        >
+          <Icon name="clipboard" className="w-4 h-4" /> העתק את השבוע כטקסט
+        </button>
+      )}
+
       {/* connection / status bar */}
       <div className="card p-4 mb-5 flex flex-wrap items-center gap-3">
         {!isConfigured() ? (
@@ -647,6 +668,14 @@ export default function PlanningPage() {
           <DayCard key={toISODate(d)} iso={toISODate(d)} index={i} />
         ))}
       </div>
+
+      {digest && (
+        <WeekDigestSheet
+          text={digest.text}
+          synced={digest.synced}
+          onClose={() => setDigest(null)}
+        />
+      )}
 
       <PlanFormModal
         open={formDate !== null}
