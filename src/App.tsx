@@ -87,7 +87,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
+      <header className="sticky top-0 z-30 chrome border-b">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <AppSwitcher />
@@ -104,8 +104,8 @@ export default function App() {
                   onClick={() => goTo(i)}
                   className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-semibold text-base transition ${
                     active
-                      ? 'bg-ink text-bg shadow-card'
-                      : 'text-muted hover:text-ink hover:bg-ink/5'
+                      ? 'seg-btn-active'
+                      : 'text-muted hover:text-accent hover:bg-accent/5'
                   }`}
                 >
                   <p.Icon className="w-5 h-5 shrink-0" />
@@ -163,7 +163,7 @@ export default function App() {
 
       {/* bottom tab bar — phones only, like a native app */}
       <nav
-        className="md:hidden bg-surface/95 backdrop-blur border-t border-line"
+        className="md:hidden chrome border-t"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex">
@@ -182,7 +182,7 @@ export default function App() {
               >
                 <span
                   className={`grid place-items-center px-4 py-1 rounded-full transition ${
-                    active ? 'bg-accent-soft' : ''
+                    active ? 'nav-active' : ''
                   }`}
                 >
                   <p.Icon className="w-6 h-6" />

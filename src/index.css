@@ -3,65 +3,82 @@
 @tailwind utilities;
 
 :root {
-  /* Premium "glass" system. One cohesive cool palette — an indigo accent with
-     the sport colors as an analogous cool ramp (teal → azure → violet), no
-     warm tones. RGB channel triplets so Tailwind alpha modifiers work; full
-     rgba/gradient tokens for the frosted cards + ambient ground. */
+  /* Electric-glass system. A periwinkle daylight ground with vivid blue
+     instrumentation on top of it — deep navy ink, frosted panels with a lit
+     top edge, and a faint blueprint grid so the surface reads as a machine
+     rather than paper. RGB channel triplets so Tailwind alpha modifiers work;
+     full rgba/gradient tokens for the frosted cards + ambient ground. */
 
-  /* light theme — the same design translated to a clean, cool daylight */
-  --bg: 244 245 248;
+  /* light theme — periwinkle ground, white glass, electric blue */
+  --bg: 226 229 250;
   --surface: 255 255 255;
-  --ink: 20 21 26;
-  --muted: 106 108 120;
-  --line: 226 228 235;
-  --accent: 91 79 219;
-  --accent-soft: 233 231 251;
+  --ink: 15 23 42;
+  --muted: 100 116 139;
+  --line: 203 212 245;
+  --accent: 37 99 235;
+  --accent-soft: 219 229 254;
 
-  /* sport / category colors — a cool ramp, deepened for contrast on white */
-  --c-strength: 110 114 206;
-  --c-run: 130 87 220;
-  --c-bike: 59 111 212;
-  --c-swim: 14 154 174;
-  --c-other: 120 124 140;
+  /* sport / category colors — one blue family, kept far enough apart to read */
+  --c-strength: 99 102 241;
+  --c-run: 124 58 237;
+  --c-bike: 37 99 235;
+  --c-swim: 6 165 199;
+  --c-other: 100 116 139;
 
-  /* frosted-glass card + ambient page ground */
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --card-border: rgba(20, 21, 26, 0.07);
-  --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.55), transparent 46%);
-  --card-shadow: 0 20px 45px -26px rgba(30, 35, 60, 0.3);
+  /* frosted-glass card: translucent white over the lavender ground */
+  --card-bg: rgba(255, 255, 255, 0.72);
+  --card-border: rgba(37, 99, 235, 0.14);
+  --card-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.85), transparent 52%);
+  /* a lit top edge — the tell that a panel is glass and not a rectangle */
+  --card-edge: rgba(255, 255, 255, 0.95);
+  --card-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 22px 50px -28px rgba(30, 45, 110, 0.45);
+  --glow: rgba(37, 99, 235, 0.35);
+  /* the blueprint grid, faint enough to feel like texture rather than lines */
+  --grid-line: rgba(37, 99, 235, 0.055);
   --page-bg:
-    radial-gradient(1100px 620px at 82% -10%, rgba(91, 79, 219, 0.06), transparent 60%),
-    radial-gradient(900px 640px at 4% 6%, rgba(14, 154, 174, 0.06), transparent 58%),
-    radial-gradient(1000px 900px at 50% 120%, rgba(130, 87, 220, 0.05), transparent 60%),
-    rgb(244 245 248);
+    linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+    radial-gradient(1100px 620px at 84% -12%, rgba(59, 130, 246, 0.3), transparent 62%),
+    radial-gradient(900px 640px at 2% 4%, rgba(129, 140, 248, 0.28), transparent 60%),
+    radial-gradient(1000px 900px at 50% 118%, rgba(37, 99, 235, 0.16), transparent 62%),
+    rgb(226 229 250);
 }
 
-/* dark theme — the premium near-black glass the design was pitched in */
+/* dark theme — the deep navy instrument panel the references are lit like */
 :root[data-theme='dark'] {
-  --bg: 10 10 12;
-  --surface: 22 22 26;
-  --ink: 237 237 242;
-  --muted: 131 131 142;
-  --line: 40 40 46;
-  --accent: 141 130 246;
-  --accent-soft: 40 35 74;
+  --bg: 8 14 34;
+  --surface: 17 26 54;
+  --ink: 226 233 248;
+  --muted: 138 154 187;
+  --line: 40 57 102;
+  --accent: 96 165 250;
+  --accent-soft: 25 45 92;
 
-  /* the cool ramp, brightened for black */
-  --c-strength: 148 152 238;
-  --c-run: 163 133 247;
-  --c-bike: 110 146 242;
-  --c-swim: 53 203 222;
-  --c-other: 150 152 165;
+  /* the same ramp, brightened to hold up against navy */
+  --c-strength: 129 140 248;
+  --c-run: 167 139 250;
+  --c-bike: 96 165 250;
+  --c-swim: 34 211 238;
+  --c-other: 148 163 195;
 
-  --card-bg: rgba(255, 255, 255, 0.045);
-  --card-border: rgba(255, 255, 255, 0.085);
-  --card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 44%);
-  --card-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
+  --card-bg: rgba(30, 45, 88, 0.55);
+  --card-border: rgba(96, 165, 250, 0.2);
+  --card-sheen: linear-gradient(165deg, rgba(120, 170, 255, 0.12), transparent 50%);
+  --card-edge: rgba(147, 197, 253, 0.45);
+  --card-shadow:
+    0 1px 0 rgba(147, 197, 253, 0.12) inset,
+    0 26px 60px -28px rgba(0, 0, 0, 0.9);
+  --glow: rgba(96, 165, 250, 0.45);
+  --grid-line: rgba(96, 165, 250, 0.05);
   --page-bg:
-    radial-gradient(1100px 620px at 78% -8%, rgba(141, 130, 246, 0.12), transparent 60%),
-    radial-gradient(900px 640px at 6% 8%, rgba(53, 203, 222, 0.09), transparent 58%),
-    radial-gradient(1000px 900px at 50% 118%, rgba(163, 133, 247, 0.08), transparent 60%),
-    rgb(10 10 12);
+    linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+    radial-gradient(1100px 620px at 80% -10%, rgba(37, 99, 235, 0.4), transparent 62%),
+    radial-gradient(900px 640px at 4% 6%, rgba(14, 165, 233, 0.22), transparent 60%),
+    radial-gradient(1000px 900px at 50% 118%, rgba(99, 102, 241, 0.24), transparent 62%),
+    rgb(8 14 34);
 }
 
 * {
@@ -118,9 +135,28 @@ body {
     background: var(--card-sheen);
     pointer-events: none;
   }
+  /* a hairline of light along the top edge, as though the panel is catching a
+     source above it — what separates a glass slab from a flat rectangle */
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, var(--card-edge), transparent);
+    pointer-events: none;
+  }
   .input {
-    @apply w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-ink
-           outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15;
+    @apply w-full border border-line rounded-xl px-3.5 py-2.5 text-ink
+           outline-none transition focus:border-accent;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .input:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, rgb(var(--accent)) 18%, transparent);
   }
   .label {
     @apply block text-sm font-medium text-muted mb-1.5;
@@ -129,29 +165,67 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-semibold
            transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
   }
+  /* the lit control: a blue gradient with its own glow, so the primary action
+     reads as powered rather than merely dark */
   .btn-primary {
-    @apply btn bg-ink text-bg hover:opacity-90 hover:-translate-y-px;
+    @apply btn text-white hover:-translate-y-px;
+    background: linear-gradient(
+      135deg,
+      rgb(var(--accent)),
+      color-mix(in srgb, rgb(var(--accent)) 72%, rgb(var(--c-swim)))
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.28) inset,
+      0 10px 24px -10px var(--glow);
+  }
+  .btn-primary:hover {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.28) inset,
+      0 14px 30px -10px var(--glow);
   }
   .btn-accent {
     @apply btn bg-accent text-white hover:opacity-90 hover:-translate-y-px;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-ink border border-line hover:border-ink/40;
+    @apply btn bg-transparent text-ink border border-line hover:border-accent/50 hover:text-accent;
   }
   .btn-soft {
-    @apply btn bg-accent-soft text-accent hover:bg-accent-soft/70;
+    @apply btn bg-accent-soft text-accent border border-accent/15 hover:border-accent/35;
+  }
+  /* the app's fixed furniture — top tabs, header, bottom nav. One frosted
+     layer over the page so the content scrolls behind it as glass rather than
+     hiding under an opaque bar. */
+  .chrome {
+    background: color-mix(in srgb, rgb(var(--bg)) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    border-color: var(--card-border);
   }
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border border-line bg-surface;
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border border-line;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
   .seg-btn {
     @apply px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-transparent;
   }
+  /* the lit pill on the bottom nav / active tab */
+  .nav-active {
+    background: color-mix(in srgb, rgb(var(--accent)) 16%, transparent);
+    box-shadow: 0 6px 18px -8px var(--glow);
+  }
   .seg-btn-active {
-    @apply bg-ink text-bg;
+    @apply text-white;
+    background: linear-gradient(
+      135deg,
+      rgb(var(--accent)),
+      color-mix(in srgb, rgb(var(--accent)) 72%, rgb(var(--c-swim)))
+    );
+    box-shadow: 0 8px 20px -10px var(--glow);
   }
   .seg-btn-idle {
-    @apply bg-surface text-muted border-line hover:text-ink hover:border-ink/30;
+    @apply bg-surface/60 text-muted border-line hover:text-accent hover:border-accent/40;
   }
 }
 

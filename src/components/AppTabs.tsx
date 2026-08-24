@@ -29,7 +29,7 @@ export default function AppTabs() {
   return (
     <div
       data-guide="app-tabs"
-      className="shrink-0 bg-surface border-b border-line"
+      className="shrink-0 chrome border-b"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="max-w-6xl mx-auto flex">
@@ -47,7 +47,10 @@ export default function AppTabs() {
               <Icon name={t.icon} className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{t.name}</span>
               {active && (
-                <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" />
+                <span
+                  className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent"
+                  style={{ boxShadow: '0 0 10px 1px var(--glow)' }}
+                />
               )}
             </button>
           )
