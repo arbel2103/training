@@ -70,10 +70,18 @@ export default function Heatmap({
                       : ''
                     : ` · ${Math.round(cell.pct * 100)}%`
                 }`}
-                className={`w-3 h-3 rounded-[3px] ${tone(cell, future)} ${
-                  onDayTap && !future ? 'active:scale-90 transition' : ''
-                }`}
-              />
+                className={`w-3 h-3 rounded-[3px] grid place-items-center ${tone(
+                  cell,
+                  future,
+                )} ${onDayTap && !future ? 'active:scale-90 transition' : ''}`}
+              >
+                {/* a frozen day is marked, not shaded: another tint in a grid
+                    of tints is one more colour to decode, while a snowflake
+                    says what it is at a glance */}
+                {!future && cell?.pct == null && cell?.frozen && (
+                  <span className="text-[8px] leading-none text-bike">❄</span>
+                )}
+              </button>
             )
           })}
         </div>
@@ -82,11 +90,13 @@ export default function Heatmap({
   )
 }
 
-/** Five steps of accent plus distinct looks for frozen / empty / future. */
+/** Five steps of accent, plus distinct looks for frozen / empty / future. */
 function tone(cell: HeatCell | undefined, future: boolean): string {
   if (future) return 'bg-transparent'
   if (!cell || cell.pct == null)
-    return cell?.frozen ? 'bg-bike/25 ring-1 ring-inset ring-bike/40' : 'bg-line/50'
+    // frozen days carry a snowflake instead of a fill, so the cell itself
+    // stays clear and the mark is what reads
+    return cell?.frozen ? 'bg-transparent' : 'bg-line/50'
   if (cell.pct === 0) return 'bg-run/20 ring-1 ring-inset ring-run/30'
   if (cell.pct < 0.34) return 'bg-accent/25'
   if (cell.pct < 0.67) return 'bg-accent/50'
@@ -105,7 +115,9 @@ export function HeatmapLegend() {
       <span className="w-3 h-3 rounded-[3px] bg-accent/75" />
       <span className="w-3 h-3 rounded-[3px] bg-accent" />
       <span>יותר</span>
-      <span className="w-3 h-3 rounded-[3px] bg-bike/25 ring-1 ring-inset ring-bike/40 ms-1.5" />
+      <span className="w-3 h-3 grid place-items-center ms-1.5 text-[9px] leading-none text-bike">
+        ❄
+      </span>
       <span>מוקפא</span>
     </div>
   )
