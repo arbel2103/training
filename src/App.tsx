@@ -10,7 +10,6 @@ import AppSwitcher from './components/AppSwitcher'
 import { useAppShell } from './lib/appShell'
 import { useStore } from './store/useStore'
 import { startOfWeek, toISODate } from './lib/dates'
-import { getTheme, toggleTheme, type Theme } from './lib/theme'
 import { useGarminRefreshOnMount } from './lib/garmin/useGarminData'
 import {
   IconToday,
@@ -18,8 +17,6 @@ import {
   IconCalendar,
   IconHealth,
   IconHelp,
-  IconSun,
-  IconMoon,
   IconCloud,
 } from './components/ui/NavIcons'
 
@@ -33,7 +30,6 @@ const PAGES = [
 export default function App() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>(() => getTheme())
   const scrollerRef = useRef<HTMLDivElement>(null)
   const indexRef = useRef(0)
   const openGuide = useAppShell((s) => s.openGuide)
@@ -124,15 +120,6 @@ export default function App() {
             <IconHelp className="w-5 h-5" />
           </button>
           <button
-            data-guide="theme"
-            onClick={() => setTheme(toggleTheme())}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
-            title={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
-            aria-label={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
-          >
-            {theme === 'dark' ? <IconSun className="w-5 h-5" /> : <IconMoon className="w-5 h-5" />}
-          </button>
-          <button
             data-guide="sync"
             onClick={() => setSyncOpen(true)}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
@@ -163,7 +150,7 @@ export default function App() {
 
       {/* bottom tab bar — phones only, like a native app */}
       <nav
-        className="md:hidden chrome border-t"
+        className="md:hidden chrome chrome-warm border-t"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex">

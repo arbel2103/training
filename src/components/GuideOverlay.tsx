@@ -188,20 +188,17 @@ const STEPS: Step[] = [
     target: 'sync',
   },
   {
-    icon: 'moon',
-    title: 'מצב כהה והתקנה',
+    icon: 'download',
+    title: 'התקנה כאפליקציה',
     body: (
       <ul className="space-y-1 list-disc pr-4">
-        <li>
-          <b>מצב כהה</b> — הכפתור הזה, נוח לעיניים בערב
-        </li>
         <li>
           <b>התקנה כאפליקציה:</b> בטלפון "הוסף למסך הבית", במחשב אייקון ההתקנה
           בשורת הכתובת — נפתחת כמו אפליקציה ועובדת גם בלי אינטרנט
         </li>
       </ul>
     ),
-    target: 'theme',
+    target: 'sync',
   },
   {
     icon: 'wallet',

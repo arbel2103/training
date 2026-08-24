@@ -8,8 +8,7 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <link rel="manifest" href="/training/manifest.webmanifest" />
-    <meta name="theme-color" content="#f4f5f8" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#e9f1ea" />
     <link rel="apple-touch-icon" href="/training/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -22,11 +21,11 @@
     />
     <title>TriLife</title>
     <script>
-      // apply theme before first paint (saved choice, else system preference)
+      // the app is light-only; clear a dark choice left by an older version so
+      // a returning device is not stuck with a theme that no longer exists
       try {
-        var t = localStorage.getItem('fitness-theme')
-        if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark'
-        if (t === 'dark') document.documentElement.dataset.theme = 'dark'
+        localStorage.removeItem('fitness-theme')
+        delete document.documentElement.dataset.theme
       } catch (e) {}
     </script>
   </head>

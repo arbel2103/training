@@ -3,102 +3,65 @@
 @tailwind utilities;
 
 :root {
-  /* Electric-glass system. A periwinkle daylight ground with vivid blue
-     instrumentation on top of it — deep navy ink, frosted panels with a lit
-     top edge, and a faint blueprint grid so the surface reads as a machine
-     rather than paper. RGB channel triplets so Tailwind alpha modifiers work;
-     full rgba/gradient tokens for the frosted cards + ambient ground. */
+  /* Soft-mint system. A pale green daylight ground with white panels and one
+     sage-green action colour — calm rather than clinical. Light only: there is
+     no dark variant, so every token is defined once. RGB channel triplets so
+     Tailwind alpha modifiers work; full rgba/gradient tokens for the panels
+     and the ambient ground. */
 
-  /* light theme — periwinkle ground, white glass, electric blue */
-  --bg: 226 229 250;
+  --bg: 233 241 234;
   --surface: 255 255 255;
-  --ink: 15 23 42;
-  --muted: 100 116 139;
-  --line: 203 212 245;
-  --accent: 37 99 235;
-  --accent-soft: 219 229 254;
+  --ink: 26 33 29;
+  --muted: 124 138 130;
+  --line: 221 232 224;
+  --accent: 79 146 104;
+  /* the lighter end of the action gradient — kept in the same hue so the
+     button reads as one green rather than a blend of two colours */
+  --accent-2: 93 165 122;
+  --accent-soft: 228 240 232;
+  /* the warm cream the page settles into at the bottom */
+  --warm: 253 243 234;
 
-  /* sport / category colors — one blue family, kept far enough apart to read */
-  --c-strength: 99 102 241;
-  --c-run: 124 58 237;
-  --c-bike: 37 99 235;
-  --c-swim: 6 165 199;
-  --c-other: 100 116 139;
+  /* sport / category colours — five hues that stay apart on mint, anchored on
+     the same green and warmed at one end so nothing reads as a near-repeat */
+  --c-strength: 181 136 58;
+  --c-run: 214 98 74;
+  --c-bike: 47 139 134;
+  --c-swim: 62 122 178;
+  --c-other: 124 138 130;
 
-  /* frosted-glass card: translucent white over the lavender ground */
-  --card-bg: rgba(255, 255, 255, 0.72);
-  --card-border: rgba(37, 99, 235, 0.14);
-  --card-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.85), transparent 52%);
-  /* a lit top edge — the tell that a panel is glass and not a rectangle */
+  /* white panels on the mint ground */
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(26, 33, 29, 0.07);
+  --card-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.9), transparent 52%);
+  /* a lit top edge — the tell that a panel sits above the page, not on it */
   --card-edge: rgba(255, 255, 255, 0.95);
   --card-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 22px 50px -28px rgba(30, 45, 110, 0.45);
-  --glow: rgba(37, 99, 235, 0.35);
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 18px 40px -26px rgba(30, 60, 42, 0.35);
+  --glow: rgba(72, 141, 100, 0.35);
+
   /* the app's own mark, tiled sparsely as a watermark. Set per app below; the
      glyph occupies a third of its tile so the marks sit far apart and read as
      texture rather than wallpaper. */
   --app-mark: none;
   --page-bg:
     var(--app-mark) 0 0 / 210px 210px,
-    radial-gradient(1100px 620px at 84% -12%, rgba(59, 130, 246, 0.3), transparent 62%),
-    radial-gradient(900px 640px at 2% 4%, rgba(129, 140, 248, 0.28), transparent 60%),
-    radial-gradient(1000px 900px at 50% 118%, rgba(37, 99, 235, 0.16), transparent 62%),
-    rgb(226 229 250);
+    radial-gradient(1100px 620px at 84% -12%, rgba(120, 180, 140, 0.22), transparent 62%),
+    radial-gradient(900px 640px at 2% 4%, rgba(150, 195, 165, 0.2), transparent 60%),
+    radial-gradient(1000px 900px at 50% 118%, rgba(240, 218, 196, 0.4), transparent 62%),
+    rgb(233 241 234);
 }
-
-/* dark theme — the deep navy instrument panel the references are lit like */
-:root[data-theme='dark'] {
-  --bg: 8 14 34;
-  --surface: 17 26 54;
-  --ink: 226 233 248;
-  --muted: 138 154 187;
-  --line: 40 57 102;
-  --accent: 96 165 250;
-  --accent-soft: 25 45 92;
-
-  /* the same ramp, brightened to hold up against navy */
-  --c-strength: 129 140 248;
-  --c-run: 167 139 250;
-  --c-bike: 96 165 250;
-  --c-swim: 34 211 238;
-  --c-other: 148 163 195;
-
-  --card-bg: rgba(30, 45, 88, 0.55);
-  --card-border: rgba(96, 165, 250, 0.2);
-  --card-sheen: linear-gradient(165deg, rgba(120, 170, 255, 0.12), transparent 50%);
-  --card-edge: rgba(147, 197, 253, 0.45);
-  --card-shadow:
-    0 1px 0 rgba(147, 197, 253, 0.12) inset,
-    0 26px 60px -28px rgba(0, 0, 0, 0.9);
-  --glow: rgba(96, 165, 250, 0.45);
-  --page-bg:
-    var(--app-mark) 0 0 / 210px 210px,
-    radial-gradient(1100px 620px at 80% -10%, rgba(37, 99, 235, 0.4), transparent 62%),
-    radial-gradient(900px 640px at 4% 6%, rgba(14, 165, 233, 0.22), transparent 60%),
-    radial-gradient(1000px 900px at 50% 118%, rgba(99, 102, 241, 0.24), transparent 62%),
-    rgb(8 14 34);
-}
-
 
 /* the watermark follows whichever mini-app is open */
 :root[data-app='tri'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%232563eb'%20stroke-opacity='0.10'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='37'%20cy='28'%20r='1.6'%20fill='%232563eb'%20fill-opacity='0.10'%20stroke='none'/><path%20d='M28%2041l5%201%20.75-1.5'/><path%20d='M39%2045v-4l-4-3%201-6'/><path%20d='M31%2036v-3l5-1%203%203%203%201'/></svg>");
-}
-:root[data-theme='dark'][data-app='tri'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%2393c5fd'%20stroke-opacity='0.09'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='37'%20cy='28'%20r='1.6'%20fill='%2393c5fd'%20fill-opacity='0.09'%20stroke='none'/><path%20d='M28%2041l5%201%20.75-1.5'/><path%20d='M39%2045v-4l-4-3%201-6'/><path%20d='M31%2036v-3l5-1%203%203%203%201'/></svg>");
+  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.11'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='37'%20cy='28'%20r='1.6'%20fill='%23488d64'%20fill-opacity='0.11'%20stroke='none'/><path%20d='M28%2041l5%201%20.75-1.5'/><path%20d='M39%2045v-4l-4-3%201-6'/><path%20d='M31%2036v-3l5-1%203%203%203%201'/></svg>");
 }
 :root[data-app='habits'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%232563eb'%20stroke-opacity='0.10'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='36'%20cy='36'%20r='8.5'/><path%20d='M32.5%2036.5l2.5%202.5%204.5-5'/></svg>");
-}
-:root[data-theme='dark'][data-app='habits'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%2393c5fd'%20stroke-opacity='0.09'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='36'%20cy='36'%20r='8.5'/><path%20d='M32.5%2036.5l2.5%202.5%204.5-5'/></svg>");
+  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.11'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='36'%20cy='36'%20r='8.5'/><path%20d='M32.5%2036.5l2.5%202.5%204.5-5'/></svg>");
 }
 :root[data-app='finance'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%232563eb'%20stroke-opacity='0.10'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='M28%2031.5A2.5%202.5%200%200%201%2030.5%2029H42a2%202%200%200%201%202%202v1'/><path%20d='M28%2031.5V41a2%202%200%200%200%202%202h13a1%201%200%200%200%201-1v-3'/><path%20d='M44%2034h-4a2%202%200%200%200%200%204h4a1%201%200%200%200%201-1v-2a1%201%200%200%200-1-1Z'/></svg>");
-}
-:root[data-theme='dark'][data-app='finance'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%2393c5fd'%20stroke-opacity='0.09'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='M28%2031.5A2.5%202.5%200%200%201%2030.5%2029H42a2%202%200%200%201%202%202v1'/><path%20d='M28%2031.5V41a2%202%200%200%200%202%202h13a1%201%200%200%200%201-1v-3'/><path%20d='M44%2034h-4a2%202%200%200%200%200%204h4a1%201%200%200%200%201-1v-2a1%201%200%200%200-1-1Z'/></svg>");
+  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2072%2072'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.11'%20stroke-width='0.9'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='M28%2031.5A2.5%202.5%200%200%201%2030.5%2029H42a2%202%200%200%201%202%202v1'/><path%20d='M28%2031.5V41a2%202%200%200%200%202%202h13a1%201%200%200%200%201-1v-3'/><path%20d='M44%2034h-4a2%202%200%200%200%200%204h4a1%201%200%200%200%201-1v-2a1%201%200%200%200-1-1Z'/></svg>");
 }
 
 * {
@@ -189,11 +152,7 @@ body {
      reads as powered rather than merely dark */
   .btn-primary {
     @apply btn text-white hover:-translate-y-px;
-    background: linear-gradient(
-      135deg,
-      rgb(var(--accent)),
-      color-mix(in srgb, rgb(var(--accent)) 72%, rgb(var(--c-swim)))
-    );
+    background: linear-gradient(135deg, rgb(var(--accent-2)), rgb(var(--accent)));
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.28) inset,
       0 10px 24px -10px var(--glow);
@@ -221,6 +180,13 @@ body {
     -webkit-backdrop-filter: blur(18px) saturate(1.3);
     border-color: var(--card-border);
   }
+  /* the bottom bar sits where the page has already warmed to cream */
+  .chrome-warm {
+    background: color-mix(in srgb, rgb(var(--warm)) 82%, transparent);
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    border-color: var(--card-border);
+  }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border border-line;
     background: var(--card-bg);
@@ -237,11 +203,7 @@ body {
   }
   .seg-btn-active {
     @apply text-white;
-    background: linear-gradient(
-      135deg,
-      rgb(var(--accent)),
-      color-mix(in srgb, rgb(var(--accent)) 72%, rgb(var(--c-swim)))
-    );
+    background: linear-gradient(135deg, rgb(var(--accent-2)), rgb(var(--accent)));
     box-shadow: 0 8px 20px -10px var(--glow);
   }
   .seg-btn-idle {

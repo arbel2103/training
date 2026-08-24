@@ -6,7 +6,6 @@ import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import { useAppShell } from '../../lib/appShell'
-import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 
 const PAGES: { key: string; label: string; short: string; icon: IconName; el: React.ReactNode }[] = [
   { key: 'expenses', label: 'מעקב הוצאות', short: 'הוצאות', icon: 'wallet', el: <ExpensesPage /> },
@@ -16,7 +15,6 @@ const PAGES: { key: string; label: string; short: string; icon: IconName; el: Re
 export default function FinanceApp() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>(() => getTheme())
   const openGuide = useAppShell((s) => s.openGuide)
   const guideNav = useAppShell((s) => s.guideNav)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -52,7 +50,7 @@ export default function FinanceApp() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
+      <header className="sticky top-0 z-30 chrome border-b">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <AppSwitcher />
@@ -86,13 +84,6 @@ export default function FinanceApp() {
             <Icon name="help" className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setTheme(toggleTheme())}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
-            aria-label={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
-          >
-            {theme === 'dark' ? <Icon name="sun" className="w-5 h-5" /> : <Icon name="moon" className="w-5 h-5" />}
-          </button>
-          <button
             onClick={() => setSyncOpen(true)}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             aria-label="גיבוי וסנכרון"
@@ -117,7 +108,7 @@ export default function FinanceApp() {
       </div>
 
       <nav
-        className="md:hidden bg-surface/95 backdrop-blur border-t border-line"
+        className="md:hidden chrome chrome-warm border-t"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex">

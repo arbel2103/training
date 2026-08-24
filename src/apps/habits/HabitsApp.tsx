@@ -6,12 +6,11 @@ import SyncModal from '../../components/SyncModal'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import Icon, { type IconName } from '../../components/ui/Icon'
 import { useAppShell } from '../../lib/appShell'
-import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 
 /**
  * The habits mini-app shell — same chrome as TriLife and the finance app:
  * header with the app switcher, a horizontal snap scroller of pages, a mobile
- * tab bar, and the shared theme/backup/guide buttons.
+ * tab bar, and the shared backup/guide buttons.
  */
 const PAGES: {
   key: string
@@ -27,7 +26,6 @@ const PAGES: {
 export default function HabitsApp() {
   const [index, setIndex] = useState(0)
   const [syncOpen, setSyncOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>(() => getTheme())
   const openGuide = useAppShell((s) => s.openGuide)
   const guideNav = useAppShell((s) => s.guideNav)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -63,7 +61,7 @@ export default function HabitsApp() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line">
+      <header className="sticky top-0 z-30 chrome border-b">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 md:h-16 flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <AppSwitcher />
@@ -98,17 +96,6 @@ export default function HabitsApp() {
             <Icon name="help" className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setTheme(toggleTheme())}
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
-            aria-label={theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
-          >
-            {theme === 'dark' ? (
-              <Icon name="sun" className="w-5 h-5" />
-            ) : (
-              <Icon name="moon" className="w-5 h-5" />
-            )}
-          </button>
-          <button
             onClick={() => setSyncOpen(true)}
             className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-ink/5 transition"
             aria-label="גיבוי וסנכרון"
@@ -139,7 +126,7 @@ export default function HabitsApp() {
           be there or the content runs into the home indicator */}
       {PAGES.length > 1 ? (
         <nav
-          className="md:hidden bg-surface/95 backdrop-blur border-t border-line"
+          className="md:hidden chrome chrome-warm border-t"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="flex">
