@@ -172,8 +172,9 @@ describe('finishStrengthSession — folding into a Garmin strength entry', () =>
       ],
     })
     useStore.getState().startStrengthSession('c1')
-    useStore.getState().logStrengthSet('e1', { reps: 8, weightKg: 80 })
-    useStore.getState().logStrengthSet('e1', { reps: 8, weightKg: 80 })
+    const set = { exerciseId: 'e1', exerciseName: 'סקוואט', reps: 8, weightKg: 80 }
+    useStore.getState().logStrengthSet(set)
+    useStore.getState().logStrengthSet(set)
   }
 
   it('merges the sets into a same-day Garmin workout instead of duplicating', () => {
