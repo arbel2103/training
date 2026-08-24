@@ -1,3 +1,4 @@
+import { chartColor } from '../../../lib/chartPalette'
 // ===== מערכת הקטגוריות הקנונית =====
 import type { IconName } from '../../../components/ui/Icon'
 
@@ -30,19 +31,19 @@ export interface CategoryDef {
 
 // סט קנוני חכם — "מזון וסופר" ו"מסעדות ואוכל בחוץ" נשארות נפרדות
 export const CANONICAL_CATEGORIES: CategoryDef[] = [
-  { name: 'מזון וסופר', color: '#7C6FF2', icon: '🛒' },
-  { name: 'מסעדות ואוכל בחוץ', color: '#22C1D6', icon: '🍽️' },
-  { name: 'פנאי ובילוי', color: '#4F86F0', icon: '🎭' },
-  { name: 'קניות ואופנה', color: '#E1657F', icon: '🛍️' },
-  { name: 'בית וריהוט', color: '#9C8CF5', icon: '🏠' },
-  { name: 'בריאות וטיפוח', color: '#3FB6A8', icon: '⚕️' },
-  { name: 'דלק ותחבורה', color: '#C77DF0', icon: '⛽' },
-  { name: 'תקשורת וטכנולוגיה', color: '#5AA0E8', icon: '💻' },
-  { name: 'תיירות ונסיעות', color: '#6EC6C0', icon: '✈️' },
-  { name: 'ילדים', color: '#8A93E8', icon: '🧸' },
-  { name: 'תרומות', color: '#A78BFA', icon: '🤝' },
-  { name: 'חשבונות ושירותים', color: '#4FB0C9', icon: '🧾' },
-  { name: 'אחר', color: '#8f8c85', icon: '📦' },
+  { name: 'מזון וסופר', color: chartColor(0), icon: '🛒' },
+  { name: 'מסעדות ואוכל בחוץ', color: chartColor(4), icon: '🍽️' },
+  { name: 'פנאי ובילוי', color: chartColor(2), icon: '🎭' },
+  { name: 'קניות ואופנה', color: chartColor(5), icon: '🛍️' },
+  { name: 'בית וריהוט', color: chartColor(1), icon: '🏠' },
+  { name: 'בריאות וטיפוח', color: chartColor(6), icon: '⚕️' },
+  { name: 'דלק ותחבורה', color: chartColor(3), icon: '⛽' },
+  { name: 'תקשורת וטכנולוגיה', color: chartColor(7), icon: '💻' },
+  { name: 'תיירות ונסיעות', color: chartColor(5), icon: '✈️' },
+  { name: 'ילדים', color: chartColor(2), icon: '🧸' },
+  { name: 'תרומות', color: chartColor(4), icon: '🤝' },
+  { name: 'חשבונות ושירותים', color: chartColor(1), icon: '🧾' },
+  { name: 'אחר', color: 'rgb(var(--muted))', icon: '📦' },
 ]
 
 export const CATEGORY_NAMES = CANONICAL_CATEGORIES.map((c) => c.name)
@@ -51,23 +52,12 @@ const _byName: Record<string, CategoryDef> = Object.fromEntries(
   CANONICAL_CATEGORIES.map((c) => [c.name, c]),
 )
 
-// פלטת צבעים לקטגוריות מותאמות אישית
-const CUSTOM_PALETTE = [
-  '#7C6FF2',
-  '#22C1D6',
-  '#4F86F0',
-  '#E1657F',
-  '#9C8CF5',
-  '#3FB6A8',
-  '#C77DF0',
-  '#5AA0E8',
-]
-
+/** A custom category joins the same sequence the canonical ones draw from. */
 export function nextCustomColor(existingCount: number): string {
-  return CUSTOM_PALETTE[existingCount % CUSTOM_PALETTE.length]
+  return chartColor(existingCount)
 }
 
-const FALLBACK: CategoryDef = { name: 'אחר', color: '#8f8c85', icon: '🏷️' }
+const FALLBACK: CategoryDef = { name: 'אחר', color: 'rgb(var(--muted))', icon: '🏷️' }
 
 // חיפוש הגדרת קטגוריה — קנונית או מותאמת אישית (מועברת מה-store, ריאקטיבי)
 export function findCategoryDef(

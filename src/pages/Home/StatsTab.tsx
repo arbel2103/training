@@ -337,13 +337,13 @@ function IntensityBalance({
       <div className="relative h-6 rounded-full overflow-hidden bg-ink/5 flex">
         <div
           className="h-full flex items-center justify-center text-[11px] font-bold text-white"
-          style={{ width: `${easyPct}%`, background: 'rgb(var(--c-swim))' }}
+          style={{ width: `${easyPct}%`, background: 'rgb(var(--chart-1))' }}
         >
           {easyPct >= 12 ? `${easyPct}%` : ''}
         </div>
         <div
           className="h-full flex items-center justify-center text-[11px] font-bold text-white"
-          style={{ width: `${hardPct}%`, background: 'rgb(var(--c-run))' }}
+          style={{ width: `${hardPct}%`, background: 'rgb(var(--chart-5))' }}
         >
           {hardPct >= 12 ? `${hardPct}%` : ''}
         </div>
@@ -357,13 +357,13 @@ function IntensityBalance({
 
       <div className="flex items-center justify-between mt-2 text-xs">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--c-swim))' }} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--chart-1))' }} />
           קל · {hrs(easyMin)}
         </span>
         <span className="text-muted">יעד 80 / 20</span>
         <span className="flex items-center gap-1.5">
           עצים · {hrs(hardMin)}
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--c-run))' }} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgb(var(--chart-5))' }} />
         </span>
       </div>
 

@@ -87,8 +87,8 @@ export default function DailyHealthTab() {
     { name: 'בסיס שבועי', color: 'var(--muted)', dashed: true, values: days.map((d) => d.hrvWeeklyAvg ?? null) },
   ]
   const bodyBattery = [
-    { name: 'שיא', color: 'var(--c-swim)', values: days.map((d) => d.bodyBatteryHigh ?? null) },
-    { name: 'שפל', color: 'var(--c-run)', values: days.map((d) => d.bodyBatteryLow ?? null) },
+    { name: 'שיא', color: 'var(--chart-1)', values: days.map((d) => d.bodyBatteryHigh ?? null) },
+    { name: 'שפל', color: 'var(--chart-5)', values: days.map((d) => d.bodyBatteryLow ?? null) },
   ]
   const hasSeries = (s: { values: (number | null)[] }[]) =>
     s.some((x) => x.values.some((v) => v != null))

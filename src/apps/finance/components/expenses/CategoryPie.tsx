@@ -1,3 +1,4 @@
+import { TOOLTIP_STYLE } from '../../../../lib/chartPalette'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import type { CategorySlice } from '../../store/selectors'
 import { findCategoryDef } from '../../lib/categories'
@@ -59,8 +60,7 @@ export function CategoryPie({ data, activeCategory, onSlice }: Props) {
             <Tooltip
               formatter={(v) => formatCurrency(Number(v), true)}
               contentStyle={{
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
+                ...TOOLTIP_STYLE,
                 fontSize: 13,
               }}
             />

@@ -17,11 +17,17 @@ import InfoTip from '../../components/ui/InfoTip'
 import Icon from '../../components/ui/Icon'
 import { usePeriod } from '../../components/ui/usePeriod'
 
+/* Stages read as depth, so they run dark → pale down the night rather than
+   being four unrelated hues. Awake is the one state that is not sleep, so it
+   sits outside the ramp in a warm colour and can never be mistaken for one of
+   the others — which is exactly what happened when all four were greens. */
+/* Bare `var(...)` on purpose: the chart components take an 'r g b' triplet and
+   wrap it themselves, so a pre-wrapped rgb() here renders as black. */
 const STAGE_COLORS = {
-  deep: 'var(--c-swim)',
-  light: 'var(--accent)',
-  rem: 'var(--c-bike)',
-  awake: 'var(--muted)',
+  deep: 'var(--stage-deep)',
+  rem: 'var(--stage-rem)',
+  light: 'var(--stage-light)',
+  awake: 'var(--stage-awake)',
 }
 
 function hoursLabel(min?: number): string {

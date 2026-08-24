@@ -22,6 +22,28 @@
   /* the warm cream the page settles into at the bottom */
   --warm: 253 243 234;
 
+  /* Chart series, in the order they should be handed out. Eight hues that hold
+     apart on a white card while still belonging to a mint page: greens and
+     teals first because they are the app's own, then blue, amber and coral for
+     separation, and the softer tints last. Categorical — never read the order
+     as a scale. */
+  --chart-1: 79 146 104;
+  --chart-2: 47 139 134;
+  --chart-3: 62 122 178;
+  --chart-4: 197 145 61;
+  --chart-5: 214 98 74;
+  --chart-6: 122 163 92;
+  --chart-7: 108 154 196;
+  --chart-8: 166 132 106;
+
+  /* Sleep stages read as depth, so they get a ramp rather than a set: dark and
+     saturated at the bottom of the night, pale at the top, with the one state
+     that is not sleep in a warm colour so it never blends into the others. */
+  --stage-deep: 30 74 92;
+  --stage-rem: 47 139 134;
+  --stage-light: 141 197 168;
+  --stage-awake: 214 148 74;
+
   /* sport / category colours — five hues that stay apart on mint, anchored on
      the same green and warmed at one end so nothing reads as a near-repeat */
   --c-strength: 181 136 58;

@@ -1,3 +1,4 @@
+import { AXIS_TICK, TOOLTIP_STYLE, chartColor } from '../../../../lib/chartPalette'
 import { useMemo } from 'react'
 import {
   BarChart,
@@ -94,12 +95,12 @@ export function InvestmentCharts() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(140,140,150,0.18)" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: '#6b6862' }}
+              tick={{ fontSize: 12, fill: AXIS_TICK }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#8f8c85' }}
+              tick={{ fontSize: 11, fill: AXIS_TICK }}
               axisLine={false}
               tickLine={false}
               width={52}
@@ -112,8 +113,7 @@ export function InvestmentCharts() {
                 accounts.find((a) => a.id === name)?.name ?? String(name),
               ]}
               contentStyle={{
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
+                ...TOOLTIP_STYLE,
                 fontSize: 13,
               }}
             />
@@ -153,12 +153,12 @@ export function InvestmentCharts() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(140,140,150,0.18)" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: '#6b6862' }}
+              tick={{ fontSize: 12, fill: AXIS_TICK }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#8f8c85' }}
+              tick={{ fontSize: 11, fill: AXIS_TICK }}
               axisLine={false}
               tickLine={false}
               width={40}
@@ -168,14 +168,13 @@ export function InvestmentCharts() {
             <Tooltip
               formatter={(v) => [formatPercent(Number(v)), 'מסך ההכנסות']}
               contentStyle={{
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
+                ...TOOLTIP_STYLE,
                 fontSize: 13,
               }}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={34}>
               {percentData.map((d, i) => (
-                <Cell key={i} fill={d.hasSalary ? '#4F86F0' : '#8f8c85'} />
+                <Cell key={i} fill={d.hasSalary ? chartColor(2) : 'rgb(var(--muted))'} />
               ))}
             </Bar>
           </BarChart>

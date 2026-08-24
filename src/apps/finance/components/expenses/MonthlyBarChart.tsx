@@ -1,3 +1,4 @@
+import { AXIS_TICK, TOOLTIP_STYLE, chartColor } from '../../../../lib/chartPalette'
 import {
   BarChart,
   Bar,
@@ -23,7 +24,7 @@ interface Props {
   height?: number
 }
 
-export function MonthlyBarChart({ data, color = '#7C6FF2', height = 300 }: Props) {
+export function MonthlyBarChart({ data, color = chartColor(0), height = 300 }: Props) {
   const { chartKey, containerProps } = useChartDismiss()
   if (!data.length || data.every((d) => d.value === 0)) {
     return (
@@ -39,12 +40,12 @@ export function MonthlyBarChart({ data, color = '#7C6FF2', height = 300 }: Props
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(140,140,150,0.18)" />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 12, fill: '#6b6862' }}
+          tick={{ fontSize: 12, fill: AXIS_TICK }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: '#8f8c85' }}
+          tick={{ fontSize: 11, fill: AXIS_TICK }}
           axisLine={false}
           tickLine={false}
           width={56}
@@ -55,14 +56,13 @@ export function MonthlyBarChart({ data, color = '#7C6FF2', height = 300 }: Props
           cursor={{ fill: 'rgba(124,111,242,0.10)' }}
           formatter={(v) => [formatCurrency(Number(v), true), 'סכום']}
           contentStyle={{
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.12)', background: 'rgb(24 24 26 / 0.97)', color: '#ededf2',
+            ...TOOLTIP_STYLE,
             fontSize: 13,
           }}
         />
         <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={64}>
           {data.map((d, i) => (
-            <Cell key={i} fill={d.highlight ? '#5B4FDB' : color} />
+            <Cell key={i} fill={d.highlight ? chartColor(1) : color} />
           ))}
         </Bar>
       </BarChart>

@@ -81,7 +81,7 @@ function RingStat({
         {trend && (
           <div
             className={`text-[11px] mt-0.5 font-semibold ${
-              trend.good ? 'text-swim' : 'text-muted'
+              trend.good ? 'text-accent' : 'text-muted'
             }`}
           >
             {trend.label}
@@ -159,9 +159,12 @@ export default function LastNightCard() {
   const dateForLabel = sleep?.date ?? hrv?.date ?? rhr?.date
 
   // one cohesive cool family: each ring a neighbouring shade
-  const C_SLEEP = 'rgb(var(--accent))'
-  const C_HRV = 'rgb(var(--c-swim))'
-  const C_RHR = 'rgb(var(--c-run))'
+  // three readings of the same thing — how recovered you are — so they take
+  // three colours from the app's own sequence rather than a blue and a red
+  // that read as unrelated, or worse, as a warning
+  const C_SLEEP = 'rgb(var(--chart-1))'
+  const C_HRV = 'rgb(var(--chart-2))'
+  const C_RHR = 'rgb(var(--chart-6))'
 
   return (
     <div className="card p-5 sm:col-span-2">
