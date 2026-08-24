@@ -183,3 +183,45 @@ describe('multisport sessions', () => {
     expect(isContainerActivity(act({ activityType: { typeKey: 'lap_swimming' } }))).toBe(false)
   })
 })
+
+describe('strength: keeping the app sets while adding Garmin metrics', () => {
+  const strengthAct: GarminActivitySummary = {
+    activityId: 9100000009,
+    activityType: { typeKey: 'strength_training' },
+    startTimeLocal: '2026-08-05 19:30:00',
+    duration: 52 * 60,
+    averageHR: 118,
+    maxHR: 150,
+    calories: 340,
+  } as unknown as GarminActivitySummary
+
+  it('merges Garmin heart rate and time into the app workout, keeping its sets', () => {
+    const appEntry: WorkoutEntry[] = [
+      {
+        id: 'app1',
+        date: '2026-08-05',
+        category: 'strength',
+        source: 'manual',
+        strengthName: 'רגליים',
+        rpe: 8,
+        durationMin: 40,
+        sets: [
+          { exerciseId: 'e1', exerciseName: 'סקוואט', reps: 8, weightKg: 80 },
+          { exerciseId: 'e1', exerciseName: 'סקוואט', reps: 8, weightKg: 80 },
+        ],
+      },
+    ]
+    const { creates, updates } = planImport([strengthAct], appEntry)
+    expect(creates).toHaveLength(0)
+    expect(updates).toHaveLength(1)
+    expect(updates[0].id).toBe('app1')
+    // the watch's numbers come in
+    expect(updates[0].patch.avgHr).toBe(118)
+    expect(updates[0].patch.maxHr).toBe(150)
+    expect(updates[0].patch.calories).toBe(340)
+    expect(updates[0].patch.source).toBe('garmin')
+    // the sets and the user's name are NOT in the patch → the store keeps them
+    expect(updates[0].patch).not.toHaveProperty('sets')
+    expect(updates[0].patch).not.toHaveProperty('strengthName')
+  })
+})

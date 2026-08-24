@@ -577,29 +577,56 @@ export const useStore = create<State>()(
         const session = s.activeStrength
         if (!session || session.sets.length === 0) return false
         const started = new Date(session.startedAt)
+        const dateISO = toISODate(started)
         const durationMin = Math.max(
           1,
           Math.round((Date.now() - started.getTime()) / 60_000),
         )
-        set((cur) => ({
-          log: [
-            ...cur.log,
-            {
-              id: uid(),
-              date: toISODate(started),
-              category: 'strength' as Category,
-              strengthName: session.categoryName,
-              durationMin,
-              startTime: `${String(started.getHours()).padStart(2, '0')}:${String(
-                started.getMinutes(),
-              ).padStart(2, '0')}`,
-              sets: session.sets,
-              source: 'manual' as const,
-              ...extra,
-            },
-          ],
-          activeStrength: null,
-        }))
+        // what the app knows the watch never does: the sets, the feel, the name
+        const logged = {
+          strengthName: session.categoryName,
+          sets: session.sets,
+          ...extra,
+        }
+        // if the watch already logged this strength workout today, fold the
+        // sets into that entry instead of creating a second one — the user
+        // keeps Garmin's heart rate, measured time and calories, plus the
+        // per-set data they marked here. Pick one that has no sets yet, so a
+        // second strength session the same day isn't swallowed.
+        const garmin = s.log.find(
+          (e) =>
+            e.category === 'strength' &&
+            e.date === dateISO &&
+            (e.source === 'garmin' || e.garminActivityId != null) &&
+            !(e.sets && e.sets.length),
+        )
+        set((cur) => {
+          if (garmin) {
+            return {
+              log: cur.log.map((e) =>
+                e.id === garmin.id ? { ...e, ...logged } : e,
+              ),
+              activeStrength: null,
+            }
+          }
+          return {
+            log: [
+              ...cur.log,
+              {
+                id: uid(),
+                date: dateISO,
+                category: 'strength' as Category,
+                durationMin,
+                startTime: `${String(started.getHours()).padStart(2, '0')}:${String(
+                  started.getMinutes(),
+                ).padStart(2, '0')}`,
+                source: 'manual' as const,
+                ...logged,
+              },
+            ],
+            activeStrength: null,
+          }
+        })
         return true
       },
 

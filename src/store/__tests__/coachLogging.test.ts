@@ -157,3 +157,85 @@ describe('what the coach is shown about strength', () => {
     expect(buildContext()).toContain(s().log[0].id)
   })
 })
+
+describe('finishStrengthSession — folding into a Garmin strength entry', () => {
+  const startSession = () => {
+    useStore.setState({
+      strengthCategories: [
+        {
+          id: 'c1',
+          name: 'רגליים',
+          exercises: [
+            { id: 'e1', name: 'סקוואט', sets: 2, reps: [8, 8], weight: '80', updatedAt: '' },
+          ],
+        },
+      ],
+    })
+    useStore.getState().startStrengthSession('c1')
+    useStore.getState().logStrengthSet('e1', { reps: 8, weightKg: 80 })
+    useStore.getState().logStrengthSet('e1', { reps: 8, weightKg: 80 })
+  }
+
+  it('merges the sets into a same-day Garmin workout instead of duplicating', () => {
+    const today = toISODate(new Date())
+    useStore.setState({
+      log: [
+        {
+          id: 'g1',
+          date: today,
+          category: 'strength',
+          source: 'garmin',
+          garminActivityId: 555,
+          avgHr: 120,
+          durationMin: 50,
+          calories: 330,
+        },
+      ],
+    })
+    startSession()
+    useStore.getState().finishStrengthSession({ rpe: 8, intensity: 'heavy' })
+
+    const strength = s().log.filter((e) => e.category === 'strength')
+    expect(strength).toHaveLength(1) // no duplicate
+    const e = strength[0]
+    expect(e.id).toBe('g1')
+    expect(e.avgHr).toBe(120) // Garmin metrics kept
+    expect(e.durationMin).toBe(50)
+    expect(e.calories).toBe(330)
+    expect(e.source).toBe('garmin')
+    expect(e.sets).toHaveLength(2) // app set data added
+    expect(e.strengthName).toBe('רגליים')
+    expect(e.rpe).toBe(8)
+  })
+
+  it('creates its own entry when there is no Garmin workout that day', () => {
+    useStore.setState({ log: [] })
+    startSession()
+    useStore.getState().finishStrengthSession({})
+    const strength = s().log.filter((e) => e.category === 'strength')
+    expect(strength).toHaveLength(1)
+    expect(strength[0].source).toBe('manual')
+    expect(strength[0].sets).toHaveLength(2)
+  })
+
+  it('does not fold into a Garmin entry that already carries sets', () => {
+    const today = toISODate(new Date())
+    useStore.setState({
+      log: [
+        {
+          id: 'g1',
+          date: today,
+          category: 'strength',
+          source: 'garmin',
+          garminActivityId: 555,
+          avgHr: 120,
+          sets: [{ exerciseId: 'x', exerciseName: 'קיים', reps: 5 }],
+        },
+      ],
+    })
+    startSession()
+    useStore.getState().finishStrengthSession({})
+    // the occupied Garmin entry is left alone; a new one is created
+    expect(s().log.filter((e) => e.category === 'strength')).toHaveLength(2)
+  })
+})
