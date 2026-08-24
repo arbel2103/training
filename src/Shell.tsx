@@ -21,6 +21,12 @@ export default function Shell() {
     if (!localStorage.getItem(GUIDE_SEEN_KEY)) openGuide()
   }, [openGuide])
 
+  // the page watermark is picked in CSS from this, so the mark behind the
+  // content is always the open app's own symbol
+  useEffect(() => {
+    document.documentElement.dataset.app = appId
+  }, [appId])
+
   const close = () => {
     localStorage.setItem(GUIDE_SEEN_KEY, '1')
     closeGuide()
