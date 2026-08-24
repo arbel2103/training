@@ -9,12 +9,57 @@ import type {
   TrainingPlan,
   WorkoutEntry,
 } from '../store/useStore'
-import { addDays, fromISO, toISODate } from './dates'
+import { addDays, fromISO, startOfWeek, toISODate } from './dates'
+
+/** A plan session offered as a link target for a logged workout. */
+export interface SessionOption {
+  session: PlanSession
+  /** yyyy-mm-dd this session falls on in its week */
+  date: string
+  /** already fulfilled by a different workout */
+  taken: boolean
+}
+
+/**
+ * The plan sessions a workout on `dateISO` could be fulfilling — the sessions
+ * of the same sport in that workout's own week. This is what lets the user say
+ * "this bike ride is Tuesday's planned ride" instead of leaving it to the
+ * distance/day heuristic. Sessions already completed by *another* entry are
+ * flagged `taken` so they can be shown but not chosen by mistake.
+ */
+export function sessionOptionsForEntry(
+  plan: TrainingPlan | null,
+  entry: Pick<WorkoutEntry, 'id' | 'category' | 'sport'>,
+  dateISO: string,
+  log: WorkoutEntry[],
+): SessionOption[] {
+  if (!plan) return []
+  const weekStart = toISODate(startOfWeek(fromISO(dateISO)))
+  const week = plan.weeks.find((w) => w.weekStart === weekStart)
+  if (!week) return []
+  const completion = weekCompletion(week, log)
+  const start = fromISO(weekStart)
+  return week.sessions
+    .filter((s) => sessionMatchesEntry(s, entry as WorkoutEntry))
+    .map((session) => {
+      const m = completion[session.id]
+      return {
+        session,
+        date: toISODate(addDays(start, session.day)),
+        taken: !!m?.done && m.entry?.id !== entry.id,
+      }
+    })
+    .sort((a, b) => a.session.day - b.session.day)
+}
 
 export interface SessionMatch {
   done: boolean
   entry?: WorkoutEntry
 }
+
+/** `entry.planSessionId` set to this marks the workout as an extra, on purpose
+ *  outside the plan — it completes no session and the matcher skips it. */
+export const NOT_IN_PLAN = 'none'
 
 function sessionMatchesEntry(session: PlanSession, e: WorkoutEntry): boolean {
   if (session.sport === 'strength') return e.category === 'strength'
@@ -90,9 +135,24 @@ export function weekCompletion(
   }
   const start = fromISO(startISO)
   const endISO = toISODate(addDays(start, 6))
-  const weekLog = log.filter((e) => e.date >= startISO && e.date <= endISO)
+  // an entry the user tagged as an extra is deliberately outside the plan, so
+  // it never fills a session — drop it before any matching
+  const weekLog = log.filter(
+    (e) => e.date >= startISO && e.date <= endISO && e.planSessionId !== NOT_IN_PLAN,
+  )
   const used = new Set<string>()
   const result: Record<string, SessionMatch> = {}
+
+  // the user's own choice wins over any heuristic: an entry pointing at a
+  // specific session completes exactly that session, whatever its distance or
+  // day. Done first so a later pass can't consume the entry for another session.
+  for (const session of week.sessions) {
+    const pick = weekLog.find((e) => !used.has(e.id) && e.planSessionId === session.id)
+    if (pick) {
+      used.add(pick.id)
+      result[session.id] = { done: true, entry: pick }
+    }
+  }
 
   /**
    * Pair up whatever `poolFor` offers, best match first.

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import Modal from '../ui/Modal'
 import Icon from '../ui/Icon'
 import RestTimer, { type RestTimerHandle } from '../RestTimer'
+import PlanSessionPicker from '../PlanSessionPicker'
+import { toISODate } from '../../lib/dates'
 import { useStore, type ID, type StrengthIntensity } from '../../store/useStore'
 import {
   lastPerformance,
@@ -62,6 +64,8 @@ export default function ActiveWorkout({
   const [rpe, setRpe] = useState(7)
   const [intensity, setIntensity] = useState<StrengthIntensity>('medium')
   const [note, setNote] = useState('')
+  // which planned session this fulfils — undefined lets the matcher decide
+  const [planSel, setPlanSel] = useState<string | undefined>(undefined)
   const [elapsed, setElapsed] = useState(0)
   const timer = useRef<RestTimerHandle>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -145,10 +149,11 @@ export default function ActiveWorkout({
   const totalKg = tonnage(session.sets)
 
   const doFinish = () => {
-    if (finish({ rpe, intensity, note: note.trim() || undefined })) {
+    if (finish({ rpe, intensity, note: note.trim() || undefined, planSessionId: planSel })) {
       setDraft({})
       setFinishing(false)
       setNote('')
+      setPlanSel(undefined)
       onClose()
     }
   }
@@ -194,7 +199,7 @@ export default function ActiveWorkout({
             max={10}
             value={rpe}
             onChange={(e) => setRpe(Number(e.target.value))}
-            className="w-full mb-4 accent-[var(--accent)]"
+            className="w-full mb-4 accent-accent"
           />
 
           <label className="label">הערה</label>
@@ -204,6 +209,16 @@ export default function ActiveWorkout({
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
+
+          <div className="mt-4">
+            <PlanSessionPicker
+              entryId={session.startedAt}
+              category="strength"
+              dateISO={toISODate(new Date(session.startedAt))}
+              value={planSel}
+              onChange={setPlanSel}
+            />
+          </div>
 
           <div className="flex gap-2 mt-5">
             <button onClick={() => setFinishing(false)} className="btn-ghost">

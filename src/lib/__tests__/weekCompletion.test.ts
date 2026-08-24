@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanWeek, WorkoutEntry } from '../../store/useStore'
-import { sessionIntensity, weekCompletion } from '../planMatch'
+import { sessionIntensity, sessionOptionsForEntry, weekCompletion } from '../planMatch'
 
 // week of 2026-08-02 (Sunday): 08-02=Sun(0) … 08-08=Sat(6)
 const week: PlanWeek = {
@@ -166,5 +166,99 @@ describe('sessionIntensity', () => {
     expect(sessionIntensity('בריק')).toBeNull()
     expect(sessionIntensity('')).toBeNull()
     expect(sessionIntensity(undefined)).toBeNull()
+  })
+})
+
+describe('explicit plan-session link (the user chose)', () => {
+  const twoRuns: PlanWeek = {
+    id: 'w',
+    weekStart: '2026-08-16',
+    sessions: [
+      { id: 'r-easy', day: 1, sport: 'run', distance: 4, label: 'קלה' },
+      { id: 'r-long', day: 4, sport: 'run', distance: 12, label: 'ארוכה' },
+    ],
+  }
+  const mk = (over: Partial<WorkoutEntry>): WorkoutEntry => ({
+    id: Math.random().toString(36).slice(2),
+    date: '2026-08-18',
+    category: 'aerobic',
+    sport: 'run',
+    ...over,
+  })
+
+  it('credits the session the user picked, overriding the distance heuristic', () => {
+    // a 12 km run would auto-match the long session, but the user linked it to
+    // the easy one — their choice wins
+    const c = weekCompletion(twoRuns, [mk({ id: 'e1', distance: 12, planSessionId: 'r-easy' })])
+    expect(c['r-easy'].done).toBe(true)
+    expect(c['r-easy'].entry?.id).toBe('e1')
+    expect(c['r-long'].done).toBe(false)
+  })
+
+  it('an entry marked "not in plan" completes nothing', () => {
+    const c = weekCompletion(twoRuns, [mk({ distance: 4, planSessionId: 'none' })])
+    expect(c['r-easy'].done).toBe(false)
+    expect(c['r-long'].done).toBe(false)
+  })
+
+  it('a linked entry is not stolen by the heuristic for another session', () => {
+    // two runs logged: one linked to the long session, one loose
+    const c = weekCompletion(twoRuns, [
+      mk({ id: 'linked', distance: 5, planSessionId: 'r-long' }),
+      mk({ id: 'loose', distance: 4 }),
+    ])
+    expect(c['r-long'].entry?.id).toBe('linked')
+    expect(c['r-easy'].entry?.id).toBe('loose')
+  })
+
+  it('still auto-matches entries with no explicit choice', () => {
+    const c = weekCompletion(twoRuns, [mk({ id: 'e1', distance: 4 })])
+    expect(c['r-easy'].done).toBe(true) // 4km → the 4km session, as before
+  })
+})
+
+describe('sessionOptionsForEntry', () => {
+  const plan = {
+    weeks: [
+      {
+        id: 'w',
+        weekStart: '2026-08-16',
+        sessions: [
+          { id: 'b1', day: 1, sport: 'bike' as const, distance: 30 },
+          { id: 'b2', day: 4, sport: 'bike' as const, distance: 50 },
+          { id: 'r1', day: 2, sport: 'run' as const, distance: 8 },
+        ],
+      },
+    ],
+  }
+
+  it('offers only the sessions of the same sport that week', () => {
+    const opts = sessionOptionsForEntry(
+      plan,
+      { id: 'x', category: 'aerobic', sport: 'bike' },
+      '2026-08-18',
+      [],
+    )
+    expect(opts.map((o) => o.session.id)).toEqual(['b1', 'b2'])
+  })
+
+  it('flags a session already completed by another workout', () => {
+    const log: WorkoutEntry[] = [
+      { id: 'other', date: '2026-08-17', category: 'aerobic', sport: 'bike', distance: 30, planSessionId: 'b1' },
+    ]
+    const opts = sessionOptionsForEntry(
+      plan,
+      { id: 'me', category: 'aerobic', sport: 'bike' },
+      '2026-08-18',
+      log,
+    )
+    expect(opts.find((o) => o.session.id === 'b1')?.taken).toBe(true)
+    expect(opts.find((o) => o.session.id === 'b2')?.taken).toBe(false)
+  })
+
+  it('is empty when the plan has no week for that date', () => {
+    expect(
+      sessionOptionsForEntry(plan, { id: 'x', category: 'aerobic', sport: 'run' }, '2026-09-20', []),
+    ).toEqual([])
   })
 })

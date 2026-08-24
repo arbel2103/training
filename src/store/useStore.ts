@@ -114,6 +114,13 @@ export interface WorkoutEntry {
   durationMin?: number // entered (strength/other) or computed (aerobic)
   rpe?: number // perceived exertion 1–10 (post-workout debrief)
   note?: string // how it felt / free note
+  /**
+   * Which planned session this workout fulfils, chosen by the user.
+   * Absent → the plan matcher decides by sport/distance. Set to a session id →
+   * this workout completes exactly that session. Set to NOT_IN_PLAN → the
+   * workout is an extra, deliberately outside the plan, and never matched.
+   */
+  planSessionId?: string
   // Garmin-sourced metrics (optional; present when source === 'garmin')
   source?: 'manual' | 'garmin'
   garminActivityId?: number
@@ -364,6 +371,7 @@ interface State {
     rpe?: number
     note?: string
     intensity?: StrengthIntensity
+    planSessionId?: string
   }) => boolean
 
   // coach-built strength workout (create/replace a category by name, with exercises)

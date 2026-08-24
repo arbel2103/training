@@ -6,6 +6,7 @@ import { toISODate } from '../lib/dates'
 import { needsDebrief } from '../lib/nudges'
 import Modal from './ui/Modal'
 import RpeSelector from './ui/RpeSelector'
+import PlanSessionPicker from './PlanSessionPicker'
 import Icon from './ui/Icon'
 
 /**
@@ -22,6 +23,7 @@ export default function DebriefPrompt() {
   const [editing, setEditing] = useState<WorkoutEntry | null>(null)
   const [rpe, setRpe] = useState<number | undefined>(undefined)
   const [note, setNote] = useState('')
+  const [planSel, setPlanSel] = useState<string | undefined>(undefined)
 
   const pending = needsDebrief(log, toISODate(new Date()))
   if (!pending.length) return null
@@ -30,11 +32,16 @@ export default function DebriefPrompt() {
     setEditing(e)
     setRpe(e.rpe)
     setNote(e.note ?? '')
+    setPlanSel(e.planSessionId)
   }
 
   const save = () => {
     if (editing)
-      updateEntry(editing.id, { rpe, note: note.trim() || undefined })
+      updateEntry(editing.id, {
+        rpe,
+        note: note.trim() || undefined,
+        planSessionId: planSel,
+      })
     setEditing(null)
   }
 
@@ -94,6 +101,16 @@ export default function DebriefPrompt() {
               onChange={(e) => setNote(e.target.value)}
             />
           </label>
+          {editing && (
+            <PlanSessionPicker
+              entryId={editing.id}
+              category={editing.category}
+              sport={editing.sport}
+              dateISO={editing.date}
+              value={planSel}
+              onChange={setPlanSel}
+            />
+          )}
           <button onClick={save} className="btn-primary justify-center">
             שמור
           </button>

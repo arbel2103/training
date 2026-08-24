@@ -105,6 +105,11 @@ body {
   text-rendering: optimizeLegibility;
   /* no gray flash on tap — feels native on phones */
   -webkit-tap-highlight-color: transparent;
+  /* the app is a column of stacked cards — it should never move sideways. This
+     guards against a stray wide child (a long unbreakable string, a chart that
+     overshoots) turning into a whole-page horizontal drag; intentional
+     scrollers use their own overflow-x:auto and are unaffected. */
+  overflow-x: hidden;
 }
 
 /* whole app fades in once on load */
