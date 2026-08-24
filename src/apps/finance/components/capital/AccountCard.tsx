@@ -5,8 +5,7 @@ import {
   accountEffectiveBalance,
   accountRemainingToGoals,
   collectSavingLinks,
-  goalAllocated,
-  goalRemaining,
+  goalFunding,
 } from '../../store/selectors'
 import { formatCurrency } from '../../lib/format'
 import { formatDate } from '../../lib/date'
@@ -38,6 +37,7 @@ export function AccountCard({ account }: { account: Account }) {
     [expenses, monthsData, accounts],
   )
   const effective = accountEffectiveBalance(account, links)
+  const funding = useMemo(() => goalFunding(account, links), [account, links])
   const remaining = accountRemainingToGoals(account, links)
   const monthlyNeeded = months > 0 ? remaining / months : 0
   const goalsWithTarget = account.goals.some(
@@ -105,8 +105,9 @@ export function AccountCard({ account }: { account: Account }) {
       {account.goals.length > 0 && (
         <div className="space-y-2 border-t border-line pt-3">
           {account.goals.map((g) => {
-            const alloc = goalAllocated(g, links)
-            const rem = goalRemaining(g, links)
+            const alloc = funding[g.id] ?? 0
+            const rem =
+              g.targetAmount != null ? Math.max(0, g.targetAmount - alloc) : null
             const pct =
               g.targetAmount && g.targetAmount > 0
                 ? Math.min(100, Math.round((alloc / g.targetAmount) * 100))

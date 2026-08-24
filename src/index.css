@@ -67,7 +67,7 @@
      that it reads as part of the surface rather than as an image on it. */
   --app-mark: none;
   --page-bg:
-    var(--app-mark) left 3% top 5% / min(62vw, 340px) no-repeat fixed,
+    var(--app-mark) center 34% / min(74vw, 420px) no-repeat fixed,
     radial-gradient(1100px 620px at 84% -12%, rgba(120, 180, 140, 0.22), transparent 62%),
     radial-gradient(900px 640px at 2% 4%, rgba(150, 195, 165, 0.2), transparent 60%),
     radial-gradient(1000px 900px at 50% 118%, rgba(240, 218, 196, 0.4), transparent 62%),
@@ -76,13 +76,13 @@
 
 /* the watermark follows whichever mini-app is open */
 :root[data-app='tri'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.13'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='M96%2026A46%2046%200%201%200%20100%2078'%20stroke-width='3'/><g%20transform='translate%2822%2C58%29%20scale%281.7%29'><circle%20cx='8'%20cy='8.5'%20r='1.6'%20fill='%23488d64'%20fill-opacity='0.13'%20stroke='none'/><path%20d='M10%2011c1.6-.8%203.4-.6%205%20.3l1.8%201'/><path%20d='M10.5%209.6%2015%206l3.5%201'/><path%20d='M3%2019.5c1.3%200%201.8-1%203-1s1.8%201%203%201%201.8-1%203-1%201.8%201%203%201'/></g><g%20transform='translate%2852%2C44%29%20scale%281.5%29'><circle%20cx='5.5'%20cy='17.5'%20r='3.5'/><circle%20cx='18.5'%20cy='17.5'%20r='3.5'/><circle%20cx='15'%20cy='5'%20r='1'/><path%20d='M12%2017.5V14l-3-3%204-3%202%203h2'/></g><g%20transform='translate%2858%2C4%29%20scale%281.6%29'><circle%20cx='13'%20cy='4'%20r='1.6'%20fill='%23488d64'%20fill-opacity='0.13'%20stroke='none'/><path%20d='M4%2017l5%201%20.75-1.5'/><path%20d='M15%2021v-4l-4-3%201-6'/><path%20d='M7%2012V9l5-1%203%203%203%201'/></g></svg>");
+  --app-mark: url('/training/app-mark-tri.png');
 }
 :root[data-app='habits'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.13'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='60'%20cy='60'%20r='44'%20stroke-width='3'/><path%20d='M42%2061l12%2012%2024-26'%20stroke-width='4'/></svg>");
+  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.11'%20stroke-width='6'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='60'%20cy='60'%20r='46'/><path%20d='M40%2062l13%2013%2027-30'/></svg>");
 }
 :root[data-app='finance'] {
-  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.13'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'><g%20transform='translate%2812%2C12%29%20scale%284%29'><path%20d='M4%207.5A2.5%202.5%200%200%201%206.5%205H18a2%202%200%200%201%202%202v1'/><path%20d='M4%207.5V17a2%202%200%200%200%202%202h13a1%201%200%200%200%201-1v-3'/><path%20d='M20%2010h-4a2%202%200%200%200%200%204h4a1%201%200%200%200%201-1v-2a1%201%200%200%200-1-1Z'/></g></svg>");
+  --app-mark: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%20fill='none'%20stroke='%23488d64'%20stroke-opacity='0.11'%20stroke-width='6'%20stroke-linecap='round'%20stroke-linejoin='round'><rect%20x='20'%20y='34'%20width='80'%20height='58'%20rx='12'/><path%20d='M20%2046a10%2010%200%200%201%2010-10h50'/><circle%20cx='86'%20cy='63'%20r='7'%20fill='%23488d64'%20stroke='none'/></svg>");
 }
 
 * {

@@ -180,17 +180,53 @@ export function accountEffectiveBalance(
   return account.balance - accountLinkedTotal(account, links)
 }
 
-// סכום ששויך למטרה
-export function goalAllocated(goal: Goal, links: SavingLink[]): number {
+// סכום ששויך במפורש למטרה (העברות/הוצאות שתויגו אליה)
+export function goalTagged(goal: Goal, links: SavingLink[]): number {
   return links
     .filter((l) => l.goalId === goal.id)
     .reduce((s, l) => s + l.amount, 0)
 }
 
+// כמה כבר יש לכל מטרה — מפל של יתרת החשבון על פני המטרות לפי סדר יצירתן.
+// הכסף שכבר יושב בחשבון נספר לטובת המטרות: המטרה הראשונה מתמלאת עד היעד שלה,
+// והשארית זולגת לבאה. כך אין צורך לתייג כל העברה, והמטרה משקפת את המצב האמיתי.
+// שיוך מפורש למטרה (אם קיים) מתווסף כרצפה, למי שכן מתייג ידנית.
+export function goalFunding(
+  account: Account,
+  links: SavingLink[],
+): Record<string, number> {
+  let pool = Math.max(0, accountEffectiveBalance(account, links))
+  const out: Record<string, number> = {}
+  for (const g of account.goals) {
+    if (g.targetAmount == null) {
+      out[g.id] = 0
+      continue
+    }
+    const fromBalance = Math.min(pool, g.targetAmount)
+    pool -= fromBalance
+    // never show more than the target, even if a tag would push it over
+    out[g.id] = Math.min(g.targetAmount, Math.max(fromBalance, goalTagged(g, links)))
+  }
+  return out
+}
+
+// כמה כבר נצבר למטרה בודדת
+export function goalAllocated(
+  account: Account,
+  goal: Goal,
+  links: SavingLink[],
+): number {
+  return goalFunding(account, links)[goal.id] ?? goalTagged(goal, links)
+}
+
 // כמה חסר למטרה (null אם אין יעד)
-export function goalRemaining(goal: Goal, links: SavingLink[]): number | null {
+export function goalRemaining(
+  account: Account,
+  goal: Goal,
+  links: SavingLink[],
+): number | null {
   if (goal.targetAmount === undefined || goal.targetAmount === null) return null
-  return Math.max(0, goal.targetAmount - goalAllocated(goal, links))
+  return Math.max(0, goal.targetAmount - goalAllocated(account, goal, links))
 }
 
 // סך החסר לכל מטרות החשבון (רק מטרות עם יעד)
@@ -199,7 +235,7 @@ export function accountRemainingToGoals(
   links: SavingLink[],
 ): number {
   return account.goals.reduce((s, g) => {
-    const r = goalRemaining(g, links)
+    const r = goalRemaining(account, g, links)
     return s + (r ?? 0)
   }, 0)
 }
