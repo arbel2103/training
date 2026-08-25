@@ -281,7 +281,7 @@ export default function ActiveWorkout({
                 return (
                   <div
                     key={ex.id}
-                    className={`card transition-opacity ${
+                    className={`card transition-opacity min-w-0 ${
                       done ? 'p-3 opacity-60' : open ? 'p-4' : 'p-3'
                     }`}
                   >
