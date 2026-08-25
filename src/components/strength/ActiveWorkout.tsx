@@ -98,6 +98,8 @@ export default function ActiveWorkout({
   const pending = exercises.filter((e) => !isDone(e.id, e.sets))
   const finished = exercises.filter((e) => isDone(e.id, e.sets))
   const ordered = [...pending, ...finished]
+  // the exercise you're on — the top of the pending list — is the one kept open
+  const activeId = pending[0]?.id
 
   const fieldsFor = (exId: ID): Draft => {
     if (draft[exId]) return draft[exId]
@@ -266,27 +268,46 @@ export default function ActiveWorkout({
                 const pb = personalBest(log, ex.id, ex.name)
                 const target = ex.reps[mine.length]
                 const done = isDone(ex.id, ex.sets)
-                const open = !done || reopened.includes(ex.id)
+                // only the exercise you're on is expanded; the rest are compact
+                // rows you can tap open. This keeps a 7-exercise leg day to one
+                // focused card plus a short list, instead of a long scroll.
+                const isActive = ex.id === activeId
+                const open = isActive || reopened.includes(ex.id)
+                const toggle = () =>
+                  setReopened((r) =>
+                    r.includes(ex.id) ? r.filter((x) => x !== ex.id) : [...r, ex.id],
+                  )
 
                 return (
                   <div
                     key={ex.id}
                     className={`card transition-opacity ${
-                      done ? 'p-3 opacity-60' : 'p-4'
+                      done ? 'p-3 opacity-60' : open ? 'p-4' : 'p-3'
                     }`}
                   >
-                    <div className="flex items-baseline justify-between gap-2">
+                    {/* header — tap to expand/collapse (the active card stays open) */}
+                    <button
+                      type="button"
+                      onClick={isActive ? undefined : toggle}
+                      className="w-full flex items-baseline justify-between gap-2 text-start"
+                    >
                       <div className="font-semibold min-w-0 truncate flex items-baseline gap-1.5">
-                        {done && <span className="text-accent">✓</span>}
+                        {done ? (
+                          <span className="text-accent">✓</span>
+                        ) : (
+                          !isActive && (
+                            <span className="text-muted text-xs">{open ? '▾' : '◂'}</span>
+                          )
+                        )}
                         <span className="truncate">{ex.name}</span>
                       </div>
                       <div className="text-xs text-muted shrink-0">
                         {mine.length}/{ex.sets} סטים
                       </div>
-                    </div>
+                    </button>
 
-                    {/* what you did last time — the number to beat */}
-                    {!done && (
+                    {/* what you did last time — the number to beat (only when open) */}
+                    {!done && open && (
                       <div className="text-xs text-muted mt-1">
                         {last
                           ? `פעם שעברה: ${last.sets
