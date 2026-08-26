@@ -40,9 +40,11 @@ export default function PlanSessionPicker({
     log,
   )
 
+  const available = options.filter((o) => !o.taken)
+
   // no plan sessions of this sport this week — nothing to link to, so don't
   // clutter the rating screen with an empty picker
-  if (options.length === 0) return null
+  if (available.length === 0) return null
 
   const row = (selected: boolean) =>
     `w-full flex items-center gap-2 rounded-xl border px-3 py-2 text-sm text-start transition ${
@@ -53,7 +55,7 @@ export default function PlanSessionPicker({
     <div>
       <label className="label">מול איזה אימון בתוכנית?</label>
       <div className="grid gap-1.5">
-        {options.map(({ session, date, taken }) => {
+        {available.map(({ session, date }) => {
           const selected = value === session.id
           // strength/other sessions have no sport — the label is the whole
           // story; aerobic ones lead with distance and add the label if any
@@ -83,9 +85,6 @@ export default function PlanSessionPicker({
               </span>
               <span className="font-semibold shrink-0">{HEB_DAYS_SHORT[fromISO(date).getDay()]}׳</span>
               <span className="flex-1 min-w-0 truncate text-muted">{detail}</span>
-              {taken && !selected && (
-                <span className="text-[11px] text-muted shrink-0">כבר סומן</span>
-              )}
             </button>
           )
         })}
