@@ -259,6 +259,69 @@ export async function downloadBackup(fileId: string): Promise<BackupPayload> {
   return res.json()
 }
 
+export interface BackupRevision {
+  id: string
+  modifiedTime: string
+  /** bytes, when Drive reports it — a rough "how much was in it" signal */
+  size?: number
+}
+
+/**
+ * Earlier versions of the backup file that Drive still holds.
+ *
+ * The backup is one file overwritten on every sync, so the store itself keeps
+ * no history — but Drive versions the file behind our back. That makes an older
+ * revision the only way back after a destructive change (a coach rewrite, a bad
+ * import) that was synced before anyone noticed.
+ */
+export async function listBackupRevisions(
+  fileId: string,
+): Promise<BackupRevision[]> {
+  const q = new URLSearchParams({
+    fields: 'revisions(id,modifiedTime,size)',
+    pageSize: '100',
+  })
+  const data = await readJson(
+    await authFetch(`${DRIVE}/files/${fileId}/revisions?${q}`),
+  )
+  const raw = (data.revisions ?? []) as {
+    id: string
+    modifiedTime: string
+    size?: string
+  }[]
+  const revs: BackupRevision[] = raw.map((r) => ({
+    id: r.id,
+    modifiedTime: r.modifiedTime,
+    size: r.size != null ? Number(r.size) : undefined,
+  }))
+  // newest first — the interesting ones are the few before the mistake
+  return revs.reverse()
+}
+
+/** Download one earlier revision of the backup file. */
+export async function downloadRevision(
+  fileId: string,
+  revisionId: string,
+): Promise<BackupPayload> {
+  const res = await authFetch(
+    `${DRIVE}/files/${fileId}/revisions/${revisionId}?alt=media`,
+  )
+  if (!res.ok) throw new Error(`Drive API ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Take just the training plan out of a backup, leaving everything else alone.
+ *
+ * A full restore from an old revision would also roll back workouts, weights
+ * and Garmin data recorded since — losing real history to undo one bad edit.
+ * Reading only the plan out of it keeps the rest of the app where it is.
+ */
+export function planFromBackup(payload: BackupPayload): unknown {
+  const store = payload?.store as { state?: { trainingPlan?: unknown } } | null
+  return store?.state?.trainingPlan ?? null
+}
+
 /* ---------- file export / import (offline backup, no Google needed) ---------- */
 
 export async function exportToFile(): Promise<void> {

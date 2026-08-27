@@ -426,7 +426,7 @@ function runTool(name: string, input: any): string {
         raceDate: input.raceDate,
         weeks: rawWeeks.map(withIds),
       }
-      s.setTrainingPlan(plan)
+      s.setTrainingPlan(plan, 'המאמן החליף את התוכנית')
       // the plan is the source of truth here — pull the board (and the calendar
       // approval) along for any week the user has already started scheduling.
       // Read the weeks back from the store: a date that wasn't a Sunday was
@@ -441,7 +441,7 @@ function runTool(name: string, input: any): string {
         return 'weekStart חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
       if (weekStart !== input.weekStart)
         return `weekStart חייב להיות יום ראשון. השבוע של ${input.weekStart} מתחיל ב-${weekStart} — קרא שוב עם התאריך הזה.`
-      s.upsertPlanWeek(withIds(input))
+      s.upsertPlanWeek(withIds(input), `המאמן עדכן את השבוע של ${weekStart}`)
       s.syncBoardWithPlanWeek(weekStart)
       return `השבוע של ${weekStart} עודכן בתוכנית, והלוח והאימון של היום עודכנו בהתאם. השינויים ליומן ממתינים לאישור המשתמש בעמוד "שיבוץ ליומן".`
     }

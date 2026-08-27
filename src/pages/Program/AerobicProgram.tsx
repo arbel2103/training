@@ -15,6 +15,7 @@ import { weekCompletion } from '../../lib/planMatch'
 import { isTaperWeek } from '../../lib/taper'
 import TaperGuidance from '../../components/TaperGuidance'
 import PlanProposals from './PlanProposals'
+import PlanHistory from '../../components/PlanHistory'
 
 const planSportMeta: Record<PlanSport, { iconName: IconName; label: string }> = {
   run: { iconName: 'run', label: sportLabel.run },
@@ -220,6 +221,7 @@ export default function AerobicProgram() {
         )}
       </div>
       <PlanProposals />
+      <PlanHistory />
       <div className="grid gap-3">
         {weeks.map((w) => (
           <WeekCard

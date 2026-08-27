@@ -233,6 +233,21 @@ export interface TrainingPlan {
   raceDate?: string
   weeks: PlanWeek[]
 }
+/**
+ * The plan as it stood just before an edit.
+ *
+ * The coach rewrites the plan through tool calls, and a single vague request
+ * ("change my bike distances") can replace weeks of work in one turn. Keeping
+ * the previous state makes that reversible instead of final.
+ */
+export interface PlanSnapshot {
+  id: ID
+  /** when the edit that replaced this plan happened */
+  at: string
+  /** what caused it, in Hebrew — shown in the restore list */
+  reason: string
+  plan: TrainingPlan | null
+}
 export interface ChatMessage {
   id: ID
   role: 'user' | 'assistant'
@@ -286,6 +301,30 @@ function weekSlice(planned: PlannedWorkout[], weekStart: string): PlannedWorkout
  * workout on the board is not the coach's to delete by omission — deleting it
  * would take the workout off the board with it.
  */
+/** How many previous plans to keep. Enough to walk back a bad coach session. */
+const PLAN_HISTORY_LIMIT = 15
+
+/**
+ * Record the plan being replaced, newest first.
+ *
+ * A no-op when there was no plan to begin with: an empty "before" is not a
+ * version worth offering to restore.
+ */
+function pushSnapshot(
+  history: PlanSnapshot[],
+  before: TrainingPlan | null,
+  reason: string,
+): PlanSnapshot[] {
+  if (!before || !before.weeks.length) return history ?? []
+  const snap: PlanSnapshot = {
+    id: uid(),
+    at: new Date().toISOString(),
+    reason,
+    plan: before,
+  }
+  return [snap, ...(history ?? [])].slice(0, PLAN_HISTORY_LIMIT)
+}
+
 function keepSessionIdentity(plan: TrainingPlan | null, week: PlanWeek): PlanWeek {
   const prev = plan?.weeks.find((w) => w.weekStart === week.weekStart)
   if (!prev) return week
@@ -324,6 +363,8 @@ interface State {
   checkups: Checkup[]
   coachProfile: CoachProfile | null
   trainingPlan: TrainingPlan | null
+  /** the plan as it was before each of the last few edits, newest first */
+  planHistory: PlanSnapshot[]
   coachMessages: ChatMessage[]
   coachMemory: CoachMemory[]
   planProposals: PlanProposal[]
@@ -408,8 +449,10 @@ interface State {
 
   // AI coach
   updateCoachProfile: (patch: Partial<CoachProfile>) => void
-  setTrainingPlan: (plan: TrainingPlan) => void
-  upsertPlanWeek: (week: PlanWeek) => void
+  setTrainingPlan: (plan: TrainingPlan, reason?: string) => void
+  upsertPlanWeek: (week: PlanWeek, reason?: string) => void
+  /** Put the plan back to one of the snapshots in `planHistory`. */
+  restorePlanSnapshot: (id: ID) => boolean
   /**
    * Board → plan. Move matched sessions to the day they were placed on, create
    * a session for a board workout that has none, and drop a session that only
@@ -465,6 +508,7 @@ export const useStore = create<State>()(
       checkups: [],
       coachProfile: null,
       trainingPlan: null,
+      planHistory: [],
       coachMessages: [],
       coachMemory: [],
       planProposals: [],
@@ -750,18 +794,19 @@ export const useStore = create<State>()(
       // the plan comes from the AI coach, so it is sanitized on the way in
       // rather than trusted: a week the views can't render would take the whole
       // "תוכנית" page down, and it would do it again on every reload
-      setTrainingPlan: (plan) =>
+      setTrainingPlan: (plan, reason = 'התוכנית הוחלפה') =>
         set((s) => {
           const clean = sanitizePlan(plan)
           if (!clean) return {}
           return {
+            planHistory: pushSnapshot(s.planHistory, s.trainingPlan, reason),
             trainingPlan: {
               ...clean,
               weeks: clean.weeks.map((w) => keepSessionIdentity(s.trainingPlan, w)),
             },
           }
         }),
-      upsertPlanWeek: (week) =>
+      upsertPlanWeek: (week, reason) =>
         set((s) => {
           const clean = sanitizePlanWeek(week)
           if (!clean) return {}
@@ -770,8 +815,34 @@ export const useStore = create<State>()(
           const weeks = plan.weeks.some((w) => w.weekStart === clean.weekStart)
             ? plan.weeks.map((w) => (w.weekStart === clean.weekStart ? next : w))
             : [...plan.weeks, next]
-          return { trainingPlan: { ...plan, weeks } }
+          return {
+            planHistory: pushSnapshot(
+              s.planHistory,
+              s.trainingPlan,
+              reason ?? `עודכן השבוע של ${clean.weekStart}`,
+            ),
+            trainingPlan: { ...plan, weeks },
+          }
         }),
+      // the restore is itself an edit, so it goes on the stack too — undoing an
+      // undo has to be possible, or "restore" becomes its own trap
+      restorePlanSnapshot: (id) => {
+        let ok = false
+        set((s) => {
+          const snap = s.planHistory.find((h) => h.id === id)
+          if (!snap) return {}
+          ok = true
+          return {
+            planHistory: pushSnapshot(
+              s.planHistory,
+              s.trainingPlan,
+              'שוחזרה גרסה קודמת',
+            ),
+            trainingPlan: snap.plan,
+          }
+        })
+        return ok
+      },
       syncPlanWeekWithBoard: (weekStart) =>
         set((s) => {
           const inWeek = weekSlice(s.planned, weekStart)
@@ -847,7 +918,11 @@ export const useStore = create<State>()(
             ),
           }
         }),
-      clearPlan: () => set({ trainingPlan: null }),
+      clearPlan: () =>
+        set((s) => ({
+          planHistory: pushSnapshot(s.planHistory, s.trainingPlan, 'התוכנית נמחקה'),
+          trainingPlan: null,
+        })),
       addChatMessage: (role, text) =>
         set((s) => ({
           coachMessages: [...s.coachMessages, { id: uid(), role, text }],
@@ -919,7 +994,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'training-app-v1',
-      version: 4,
+      version: 5,
       migrate: (state) => {
         const prev = (state ?? {}) as { trainingPlan?: unknown }
         return {
@@ -928,6 +1003,7 @@ export const useStore = create<State>()(
           garminDaily: [],
           pendingCalendarDeletes: [], // added in v2
           dismissedNudges: {}, // added in v4
+          planHistory: [], // added in v5
           ...(prev as object),
           // v3: a plan saved before the coach's input was validated can hold a
           // week with no weekStart, which throws while rendering the program

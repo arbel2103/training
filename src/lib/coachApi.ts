@@ -61,7 +61,10 @@ async function fetchWithTimeout(
   } catch (e) {
     if (external?.aborted) throw new CoachAborted()
     if (timedOut)
-      throw new Error('גוגל לא הגיבה בזמן. נסה שוב — אם זה חוזר, נסה שאלה קצרה יותר.')
+      throw new Error(
+        'גוגל לא הגיבה בזמן. נסה שוב — אם זה חוזר, נסה שאלה קצרה יותר.',
+        { cause: e },
+      )
     throw e
   } finally {
     clearTimeout(timer)
