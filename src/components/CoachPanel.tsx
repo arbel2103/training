@@ -43,6 +43,7 @@ export default function CoachPanel({
   const [error, setError] = useState<string | null>(null)
   const kickedOff = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -67,13 +68,23 @@ export default function CoachPanel({
   }, [open, keySet, ask])
 
   async function callCoach(apiMessages: ApiMessage[]): Promise<string> {
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
     return runCoach({
       apiKey: getApiKey(),
       system: buildSystem(),
       messages: apiMessages,
       tools: COACH_TOOLS,
       onToolCall: (name, inp) => executeTool(name, inp),
+      signal: ac.signal,
     })
+  }
+
+  function cancelRequest() {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setLoading(false)
   }
 
   async function kickoff() {
@@ -233,10 +244,19 @@ export default function CoachPanel({
                 </div>
               ))}
               {loading && (
-                <div className="bg-bg border border-line rounded-2xl px-4 py-3 w-fit flex items-center gap-1.5">
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
+                <div className="flex items-center gap-2">
+                  <div className="bg-bg border border-line rounded-2xl px-4 py-3 w-fit flex items-center gap-1.5">
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                  </div>
+                  <button
+                    onClick={cancelRequest}
+                    className="text-muted hover:text-run text-xs shrink-0"
+                    title="בטל"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
               {error && <p className="text-run text-sm">{error}</p>}

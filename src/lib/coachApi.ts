@@ -43,6 +43,7 @@ export async function verifyApiKey(apiKey: string): Promise<void> {
   try {
     res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
       headers: { 'x-goog-api-key': apiKey },
+      signal: AbortSignal.timeout(15_000),
     })
   } catch {
     throw new Error('אין חיבור לאינטרנט, או שגוגל לא זמינה כרגע. נסה שוב.')
@@ -63,6 +64,7 @@ interface RunArgs {
   messages: ApiMessage[]
   tools: any[] // Gemini functionDeclarations
   onToolCall: (name: string, args: any) => string | Promise<string>
+  signal?: AbortSignal
 }
 
 /**
@@ -75,6 +77,7 @@ export async function runCoach({
   messages,
   tools,
   onToolCall,
+  signal,
 }: RunArgs): Promise<string> {
   const contents: any[] = messages.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -85,21 +88,38 @@ export async function runCoach({
   async function generate(): Promise<any> {
     let lastErr = ''
     for (const model of MODELS) {
-      const res = await fetch(endpoint(model), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents,
-          ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
-          // warm enough to coach in natural Hebrew, cool enough that "move
-          // Tuesday's run to Thursday" reliably becomes a tool call
-          generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
-        }),
-      })
+      signal?.throwIfAborted()
+      const timeout = AbortController.prototype ? new AbortController() : null
+      const timer = timeout ? setTimeout(() => timeout.abort(), 30_000) : undefined
+      const combined = new AbortController()
+      signal?.addEventListener('abort', () => combined.abort(signal.reason), { once: true })
+      timeout?.signal.addEventListener('abort', () => combined.abort('timeout'), { once: true })
+
+      let res: Response
+      try {
+        res = await fetch(endpoint(model), {
+          method: 'POST',
+          signal: combined.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents,
+            ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
+            generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
+          }),
+        })
+      } catch (e: any) {
+        clearTimeout(timer)
+        if (signal?.aborted) throw new Error('בוטל.')
+        if (e?.name === 'AbortError' || String(e).includes('timeout'))
+          throw new Error('הבקשה לקחה יותר מדי זמן — נסה שוב.')
+        throw e
+      } finally {
+        clearTimeout(timer)
+      }
       if (res.ok) return res.json()
 
       let msg = ''
