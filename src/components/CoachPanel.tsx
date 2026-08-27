@@ -14,6 +14,9 @@ import Icon from './ui/Icon'
 const KICKOFF =
   'זוהי פתיחת השיחה הראשונה. הצג את עצמך בקצרה כמאמן האישי שלי, ושאל אותי קודם כל על מה נעבוד — אימוני כוח, טריאתלון/אירובי, או שניהם — ואז המשך לשאלות ההיכרות המתאימות.'
 
+/** How many past chat turns to send. Enough to hold a thread of conversation. */
+const HISTORY_TURNS = 30
+
 function buildSystem() {
   return SYSTEM_PERSONA + '\n\n[מצב נוכחי]\n' + buildContext()
 }
@@ -108,9 +111,13 @@ export default function CoachPanel({
     if (!preset) setInput('')
     setError(null)
     addChatMessage('user', text)
+    // only the recent turns go to the model: the full state of the app is
+    // rebuilt into the system prompt every turn anyway, so old chat adds
+    // latency and cost without adding anything the coach doesn't already know
     const apiMessages: ApiMessage[] = useStore
       .getState()
-      .coachMessages.map((m) => ({ role: m.role, content: m.text }))
+      .coachMessages.slice(-HISTORY_TURNS)
+      .map((m) => ({ role: m.role, content: m.text }))
     setLoading(true)
     try {
       const reply = await callCoach(apiMessages)

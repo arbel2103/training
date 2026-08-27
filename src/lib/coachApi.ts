@@ -5,10 +5,18 @@
 // Ordered by function-calling reliability, not by quota: the coach's whole job
 // is to actually call its tools, and the lite model regularly answers "done!"
 // in prose without emitting the call — which reads as the app ignoring you.
-const MODELS = [
-  'gemini-flash-latest',
-  'gemini-2.0-flash',
-  'gemini-flash-lite-latest',
+/**
+ * `thinking` marks a model that reasons before answering — and that bills that
+ * reasoning to the same output budget as the reply. Left unbounded, it can
+ * spend the entire budget thinking and return MAX_TOKENS with no text at all,
+ * which the user experiences as the coach hanging and then saying nothing. The
+ * budget is pinned to 0 for those; the older 2.0 model rejects the field, so it
+ * must not be sent one.
+ */
+const MODELS: { id: string; thinking: boolean }[] = [
+  { id: 'gemini-flash-latest', thinking: true },
+  { id: 'gemini-2.0-flash', thinking: false },
+  { id: 'gemini-flash-lite-latest', thinking: true },
 ]
 // per Google AI Studio's quickstart: auth via the x-goog-api-key header
 const endpoint = (model: string) =>
@@ -142,7 +150,7 @@ export async function runCoach({
     let lastErr = ''
     for (const model of MODELS) {
       const res = await fetchWithTimeout(
-        endpoint(model),
+        endpoint(model.id),
         {
           method: 'POST',
           headers: {
@@ -153,9 +161,13 @@ export async function runCoach({
             systemInstruction: { parts: [{ text: system }] },
             contents,
             ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
-            // warm enough to coach in natural Hebrew, cool enough that "move
-            // Tuesday's run to Thursday" reliably becomes a tool call
-            generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
+            generationConfig: {
+              maxOutputTokens: 8000,
+              // warm enough to coach in natural Hebrew, cool enough that "move
+              // Tuesday's run to Thursday" reliably becomes a tool call
+              temperature: 0.4,
+              ...(model.thinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            },
           }),
         },
         signal,
@@ -171,6 +183,12 @@ export async function runCoach({
       }
       if (res.status === 400 && /api key/i.test(msg))
         throw new Error('מפתח ה-API לא תקין.')
+      // a model that doesn't know a field we sent (thinkingConfig on an older
+      // one) is a bad pairing, not a dead end — the next model may take it
+      if (res.status === 400 && /unknown name|invalid json|not supported/i.test(msg)) {
+        lastErr = `(400) ${msg.slice(0, 160)}`
+        continue
+      }
       if (res.status === 404 || res.status === 429 || res.status === 503) {
         lastErr = `(${res.status}) ${msg.slice(0, 160)}`
         continue // try the next model
@@ -220,6 +238,10 @@ export async function runCoach({
       .join('\n')
       .trim()
     if (text) return text
+    // ran out of room before writing anything — the answer was too long, not
+    // impossible, so say that rather than blaming the question
+    if (cand?.finishReason === 'MAX_TOKENS' && !done.length)
+      return 'התשובה יצאה ארוכה מדי ונקטעה. נסה לשאול על דבר אחד ספציפי.'
     if (cand?.finishReason && cand.finishReason !== 'STOP' && !done.length)
       return 'לא הצלחתי לענות על זה — נסה לנסח אחרת.'
     return ranSomething()
