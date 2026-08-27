@@ -43,6 +43,28 @@ export class CoachAborted extends Error {
 }
 
 /**
+ * The request never reached Google — no status, no body.
+ *
+ * `fetch` rejects with a bare `TypeError` for everything at this layer, and
+ * Safari's text for it is the untranslatable "Load failed". Naming it as a
+ * connection problem is the difference between a user who can act and one
+ * staring at two English words.
+ */
+export class CoachNetworkError extends Error {
+  constructor(cause?: unknown) {
+    super(
+      'לא הצלחתי להגיע לשרתים של גוגל. בדוק חיבור לאינטרנט — ואם אתה על רשת של מקום עבודה, VPN או Private Relay, נסה לכבות אותם או לעבור לרשת אחרת.',
+      { cause },
+    )
+    this.name = 'CoachNetworkError'
+  }
+}
+
+/** True for a failure at the connection layer rather than an HTTP response. */
+const isNetworkFailure = (e: unknown) =>
+  e instanceof TypeError || /load failed|network|fetch/i.test(String(e))
+
+/**
  * `fetch` that cannot hang forever, and that the caller can cancel.
  *
  * Deliberately built from plain `AbortController` + `setTimeout`: the tidier
@@ -67,16 +89,38 @@ async function fetchWithTimeout(
   try {
     return await fetch(url, { ...init, signal: ac.signal })
   } catch (e) {
+    // Safari reports an aborted fetch as a plain "Load failed" rather than an
+    // AbortError, so the reason has to come from our own flags, not from `e`
     if (external?.aborted) throw new CoachAborted()
     if (timedOut)
       throw new Error(
         'גוגל לא הגיבה בזמן. נסה שוב — אם זה חוזר, נסה שאלה קצרה יותר.',
         { cause: e },
       )
+    if (isNetworkFailure(e)) throw new CoachNetworkError(e)
     throw e
   } finally {
     clearTimeout(timer)
     external?.removeEventListener('abort', onExternalAbort)
+  }
+}
+
+/**
+ * Retry once on a dropped connection.
+ *
+ * Safe precisely because the failure is at the connection layer: nothing
+ * reached Google, so nothing was generated and no tool ran. Mobile networks
+ * drop the first request often enough — handing off between wifi and cellular,
+ * waking from sleep — that one quiet retry turns a visible error into a
+ * slightly slower answer.
+ */
+async function withRetry(attempt: () => Promise<Response>): Promise<Response> {
+  try {
+    return await attempt()
+  } catch (e) {
+    if (!(e instanceof CoachNetworkError)) throw e
+    await new Promise((r) => setTimeout(r, 600))
+    return attempt()
   }
 }
 
@@ -102,12 +146,19 @@ export function keyCheckMessage(status: number, detail = ''): string {
 export async function verifyApiKey(apiKey: string): Promise<void> {
   let res: Response
   try {
-    res = await fetchWithTimeout(
-      'https://generativelanguage.googleapis.com/v1beta/models',
-      { headers: { 'x-goog-api-key': apiKey } },
+    res = await withRetry(() =>
+      fetchWithTimeout(
+        'https://generativelanguage.googleapis.com/v1beta/models',
+        { headers: { 'x-goog-api-key': apiKey } },
+      ),
     )
-  } catch {
-    throw new Error('אין חיבור לאינטרנט, או שגוגל לא זמינה כרגע. נסה שוב.')
+  } catch (e) {
+    // a connection that never got there says nothing about the key — saying
+    // otherwise sends people off to generate a replacement for no reason
+    if (e instanceof CoachNetworkError) throw e
+    throw new Error('אין חיבור לאינטרנט, או שגוגל לא זמינה כרגע. נסה שוב.', {
+      cause: e,
+    })
   }
   if (res.ok) return
   let detail = ''
@@ -149,7 +200,8 @@ export async function runCoach({
   async function generate(): Promise<any> {
     let lastErr = ''
     for (const model of MODELS) {
-      const res = await fetchWithTimeout(
+      const res = await withRetry(() =>
+        fetchWithTimeout(
         endpoint(model.id),
         {
           method: 'POST',
@@ -171,6 +223,7 @@ export async function runCoach({
           }),
         },
         signal,
+        ),
       )
       if (res.ok) return res.json()
 

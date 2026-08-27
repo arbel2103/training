@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { clearApiKey, getApiKey, hasApiKey } from '../lib/apiKey'
-import { CoachAborted, runCoach, type ApiMessage } from '../lib/coachApi'
+import {
+  CoachAborted,
+  CoachNetworkError,
+  runCoach,
+  verifyApiKey,
+  type ApiMessage,
+} from '../lib/coachApi'
 import CoachSetup from './CoachSetup'
 import {
   COACH_TOOLS,
@@ -44,6 +50,7 @@ export default function CoachPanel({
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [diag, setDiag] = useState<string | null>(null)
   const kickedOff = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -82,6 +89,23 @@ export default function CoachPanel({
       onToolCall: (name, inp) => executeTool(name, inp),
       signal: ac.signal,
     })
+  }
+
+  /**
+   * Separates "the network can't get there" from "the key is wrong" from
+   * "Google is fine and something else is broken" — three failures that look
+   * identical from the chat, and need three different fixes.
+   */
+  async function testConnection() {
+    setDiag('בודק…')
+    try {
+      await verifyApiKey(getApiKey())
+      setDiag('✓ החיבור לגוגל תקין והמפתח מזוהה. אם המאמן עדיין נכשל — זו לא בעיית רשת.')
+    } catch (e) {
+      if (e instanceof CoachNetworkError)
+        setDiag('✗ אין דרך להגיע לגוגל מהמכשיר הזה. נסה רשת אחרת, או כבה VPN/Private Relay.')
+      else setDiag(`✗ ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   function cancelRequest() {
@@ -164,6 +188,9 @@ export default function CoachPanel({
           <div className="px-4 py-3 border-b border-line bg-bg text-sm grid gap-3">
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-muted">מפתח API מחובר.</span>
+              <button onClick={() => void testConnection()} className="btn-ghost text-sm">
+                בדוק חיבור
+              </button>
               <button
                 onClick={() => {
                   clearCoachChat()
@@ -185,6 +212,7 @@ export default function CoachPanel({
                 החלף/מחק מפתח
               </button>
             </div>
+            {diag && <p className="text-xs leading-relaxed">{diag}</p>}
             <div>
               <div className="font-semibold mb-1.5 flex items-center gap-1.5">
                 <Icon name="brain" className="w-4 h-4 text-muted" /> מה שאני זוכר עליך
