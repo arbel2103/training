@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { clearApiKey, getApiKey, hasApiKey } from '../lib/apiKey'
-import { runCoach, type ApiMessage } from '../lib/coachApi'
+import { CoachAborted, runCoach, type ApiMessage } from '../lib/coachApi'
 import CoachSetup from './CoachSetup'
 import {
   COACH_TOOLS,
@@ -94,7 +94,8 @@ export default function CoachPanel({
       const reply = await callCoach([{ role: 'user', content: KICKOFF }])
       addChatMessage('assistant', reply)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      if (!(e instanceof CoachAborted))
+        setError(e instanceof Error ? e.message : String(e))
       kickedOff.current = false // allow retry
     } finally {
       setLoading(false)
@@ -115,7 +116,8 @@ export default function CoachPanel({
       const reply = await callCoach(apiMessages)
       addChatMessage('assistant', reply)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      if (!(e instanceof CoachAborted))
+        setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }

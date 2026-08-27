@@ -19,6 +19,56 @@ export interface ApiMessage {
   content: string
 }
 
+/**
+ * A generation with a full context and tool calls is legitimately slow — this
+ * is a stuck-connection guard, not a latency budget. Too tight and it kills
+ * answers that were on their way.
+ */
+const REQUEST_TIMEOUT_MS = 90_000
+
+/** Thrown when the user pressed cancel — the panel shows no error for it. */
+export class CoachAborted extends Error {
+  constructor() {
+    super('בוטל.')
+    this.name = 'CoachAborted'
+  }
+}
+
+/**
+ * `fetch` that cannot hang forever, and that the caller can cancel.
+ *
+ * Deliberately built from plain `AbortController` + `setTimeout`: the tidier
+ * `AbortSignal.timeout()`/`signal.throwIfAborted()` are recent additions and
+ * are missing on older iOS Safari, where merely calling them throws and takes
+ * the whole coach down.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  external?: AbortSignal,
+): Promise<Response> {
+  if (external?.aborted) throw new CoachAborted()
+  const ac = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    ac.abort()
+  }, REQUEST_TIMEOUT_MS)
+  const onExternalAbort = () => ac.abort()
+  external?.addEventListener('abort', onExternalAbort)
+  try {
+    return await fetch(url, { ...init, signal: ac.signal })
+  } catch (e) {
+    if (external?.aborted) throw new CoachAborted()
+    if (timedOut)
+      throw new Error('גוגל לא הגיבה בזמן. נסה שוב — אם זה חוזר, נסה שאלה קצרה יותר.')
+    throw e
+  } finally {
+    clearTimeout(timer)
+    external?.removeEventListener('abort', onExternalAbort)
+  }
+}
+
 /** Google's reply to a bad key, in words the person setting it up can use. */
 export function keyCheckMessage(status: number, detail = ''): string {
   if (status === 400 || status === 401 || status === 403)
@@ -41,10 +91,10 @@ export function keyCheckMessage(status: number, detail = ''): string {
 export async function verifyApiKey(apiKey: string): Promise<void> {
   let res: Response
   try {
-    res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
-      headers: { 'x-goog-api-key': apiKey },
-      signal: AbortSignal.timeout(15_000),
-    })
+    res = await fetchWithTimeout(
+      'https://generativelanguage.googleapis.com/v1beta/models',
+      { headers: { 'x-goog-api-key': apiKey } },
+    )
   } catch {
     throw new Error('אין חיבור לאינטרנט, או שגוגל לא זמינה כרגע. נסה שוב.')
   }
@@ -88,18 +138,10 @@ export async function runCoach({
   async function generate(): Promise<any> {
     let lastErr = ''
     for (const model of MODELS) {
-      signal?.throwIfAborted()
-      const timeout = AbortController.prototype ? new AbortController() : null
-      const timer = timeout ? setTimeout(() => timeout.abort(), 30_000) : undefined
-      const combined = new AbortController()
-      signal?.addEventListener('abort', () => combined.abort(signal.reason), { once: true })
-      timeout?.signal.addEventListener('abort', () => combined.abort('timeout'), { once: true })
-
-      let res: Response
-      try {
-        res = await fetch(endpoint(model), {
+      const res = await fetchWithTimeout(
+        endpoint(model),
+        {
           method: 'POST',
-          signal: combined.signal,
           headers: {
             'Content-Type': 'application/json',
             'x-goog-api-key': apiKey,
@@ -108,18 +150,13 @@ export async function runCoach({
             systemInstruction: { parts: [{ text: system }] },
             contents,
             ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
+            // warm enough to coach in natural Hebrew, cool enough that "move
+            // Tuesday's run to Thursday" reliably becomes a tool call
             generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
           }),
-        })
-      } catch (e: any) {
-        clearTimeout(timer)
-        if (signal?.aborted) throw new Error('בוטל.')
-        if (e?.name === 'AbortError' || String(e).includes('timeout'))
-          throw new Error('הבקשה לקחה יותר מדי זמן — נסה שוב.')
-        throw e
-      } finally {
-        clearTimeout(timer)
-      }
+        },
+        signal,
+      )
       if (res.ok) return res.json()
 
       let msg = ''
@@ -151,6 +188,7 @@ export async function runCoach({
       : 'לא הצלחתי להשלים את הפעולה — נסה שוב.'
 
   for (let i = 0; i < 6; i++) {
+    if (signal?.aborted) throw new CoachAborted()
     const data = await generate()
     const cand = data.candidates?.[0]
     const parts: any[] = cand?.content?.parts ?? []
