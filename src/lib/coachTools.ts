@@ -37,7 +37,9 @@ export const SYSTEM_PERSONA = `אתה מאמן אישי מקצועי ומנוס�
 
 תוכנית טריאתלון/אירובי:
 - כשאתה בונה או מעדכן תוכנית, שמור אותה עם set_training_plan (תוכנית מלאה) או upsert_plan_week (עדכון שבוע בודד). התוכנית מחולקת לשבועות; לכל שבוע weekStart (תאריך יום ראשון), ולכל אימון: יום בשבוע (0=ראשון … 6=שבת), ספורט (run/bike/swim/strength/other), תווית (למשל "ארוכה", "אינטרוולים"), ומרחק/משך. התוכנית מוצגת בעמוד "תוכנית אימונים" → אירובי, והאימונים שהמשתמש מבצע מסומנים אוטומטית ✓ מולה.
-- התוכנית דינמית: אם המשתמש אומר שהיה עייף/חולה/עסוק — התאם ועדכן את השבוע הרלוונטי עם upsert_plan_week.
+- **לשינוי של אימון בודד — אל תשלח שבוע שלם.** להוספה: add_plan_session. להסרה: remove_plan_session עם ה-id שמופיע ליד האימון במצב הנוכחי. לשינוי יום/מרחק/תווית: update_plan_session. שמור את upsert_plan_week לבנייה של שבוע מאפס בלבד — שליחת שבוע שלם כדי לגעת באימון אחד מוחקת בשקט כל אימון שהשמטת.
+- **כמה שינויים = כמה קריאות.** "תוסיף שני אימוני כוח" הן שתי קריאות ל-add_plan_session באותו תור. אל תסתפק באחת ואל תתאר במילים מה עשית במקום לקרוא — בצע קודם, ורק אז סכם.
+- התוכנית דינמית: אם המשתמש אומר שהיה עייף/חולה/עסוק — התאם ועדכן את האימונים הרלוונטיים.
 - **המלצות להמשך התוכנית (טעונות אישור):** כשמבקשים ממך "המלצות להמשך" — או כשאתה מזהה מהנתונים (היענות נמוכה, RPE גבוה, שינה/HRV ירודים) שכדאי להתאים — **אל תשנה את התוכנית ישירות**. הצע שינוי לכל שבוע רלוונטי עם propose_plan_week וכלול rationale קצר. המשתמש יאשר או יערוך בעצמו. השתמש ב-upsert_plan_week להחלה ישירה רק כשהמשתמש ביקש במפורש לבצע את השינוי.
 
 תוכנית כוח:
@@ -168,8 +170,68 @@ export const COACH_TOOLS = [
   },
   {
     name: 'upsert_plan_week',
-    description: 'מעדכן או מוסיף שבוע בודד בתוכנית (לשינויים דינמיים).',
+    description:
+      'מחליף שבוע שלם בתוכנית. השתמש בזה רק כשבונים שבוע מאפס — לשינוי של אימון בודד השתמש ב-add_plan_session / remove_plan_session / update_plan_session.',
     parameters: weekSchema,
+  },
+  // Session-level edits. Without these the only way to touch one workout was to
+  // resend the entire week through upsert_plan_week — every other session
+  // included, with its id, day, sport and distance intact. That is a large and
+  // fragile payload for "drop Tuesday's strength session", and getting it
+  // slightly wrong silently deletes the sessions left out.
+  {
+    name: 'add_plan_session',
+    description:
+      'מוסיף אימון בודד לשבוע קיים בתוכנית, בלי לגעת בשאר האימונים. לשני אימונים — קרא פעמיים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        weekStart: { type: 'string', description: 'yyyy-mm-dd של יום ראשון' },
+        day: { type: 'number', description: '0=ראשון … 6=שבת' },
+        sport: {
+          type: 'string',
+          enum: ['run', 'bike', 'swim', 'strength', 'other'],
+        },
+        label: { type: 'string', description: 'למשל "רגליים", "אינטרוולים"' },
+        distance: { type: 'number' },
+        durationMin: { type: 'number' },
+        note: { type: 'string' },
+      },
+      required: ['weekStart', 'day', 'sport'],
+    },
+  },
+  {
+    name: 'remove_plan_session',
+    description:
+      'מסיר אימון בודד מהתוכנית לפי ה-id שלו (ה-id מופיע ליד כל אימון במצב הנוכחי). לשני אימונים — קרא פעמיים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'ה-id של האימון להסרה' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'update_plan_session',
+    description:
+      'משנה אימון בודד קיים לפי ה-id שלו — יום, ענף, מרחק, תווית. רק השדות שנשלחים משתנים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        day: { type: 'number', description: '0=ראשון … 6=שבת' },
+        sport: {
+          type: 'string',
+          enum: ['run', 'bike', 'swim', 'strength', 'other'],
+        },
+        label: { type: 'string' },
+        distance: { type: 'number' },
+        durationMin: { type: 'number' },
+        note: { type: 'string' },
+      },
+      required: ['sessionId'],
+    },
   },
   {
     name: 'set_strength_workout',
@@ -399,6 +461,19 @@ function withIds(week: any): PlanWeek {
  * whole turn and the user has to repeat themselves, while a message lets the
  * model correct itself and try again in the same breath.
  */
+/** Locate one session by id across the whole plan, with its owning week. */
+function findSession(
+  plan: TrainingPlan | null,
+  sessionId: unknown,
+): { week: PlanWeek; session: PlanSession } | null {
+  if (!plan || typeof sessionId !== 'string') return null
+  for (const week of plan.weeks) {
+    const session = week.sessions.find((x) => x.id === sessionId)
+    if (session) return { week, session }
+  }
+  return null
+}
+
 export function executeTool(name: string, input: any): string {
   try {
     return runTool(name, input ?? {})
@@ -444,6 +519,74 @@ function runTool(name: string, input: any): string {
       s.upsertPlanWeek(withIds(input), `המאמן עדכן את השבוע של ${weekStart}`)
       s.syncBoardWithPlanWeek(weekStart)
       return `השבוע של ${weekStart} עודכן בתוכנית, והלוח והאימון של היום עודכנו בהתאם. השינויים ליומן ממתינים לאישור המשתמש בעמוד "שיבוץ ליומן".`
+    }
+    case 'add_plan_session': {
+      const weekStart = weekStartOf(input.weekStart)
+      if (!weekStart)
+        return 'weekStart חייב להיות תאריך בפורמט yyyy-mm-dd. נסה שוב עם תאריך תקין.'
+      const week = s.trainingPlan?.weeks.find((w) => w.weekStart === weekStart)
+      if (!week)
+        return `אין שבוע שמתחיל ב-${weekStart} בתוכנית. צור אותו קודם עם upsert_plan_week.`
+      const day = Number(input.day)
+      if (!(day >= 0 && day <= 6))
+        return 'day חייב להיות מספר בין 0 (ראשון) ל-6 (שבת).'
+      const session = {
+        id: uid(),
+        day,
+        sport: input.sport,
+        ...(input.label ? { label: input.label } : {}),
+        ...(input.distance != null ? { distance: Number(input.distance) } : {}),
+        ...(input.durationMin != null
+          ? { durationMin: Number(input.durationMin) }
+          : {}),
+        ...(input.note ? { note: input.note } : {}),
+      }
+      s.upsertPlanWeek(
+        { ...week, sessions: [...week.sessions, session] },
+        'המאמן הוסיף אימון לתוכנית',
+      )
+      s.syncBoardWithPlanWeek(weekStart)
+      return `נוסף אימון ${input.sport}${input.label ? ` (${input.label})` : ''} ביום ${HEB_DAYS[day]} לשבוע של ${weekStart}.`
+    }
+    case 'remove_plan_session': {
+      const found = findSession(s.trainingPlan, input.sessionId)
+      if (!found)
+        return `לא נמצא אימון עם id ${input.sessionId}. בדוק את הרשימה במצב הנוכחי וקרא שוב עם id קיים.`
+      const { week, session } = found
+      s.upsertPlanWeek(
+        { ...week, sessions: week.sessions.filter((x) => x.id !== session.id) },
+        'המאמן הסיר אימון מהתוכנית',
+      )
+      s.syncBoardWithPlanWeek(week.weekStart)
+      return `הוסר אימון ${session.sport}${session.label ? ` (${session.label})` : ''} מיום ${HEB_DAYS[session.day]} בשבוע של ${week.weekStart}.`
+    }
+    case 'update_plan_session': {
+      const found = findSession(s.trainingPlan, input.sessionId)
+      if (!found)
+        return `לא נמצא אימון עם id ${input.sessionId}. בדוק את הרשימה במצב הנוכחי וקרא שוב עם id קיים.`
+      const { week, session } = found
+      if (input.day != null && !(Number(input.day) >= 0 && Number(input.day) <= 6))
+        return 'day חייב להיות מספר בין 0 (ראשון) ל-6 (שבת).'
+      const next = {
+        ...session,
+        ...(input.day != null ? { day: Number(input.day) } : {}),
+        ...(input.sport ? { sport: input.sport } : {}),
+        ...(input.label != null ? { label: input.label } : {}),
+        ...(input.distance != null ? { distance: Number(input.distance) } : {}),
+        ...(input.durationMin != null
+          ? { durationMin: Number(input.durationMin) }
+          : {}),
+        ...(input.note != null ? { note: input.note } : {}),
+      }
+      s.upsertPlanWeek(
+        {
+          ...week,
+          sessions: week.sessions.map((x) => (x.id === session.id ? next : x)),
+        },
+        'המאמן עדכן אימון בתוכנית',
+      )
+      s.syncBoardWithPlanWeek(week.weekStart)
+      return `האימון עודכן: ${next.sport}${next.label ? ` (${next.label})` : ''} ביום ${HEB_DAYS[next.day]}, שבוע של ${week.weekStart}.`
     }
     case 'set_strength_workout':
       s.upsertStrengthWorkout(input.name, input.exercises ?? [])

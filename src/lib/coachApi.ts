@@ -235,20 +235,15 @@ export async function diagnose(
     }
   }
 
-  const hi = [{ role: 'user', parts: [{ text: 'אמור שלום' }] }]
-  const cfg = { maxOutputTokens: MAX_OUTPUT_TOKENS, temperature: 0.4 }
-
-  await post('POST פשוט', { contents: hi, generationConfig: cfg })
-  await post('POST עם ההנחיות המלאות', {
+  // One request, shaped exactly like the coach's, capped to a token of output.
+  // Three widening probes were more informative but spent three generations of
+  // a free-tier quota per press — enough to trigger the very 429 the user was
+  // trying to diagnose.
+  await post('בקשה מלאה (כמו המאמן)', {
     systemInstruction: { parts: [{ text: system }] },
-    contents: hi,
-    generationConfig: cfg,
-  })
-  await post('POST עם ההנחיות והכלים (כמו המאמן)', {
-    systemInstruction: { parts: [{ text: system }] },
-    contents: hi,
-    tools: [{ functionDeclarations: tools }],
-    generationConfig: cfg,
+    contents: [{ role: 'user', parts: [{ text: 'אמור שלום' }] }],
+    ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
+    generationConfig: { maxOutputTokens: 16, temperature: 0.1 },
   })
   return steps
 }
@@ -299,9 +294,12 @@ export async function runCoach({
               ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
               generationConfig: {
                 maxOutputTokens: MAX_OUTPUT_TOKENS,
-                // warm enough to coach in natural Hebrew, cool enough that "move
-                // Tuesday's run to Thursday" reliably becomes a tool call
-                temperature: 0.4,
+                // cool. The coach's job is to *act* — "drop Tuesday's strength
+                // session" has to become a tool call every time, not most
+                // times. Warmth buys nothing here and costs reliability: at
+                // 0.4 the model would sometimes describe the change in prose
+                // instead of emitting it.
+                temperature: 0.1,
               },
             }),
           },

@@ -115,10 +115,17 @@ export default function CoachPanel({
     // POST path that actually carries the persona and the tools
     const out = await diagnose(getApiKey(), buildSystem(), COACH_TOOLS)
     setSteps(out)
+    if (out.every((s) => s.ok)) {
+      setDiag('✓ הכל תקין — הרשת, המפתח והבקשה של המאמן.')
+      return
+    }
+    // 429 is the one failure the user can act on themselves, and it is by far
+    // the most common on the free tier — name it instead of saying "נכשל"
+    const quota = out.some((s) => s.detail.startsWith('429'))
     setDiag(
-      out.every((s) => s.ok)
-        ? '✓ כל השלבים עברו. אם המאמן עדיין נתקע — צלם את השורות למטה ושלח לי.'
-        : '✗ אחד השלבים נכשל — צלם את השורות למטה ושלח לי.',
+      quota
+        ? '✗ נגמרה המכסה החינמית של Gemini לרגע זה. המתן דקה ונסה שוב — אם זה חוזר גם מחר, המכסה היומית נגמרה.'
+        : '✗ הבקשה נכשלה — צלם את השורה למטה ושלח לי.',
     )
   }
 
