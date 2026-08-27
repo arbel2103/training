@@ -4,9 +4,11 @@ import { clearApiKey, getApiKey, hasApiKey } from '../lib/apiKey'
 import {
   CoachAborted,
   CoachNetworkError,
+  diagnose,
   runCoach,
   verifyApiKey,
   type ApiMessage,
+  type DiagStep,
 } from '../lib/coachApi'
 import CoachSetup from './CoachSetup'
 import {
@@ -51,6 +53,7 @@ export default function CoachPanel({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [diag, setDiag] = useState<string | null>(null)
+  const [steps, setSteps] = useState<DiagStep[] | null>(null)
   const kickedOff = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -98,14 +101,25 @@ export default function CoachPanel({
    */
   async function testConnection() {
     setDiag('בודק…')
+    setSteps(null)
     try {
       await verifyApiKey(getApiKey())
-      setDiag('✓ החיבור לגוגל תקין והמפתח מזוהה. אם המאמן עדיין נכשל — זו לא בעיית רשת.')
+      setDiag('✓ הרשת והמפתח תקינים. בודק את הבקשה עצמה…')
     } catch (e) {
       if (e instanceof CoachNetworkError)
         setDiag('✗ אין דרך להגיע לגוגל מהמכשיר הזה. נסה רשת אחרת, או כבה VPN/Private Relay.')
       else setDiag(`✗ ${e instanceof Error ? e.message : String(e)}`)
+      return
     }
+    // the GET above passes even while the coach hangs, so keep going into the
+    // POST path that actually carries the persona and the tools
+    const out = await diagnose(getApiKey(), buildSystem(), COACH_TOOLS)
+    setSteps(out)
+    setDiag(
+      out.every((s) => s.ok)
+        ? '✓ כל השלבים עברו. אם המאמן עדיין נתקע — צלם את השורות למטה ושלח לי.'
+        : '✗ אחד השלבים נכשל — צלם את השורות למטה ושלח לי.',
+    )
   }
 
   function cancelRequest() {
@@ -213,6 +227,25 @@ export default function CoachPanel({
               </button>
             </div>
             {diag && <p className="text-xs leading-relaxed">{diag}</p>}
+            {steps && (
+              <ul className="grid gap-1 text-[11px]">
+                {steps.map((s) => (
+                  <li
+                    key={s.name}
+                    className="flex items-baseline gap-1.5 rounded-lg bg-surface border border-line px-2 py-1"
+                  >
+                    <span className={s.ok ? 'text-accent' : 'text-run'}>
+                      {s.ok ? '✓' : '✗'}
+                    </span>
+                    <span className="flex-1 min-w-0">{s.name}</span>
+                    <span className="text-muted tabular-nums shrink-0" dir="ltr">
+                      {(s.ms / 1000).toFixed(1)}s
+                    </span>
+                    <span className="text-muted shrink-0">{s.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div>
               <div className="font-semibold mb-1.5 flex items-center gap-1.5">
                 <Icon name="brain" className="w-4 h-4 text-muted" /> מה שאני זוכר עליך

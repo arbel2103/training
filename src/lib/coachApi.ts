@@ -170,6 +170,84 @@ export async function verifyApiKey(apiKey: string): Promise<void> {
   throw new Error(keyCheckMessage(res.status, detail))
 }
 
+export interface DiagStep {
+  name: string
+  ok: boolean
+  ms: number
+  detail: string
+}
+
+/**
+ * Walk the same path the coach takes, one widening step at a time.
+ *
+ * Key verification is a bare GET and passes even when the coach hangs, so it
+ * proves almost nothing. These steps add one variable each — POST, then the
+ * real system prompt, then the tools — so whichever one stalls names the cause
+ * instead of leaving it to guesswork.
+ */
+export async function diagnose(
+  apiKey: string,
+  system: string,
+  tools: any[],
+): Promise<DiagStep[]> {
+  const steps: DiagStep[] = []
+  const post = async (name: string, body: unknown) => {
+    const t0 = Date.now()
+    try {
+      const res = await fetchWithTimeout(endpoint(MODELS[0].id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(body),
+      })
+      const ms = Date.now() - t0
+      if (res.ok) {
+        const j = await res.json()
+        const c = j.candidates?.[0]
+        const txt = (c?.content?.parts ?? [])
+          .filter((p: any) => typeof p.text === 'string')
+          .map((p: any) => p.text)
+          .join('')
+        steps.push({
+          name,
+          ok: true,
+          ms,
+          detail: txt ? `החזיר טקסט` : `ריק (${c?.finishReason ?? 'לא ידוע'})`,
+        })
+        return
+      }
+      const msg = await res.json().then(
+        (j) => j?.error?.message ?? '',
+        () => '',
+      )
+      steps.push({ name, ok: false, ms, detail: `${res.status}: ${msg.slice(0, 120)}` })
+    } catch (e) {
+      steps.push({
+        name,
+        ok: false,
+        ms: Date.now() - t0,
+        detail: e instanceof Error ? e.message.slice(0, 120) : String(e),
+      })
+    }
+  }
+
+  const hi = [{ role: 'user', parts: [{ text: 'אמור שלום' }] }]
+  const cfg = { maxOutputTokens: 8000, temperature: 0.4, thinkingConfig: { thinkingBudget: 0 } }
+
+  await post('POST פשוט', { contents: hi, generationConfig: cfg })
+  await post('POST עם ההנחיות המלאות', {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: hi,
+    generationConfig: cfg,
+  })
+  await post('POST עם ההנחיות והכלים (כמו המאמן)', {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: hi,
+    tools: [{ functionDeclarations: tools }],
+    generationConfig: cfg,
+  })
+  return steps
+}
+
 interface RunArgs {
   apiKey: string
   system: string
