@@ -5,19 +5,24 @@
 // Ordered by function-calling reliability, not by quota: the coach's whole job
 // is to actually call its tools, and the lite model regularly answers "done!"
 // in prose without emitting the call — which reads as the app ignoring you.
-/**
- * `thinking` marks a model that reasons before answering — and that bills that
- * reasoning to the same output budget as the reply. Left unbounded, it can
- * spend the entire budget thinking and return MAX_TOKENS with no text at all,
- * which the user experiences as the coach hanging and then saying nothing. The
- * budget is pinned to 0 for those; the older 2.0 model rejects the field, so it
- * must not be sent one.
- */
-const MODELS: { id: string; thinking: boolean }[] = [
-  { id: 'gemini-flash-latest', thinking: true },
-  { id: 'gemini-2.0-flash', thinking: false },
-  { id: 'gemini-flash-lite-latest', thinking: true },
+const MODELS = [
+  'gemini-flash-latest',
+  'gemini-2.0-flash',
+  'gemini-flash-lite-latest',
 ]
+
+/**
+ * Room for the model to think *and* answer.
+ *
+ * A reasoning model bills its hidden thinking to this same budget, so a tight
+ * ceiling can be spent entirely on thinking and come back MAX_TOKENS with no
+ * text — a long wait that produces nothing. Turning thinking off is not an
+ * option: `thinkingBudget: 0` is rejected by these models at dispatch time
+ * ("Request contains an invalid argument"), and it validates fine against the
+ * field name alone, so it only fails once a real key gets it to the model.
+ * Giving the budget headroom fixes the empty reply without the bad parameter.
+ */
+const MAX_OUTPUT_TOKENS = 32_000
 // per Google AI Studio's quickstart: auth via the x-goog-api-key header
 const endpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -194,7 +199,7 @@ export async function diagnose(
   const post = async (name: string, body: unknown) => {
     const t0 = Date.now()
     try {
-      const res = await fetchWithTimeout(endpoint(MODELS[0].id), {
+      const res = await fetchWithTimeout(endpoint(MODELS[0]), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify(body),
@@ -231,7 +236,7 @@ export async function diagnose(
   }
 
   const hi = [{ role: 'user', parts: [{ text: 'אמור שלום' }] }]
-  const cfg = { maxOutputTokens: 8000, temperature: 0.4, thinkingConfig: { thinkingBudget: 0 } }
+  const cfg = { maxOutputTokens: MAX_OUTPUT_TOKENS, temperature: 0.4 }
 
   await post('POST פשוט', { contents: hi, generationConfig: cfg })
   await post('POST עם ההנחיות המלאות', {
@@ -277,30 +282,30 @@ export async function runCoach({
   // request one turn, falling through the model list on 404/429/503
   async function generate(): Promise<any> {
     let lastErr = ''
+    let quotaOnly = true
     for (const model of MODELS) {
       const res = await withRetry(() =>
         fetchWithTimeout(
-        endpoint(model.id),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: system }] },
-            contents,
-            ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
-            generationConfig: {
-              maxOutputTokens: 8000,
-              // warm enough to coach in natural Hebrew, cool enough that "move
-              // Tuesday's run to Thursday" reliably becomes a tool call
-              temperature: 0.4,
-              ...(model.thinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          endpoint(model),
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey,
             },
-          }),
-        },
-        signal,
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: system }] },
+              contents,
+              ...(tools.length ? { tools: [{ functionDeclarations: tools }] } : {}),
+              generationConfig: {
+                maxOutputTokens: MAX_OUTPUT_TOKENS,
+                // warm enough to coach in natural Hebrew, cool enough that "move
+                // Tuesday's run to Thursday" reliably becomes a tool call
+                temperature: 0.4,
+              },
+            }),
+          },
+          signal,
         ),
       )
       if (res.ok) return res.json()
@@ -312,22 +317,20 @@ export async function runCoach({
       } catch {
         /* ignore */
       }
+      // a bad key is the one failure no other model can rescue
       if (res.status === 400 && /api key/i.test(msg))
         throw new Error('מפתח ה-API לא תקין.')
-      // a model that doesn't know a field we sent (thinkingConfig on an older
-      // one) is a bad pairing, not a dead end — the next model may take it
-      if (res.status === 400 && /unknown name|invalid json|not supported/i.test(msg)) {
-        lastErr = `(400) ${msg.slice(0, 160)}`
-        continue
-      }
-      if (res.status === 404 || res.status === 429 || res.status === 503) {
-        lastErr = `(${res.status}) ${msg.slice(0, 160)}`
-        continue // try the next model
-      }
-      throw new Error(`שגיאת API (${res.status}): ${msg.slice(0, 200)}`)
+      // everything else is a bad pairing with *this* model, not a dead end:
+      // a parameter it won't take, a quota only it has spent, a name that
+      // moved. Trying the next one costs a second and often just works.
+      lastErr = `(${res.status}) ${msg.slice(0, 160)}`
+      quotaOnly = quotaOnly && (res.status === 429 || res.status === 503)
     }
+    // out of models — say which wall we hit, rather than always blaming quota
     throw new Error(
-      `הגעת למכסה החינמית של Gemini כרגע — המתן דקה ונסה שוב. אם זה חוזר, ייתכן שהמכסה היומית נגמרה ותתאפס מחר. ${lastErr}`,
+      quotaOnly
+        ? `הגעת למכסה החינמית של Gemini כרגע — המתן דקה ונסה שוב. אם זה חוזר, ייתכן שהמכסה היומית נגמרה ותתאפס מחר. ${lastErr}`
+        : `אף אחד מהמודלים לא קיבל את הבקשה. ${lastErr}`,
     )
   }
 

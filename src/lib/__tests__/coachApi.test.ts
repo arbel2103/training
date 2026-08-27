@@ -66,13 +66,24 @@ describe('runCoach — replies that must not look like a hang', () => {
     await expect(runCoach(base)).resolves.toMatch(/ארוכה מדי/)
   })
 
-  it('moves to the next model when one rejects a field it does not know', async () => {
+  it('moves to the next model on the 400 that broke the coach in the wild', async () => {
     fetchMock
-      .mockResolvedValueOnce(
-        errorReply(400, 'Unknown name "thinkingConfig" at generation_config'),
-      )
+      .mockResolvedValueOnce(errorReply(400, 'Request contains an invalid argument.'))
       .mockResolvedValueOnce(reply([{ text: 'עברתי למודל אחר' }]))
     await expect(runCoach(base)).resolves.toBe('עברתי למודל אחר')
+  })
+
+  it('still refuses outright on a bad key — no other model can save that', async () => {
+    fetchMock.mockResolvedValue(errorReply(400, 'API key not valid'))
+    await expect(runCoach(base)).rejects.toThrow(/מפתח/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the real wall instead of blaming quota when every model refuses', async () => {
+    fetchMock.mockResolvedValue(errorReply(400, 'Request contains an invalid argument.'))
+    const err = await runCoach(base).catch((e) => e)
+    expect(err.message).not.toMatch(/מכסה/)
+    expect(err.message).toContain('invalid argument')
   })
 
   it('answers when the reply has no candidates at all (safety block)', async () => {
@@ -201,13 +212,19 @@ describe('a connection that never reaches Google', () => {
 describe('what actually gets sent to Gemini', () => {
   const bodyOf = () => JSON.parse(fetchMock.mock.calls[0][1].body as string)
 
-  it('does not let the model spend the whole budget on hidden thinking', async () => {
+  it('never sends thinkingConfig — these models reject it at dispatch', async () => {
     fetchMock.mockResolvedValue(reply([{ text: 'ok' }]))
     await runCoach(base)
     const cfg = bodyOf().generationConfig
-    // a thinking model with an unbounded budget can return MAX_TOKENS and no
-    // text at all, which reads to the user as the coach being stuck
-    expect(cfg.thinkingConfig?.thinkingBudget).toBe(0)
+    // "Request contains an invalid argument": the field name validates, so it
+    // only fails once a real key carries it through to the model
+    expect(cfg.thinkingConfig).toBeUndefined()
+  })
+
+  it('leaves room for the model to think and still answer', async () => {
+    fetchMock.mockResolvedValue(reply([{ text: 'ok' }]))
+    await runCoach(base)
+    expect(bodyOf().generationConfig.maxOutputTokens).toBeGreaterThanOrEqual(32_000)
   })
 
   it('sends the persona, the tools and the conversation', async () => {
