@@ -56,7 +56,16 @@ export default function CoachPanel({
   const [steps, setSteps] = useState<DiagStep[] | null>(null)
   const kickedOff = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  /**
+   * The in-flight request, and the thing that makes "one send" mean one send.
+   *
+   * `loading` cannot do this job: it is state, so `setLoading(true)` has not
+   * applied yet when a second call arrives in the same tick — both pass the
+   * guard, the message is logged twice, and two requests race.
+   */
+  const inFlight = useRef<AbortController | null>(null)
+  /** questions already routed in from a nudge, so a re-render can't re-ask */
+  const askedRef = useRef<string | null>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -74,16 +83,24 @@ export default function CoachPanel({
   // and clear it so reopening the panel doesn't ask again
   useEffect(() => {
     if (!open || !keySet || !ask) return
+    if (askedRef.current === ask) return // this effect already handled it
+    askedRef.current = ask
     kickedOff.current = true // it is the opener; no need for the introduction
     onAsked?.()
     void send(ask)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, keySet, ask])
 
+  /**
+   * Runs a turn and returns its reply.
+   *
+   * Deliberately does *not* cancel any previous request: the caller guarantees
+   * there is none, and cancelling here meant a double-send silently killed its
+   * own first attempt.
+   */
   async function callCoach(apiMessages: ApiMessage[]): Promise<string> {
-    abortRef.current?.abort()
     const ac = new AbortController()
-    abortRef.current = ac
+    inFlight.current = ac
     return runCoach({
       apiKey: getApiKey(),
       system: buildSystem(),
@@ -92,6 +109,13 @@ export default function CoachPanel({
       onToolCall: (name, inp) => executeTool(name, inp),
       signal: ac.signal,
     })
+  }
+
+  /** Clear the spinner only if the turn that set it is the one still running. */
+  function settle(ac: AbortController | null) {
+    if (inFlight.current !== ac) return
+    inFlight.current = null
+    setLoading(false)
   }
 
   /**
@@ -130,29 +154,34 @@ export default function CoachPanel({
   }
 
   function cancelRequest() {
-    abortRef.current?.abort()
-    abortRef.current = null
+    inFlight.current?.abort()
+    inFlight.current = null
     setLoading(false)
   }
 
   async function kickoff() {
+    if (inFlight.current) return
     setLoading(true)
     setError(null)
+    let ac: AbortController | null = null
     try {
-      const reply = await callCoach([{ role: 'user', content: KICKOFF }])
-      addChatMessage('assistant', reply)
+      const p = callCoach([{ role: 'user', content: KICKOFF }])
+      ac = inFlight.current
+      addChatMessage('assistant', await p)
     } catch (e) {
       if (!(e instanceof CoachAborted))
         setError(e instanceof Error ? e.message : String(e))
       kickedOff.current = false // allow retry
     } finally {
-      setLoading(false)
+      settle(ac)
     }
   }
 
   async function send(preset?: string) {
     const text = (preset ?? input).trim()
-    if (!text || loading) return
+    // the ref, not `loading` — a second tap in the same tick would sail past
+    // state that has not been applied yet, and post the message twice
+    if (!text || inFlight.current) return
     if (!preset) setInput('')
     setError(null)
     addChatMessage('user', text)
@@ -164,14 +193,16 @@ export default function CoachPanel({
       .coachMessages.slice(-HISTORY_TURNS)
       .map((m) => ({ role: m.role, content: m.text }))
     setLoading(true)
+    let ac: AbortController | null = null
     try {
-      const reply = await callCoach(apiMessages)
-      addChatMessage('assistant', reply)
+      const p = callCoach(apiMessages)
+      ac = inFlight.current
+      addChatMessage('assistant', await p)
     } catch (e) {
       if (!(e instanceof CoachAborted))
         setError(e instanceof Error ? e.message : String(e))
     } finally {
-      setLoading(false)
+      settle(ac)
     }
   }
 
