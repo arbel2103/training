@@ -18,6 +18,7 @@ import {
   volumeByMuscle,
 } from './strength'
 import { weekStartOf } from './planSanitize'
+import { activeGear, formatUsage, gearStatus, metricLabel } from './gear'
 import {
   aerobicIntensityLabel,
   categoryLabel,
@@ -848,6 +849,22 @@ export function buildContext(): string {
     }
   } else {
     parts.push('אין עדיין תוכנית אימונים אירובית.')
+  }
+
+  // gear only earns a line when something is actually worn — a healthy kit list
+  // is noise, but shoes past their mileage are worth a word before an injury is
+  const worn = activeGear(s.gear ?? [], s.log)
+    .map((g) => ({ g, st: gearStatus(g, s.log) }))
+    .filter(({ st }) => st.state !== 'ok')
+  if (worn.length) {
+    parts.push('ציוד שקרוב או עבר את יעד ההחלפה:')
+    for (const { g, st } of worn) {
+      const unit = metricLabel(g.metric)
+      parts.push(
+        `  - ${g.name}: ${formatUsage(st.used, g.metric)}/${formatUsage(st.target ?? 0, g.metric)} ${unit}` +
+          (st.state === 'due' ? ' — עבר את היעד' : ` — נותרו ${formatUsage(st.remaining ?? 0, g.metric)}`),
+      )
+    }
   }
 
   if (s.strengthCategories.length) {

@@ -10,6 +10,7 @@ import {
 import { addDays, fromISO, toISODate } from '../lib/dates'
 import { sanitizePlan, sanitizePlanWeek } from '../lib/planSanitize'
 import { type ID, uid } from '../lib/ids'
+import type { GearItem } from '../lib/gear'
 
 export { uid } from '../lib/ids'
 export type { ID } from '../lib/ids'
@@ -362,6 +363,8 @@ interface State {
   weighIns: WeighIn[]
   checkups: Checkup[]
   coachProfile: CoachProfile | null
+  /** tracked equipment — shoes, tyres, wetsuits — in service and retired */
+  gear: GearItem[]
   trainingPlan: TrainingPlan | null
   /** the plan as it was before each of the last few edits, newest first */
   planHistory: PlanSnapshot[]
@@ -447,6 +450,16 @@ interface State {
   updateCheckup: (id: ID, patch: Partial<Checkup>) => void
   removeCheckup: (id: ID) => void
 
+  // gear
+  addGear: (g: Omit<GearItem, 'id'>) => ID
+  updateGear: (id: ID, patch: Partial<Omit<GearItem, 'id'>>) => void
+  removeGear: (id: ID) => void
+  /**
+   * Retire an item and put its successor in service the same day, so the pair
+   * reads as one continuous history rather than two unrelated entries.
+   */
+  replaceGear: (id: ID, next: Partial<Omit<GearItem, 'id'>>) => ID | null
+
   // AI coach
   updateCoachProfile: (patch: Partial<CoachProfile>) => void
   setTrainingPlan: (plan: TrainingPlan, reason?: string) => void
@@ -499,7 +512,7 @@ interface State {
 
 export const useStore = create<State>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       strengthCategories: [],
       aerobicTargets: { run: [], bike: [], swim: [] },
       log: [],
@@ -509,6 +522,7 @@ export const useStore = create<State>()(
       coachProfile: null,
       trainingPlan: null,
       planHistory: [],
+      gear: [],
       coachMessages: [],
       coachMemory: [],
       planProposals: [],
@@ -789,6 +803,42 @@ export const useStore = create<State>()(
       removeCheckup: (id) =>
         set((s) => ({ checkups: s.checkups.filter((c) => c.id !== id) })),
 
+      addGear: (g) => {
+        const id = uid()
+        set((s) => ({ gear: [...s.gear, { ...g, id }] }))
+        return id
+      },
+      updateGear: (id, patch) =>
+        set((s) => ({
+          gear: s.gear.map((g) => (g.id === id ? { ...g, ...patch, id } : g)),
+        })),
+      removeGear: (id) => set((s) => ({ gear: s.gear.filter((g) => g.id !== id) })),
+      replaceGear: (id, next) => {
+        const old = get().gear.find((g) => g.id === id)
+        if (!old) return null
+        const today = toISODate(new Date())
+        const newId = uid()
+        set((s) => ({
+          gear: [
+            ...s.gear.map((g) => (g.id === id ? { ...g, retiredOn: today } : g)),
+            {
+              // the replacement inherits what it is and what it is measured by;
+              // only the name and the numbers are worth asking about again
+              kind: old.kind,
+              name: old.name,
+              metric: old.metric,
+              sports: old.sports,
+              target: old.target,
+              startValue: 0,
+              ...next,
+              addedOn: next.addedOn ?? today,
+              id: newId,
+            },
+          ],
+        }))
+        return newId
+      },
+
       updateCoachProfile: (patch) =>
         set((s) => ({ coachProfile: { ...(s.coachProfile ?? {}), ...patch } })),
       // the plan comes from the AI coach, so it is sanitized on the way in
@@ -994,7 +1044,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'training-app-v1',
-      version: 5,
+      version: 6,
       migrate: (state) => {
         const prev = (state ?? {}) as { trainingPlan?: unknown }
         return {
@@ -1004,6 +1054,7 @@ export const useStore = create<State>()(
           pendingCalendarDeletes: [], // added in v2
           dismissedNudges: {}, // added in v4
           planHistory: [], // added in v5
+          gear: [], // added in v6
           ...(prev as object),
           // v3: a plan saved before the coach's input was validated can hold a
           // week with no weekStart, which throws while rendering the program
