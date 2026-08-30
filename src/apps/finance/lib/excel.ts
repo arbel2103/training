@@ -69,7 +69,13 @@ export interface ParseResult {
   expenses: Expense[]
   total: number
   bitCount: number
-  monthKey: MonthKey // החודש שזוהה אוטומטית מתאריכי העסקאות
+  /**
+   * החודש הראשי של הדוח — רק לצורך "קפוץ לחודש הזה" אחרי טעינה.
+   * כל הוצאה משויכת לחודש של התאריך שלה עצמה, לא לחודש הזה.
+   */
+  monthKey: MonthKey
+  /** כל החודשים שהקובץ נוגע בהם, ממוין. דוח 20-ל-20 יחזיר שניים. */
+  monthKeys: MonthKey[]
   card: string // הכרטיס הראשי (השכיח) שזוהה
   cards: string[] // כל הכרטיסים שזוהו בקובץ
 }
@@ -237,9 +243,13 @@ export function parseExpensesFromBuffer(
     throw new Error('לא נמצאו עסקאות בקובץ. ודא שזהו דוח עסקאות אשראי.')
   }
 
-  // זיהוי החודש מהתאריכים ושיוך כל ההוצאות לאותו חודש
+  // כל הוצאה משויכת לחודש של התאריך שלה. דוח אשראי נחתך ב-20 בחודש, אז קובץ
+  // אחד מכיל שני חודשים — קנייה מ-28/07 שייכת ליולי גם אם היא מופיעה בדוח
+  // שנגבה באוגוסט. שיוך כל הקובץ לחודש אחד עיוות את שני החודשים.
+  for (const e of expenses) e.monthKey = monthKeyFromISO(e.date)
+  const monthKeys = [...new Set(expenses.map((e) => e.monthKey))].sort()
+  // החודש שאליו קופצים אחרי הטעינה — השכיח בדוח
   const monthKey = detectMonth(expenses.map((e) => e.date))
-  for (const e of expenses) e.monthKey = monthKey
 
   const cardList = expenses.map((e) => e.card)
   const cards = [...new Set(cardList)]
@@ -250,5 +260,5 @@ export function parseExpensesFromBuffer(
     0,
   )
 
-  return { expenses, total, bitCount, monthKey, card, cards }
+  return { expenses, total, bitCount, monthKey, monthKeys, card, cards }
 }

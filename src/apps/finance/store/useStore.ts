@@ -111,18 +111,24 @@ export const useStore = create<State>()(
           // החלפת הוצאות אותו חודש + אותם כרטיסים בלבד (מונע כפילות,
           // אך שומר הוצאות של כרטיסים אחרים באותו חודש).
           // הוצאות ישנות (LEGACY, מלפני תמיכת ריבוי-כרטיסים) מוחלפות גם הן.
+          //
+          // הקובץ יכול לפרוש על כמה חודשים (דוח אשראי נחתך ב-20 בחודש), ולכן
+          // ההחלפה רצה על כל חודש שהקובץ נוגע בו. אחרת טעינה חוזרת הייתה
+          // מחליפה רק את החודש הראשי ומכפילה את השני.
           const cardSet = new Set(cards)
+          const touched = new Set<MonthKey>(expenses.map((e) => e.monthKey))
+          touched.add(mk)
           const others = s.expenses.filter((e) => {
-            if (e.monthKey !== mk) return true
+            if (!touched.has(e.monthKey)) return true
             if (cardSet.has(e.card)) return false
             if (e.card === LEGACY_CARD) return false
             return true
           })
-          const month = s.months[mk] ?? emptyMonth()
-          return {
-            expenses: [...others, ...expenses],
-            months: { ...s.months, [mk]: { ...month, imported: true } },
+          const months = { ...s.months }
+          for (const key of touched) {
+            months[key] = { ...(s.months[key] ?? emptyMonth()), imported: true }
           }
+          return { expenses: [...others, ...expenses], months }
         }),
 
       removeCard: (mk, card) =>

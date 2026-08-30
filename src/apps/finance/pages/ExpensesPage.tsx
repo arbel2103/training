@@ -69,13 +69,17 @@ export function ExpensesPage() {
       // החודש והכרטיסים נקבעים אוטומטית מתוך הקובץ
       const target = res.monthKey
       const cardSet = new Set(res.cards)
-      const alreadyHas = expenses.some(
-        (e) => e.monthKey === target && cardSet.has(e.card),
+      // הקובץ יכול לפרוש על כמה חודשים — האזהרה צריכה לכסות את כולם, אחרת
+      // חודש שכבר נטען היה נדרס בלי שנשאלת
+      const clash = res.monthKeys.filter((mk) =>
+        expenses.some((e) => e.monthKey === mk && cardSet.has(e.card)),
       )
-      if (alreadyHas) {
+      if (clash.length) {
         const label = res.cards.map(formatCard).join(', ')
         const ok = window.confirm(
-          `כבר נטענו נתונים לכרטיס ${label} בחודש ${monthLabel(target)}. להחליף אותם בקובץ החדש?`,
+          `כבר נטענו נתונים לכרטיס ${label} ב${clash.length > 1 ? 'חודשים' : 'חודש'} ${clash
+            .map(monthLabel)
+            .join(', ')}. להחליף אותם בקובץ החדש?`,
         )
         if (!ok) return
       }
