@@ -49,7 +49,7 @@ export function ExpensesPage() {
     [months],
   )
 
-  // ===== ייבוא אקסל =====
+  // ===== ייבוא דוח אשראי — אקסל או PDF =====
   const fileRef = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<Expense[]>([])
   const [pendingMonth, setPendingMonth] = useState<MonthKey>(selectedMonth)
@@ -59,9 +59,20 @@ export function ExpensesPage() {
   const handleFile = async (file: File) => {
     try {
       const buf = await file.arrayBuffer()
-      // טעינה דינמית של מנוע האקסל (xlsx) רק בעת הצורך — מקטין את ה-bundle הראשוני
-      const { parseExpensesFromBuffer } = await import('../lib/excel')
-      const res = parseExpensesFromBuffer(buf, categoryMap, file.name)
+      // מנועי הקריאה (xlsx / pdf.js) נטענים דינמית ורק לפי סוג הקובץ בפועל —
+      // שניהם כבדים, ורוב הפתיחות של העמוד אינן ייבוא בכלל
+      const isPdf = /\.pdf$/i.test(file.name)
+      const res = isPdf
+        ? await (await import('../lib/pdf')).parseExpensesFromPdf(
+            buf,
+            categoryMap,
+            file.name,
+          )
+        : (await import('../lib/excel')).parseExpensesFromBuffer(
+            buf,
+            categoryMap,
+            file.name,
+          )
       if (!res.expenses.length || !res.monthKey) {
         alert('לא נמצאו עסקאות עם תאריך תקין בקובץ.')
         return
@@ -129,7 +140,7 @@ export function ExpensesPage() {
           <input
             ref={fileRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xls,.pdf"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
@@ -139,7 +150,7 @@ export function ExpensesPage() {
           />
           <ManualExpenseButton />
           <Button onClick={() => fileRef.current?.click()} className="gap-1.5">
-            <Icon name="upload" className="w-4 h-4" /> טען אקסל
+            <Icon name="upload" className="w-4 h-4" /> טען קובץ
           </Button>
         </div>
       </header>
