@@ -120,6 +120,7 @@ export interface SavingLink {
   goalId?: string
   amount: number
   date?: string // yyyy-mm-dd — מתי בוצעה ההוצאה/העברה
+  linkedAt?: string // ISO — מתי נעשה השיוך עצמו
 }
 
 // איסוף כל השיוכים לחיסכון/השקעה — מהוצאות אשראי ומהעברות בנקאיות.
@@ -140,6 +141,7 @@ export function collectSavingLinks(
         goalId: e.savingsGoalId,
         amount: effectiveAmount(e),
         date: e.date,
+        linkedAt: e.savingsLinkedAt,
       })
     }
   }
@@ -158,26 +160,40 @@ export function collectSavingLinks(
   return links
 }
 
-// סך ההוצאות ששויכו לחשבון — רק אלו שאירעו *אחרי* עדכון היתרה האחרון.
-// הוצאות שקדמו לעדכון כבר משתקפות ביתרה הרשומה, כך שהן יורדות פעם אחת בלבד
-// ולא שוב כשמעדכנים ידנית את היתרה למצב הנוכחי.
+// סך ההוצאות ששויכו לחשבון וטרם גלומות ביתרה שהוזנה ידנית.
+//
+// הקובע הוא *מתי שויכה* ההוצאה ולא מתי היא קרתה: יתרה שהוזנה ידנית משקפת את
+// מה שהמשתמש ידע באותו רגע, ושיוך שנעשה אחריו הוא מידע חדש — גם אם העסקה
+// עצמה מלפני חודש. לפי תאריך העסקה, שיוך של קנייה ישנה פשוט לא היה יורד
+// מהיתרה, בלי שום חיווי שמשהו לא קרה.
+// linkedAt חסר בשיוכים מלפני הוספת השדה — שם נשארת נפילה לתאריך העסקה.
 export function accountLinkedTotal(
   account: Account,
   links: SavingLink[],
 ): number {
-  const since = account.updatedAt ? account.updatedAt.slice(0, 10) : ''
+  const since = account.updatedAt ?? ''
   return links
     .filter((l) => l.accountId === account.id)
-    .filter((l) => l.date == null || l.date > since)
+    .filter((l) =>
+      l.linkedAt
+        ? l.linkedAt > since
+        : l.date == null || l.date > since.slice(0, 10),
+    )
     .reduce((s, l) => s + l.amount, 0)
 }
 
-// יתרה אפקטיבית = יתרה ידנית פחות הוצאות משויכות שטרם שוקללו ביתרה
+/**
+ * יתרה אפקטיבית = יתרה ידנית פחות הוצאות משויכות שטרם שוקללו בה.
+ *
+ * מעוגל לשקל: יתרת חיסכון נרשמת בשקלים שלמים בעוד שהוצאה נושאת אגורות
+ * (2,299.90 בקרן של 2,300), כך שכל שיוך היה מותיר שארית מדומה של עשר אגורות.
+ * העיגול מנקה גם רעש של חישוב נקודה צפה.
+ */
 export function accountEffectiveBalance(
   account: Account,
   links: SavingLink[],
 ): number {
-  return account.balance - accountLinkedTotal(account, links)
+  return Math.round(account.balance - accountLinkedTotal(account, links))
 }
 
 // סכום ששויך במפורש למטרה (העברות/הוצאות שתויגו אליה)

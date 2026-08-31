@@ -229,7 +229,16 @@ export const useStore = create<State>()(
         set((s) => ({
           expenses: s.expenses.map((e) =>
             e.id === id
-              ? { ...e, savingsAccountId: accountId, savingsGoalId: goalId }
+              ? {
+                  ...e,
+                  savingsAccountId: accountId,
+                  savingsGoalId: goalId,
+                  // מתי השיוך נעשה — לא מתי הכסף יצא. יתרה שהוזנה ידנית
+                  // משקפת את מה שהיה ידוע *באותו רגע*, ולכן מה שקובע אם
+                  // ההוצאה כבר גלומה בה הוא זמן השיוך ולא תאריך העסקה.
+                  savingsLinkedAt:
+                    accountId || goalId ? new Date().toISOString() : undefined,
+                }
               : e,
           ),
         })),
