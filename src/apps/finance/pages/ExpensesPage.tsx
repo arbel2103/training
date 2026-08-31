@@ -30,6 +30,10 @@ import { MonthlyBarChart } from '../components/expenses/MonthlyBarChart'
 import { RangePicker } from '../components/expenses/RangePicker'
 import type { RangeValue } from '../components/expenses/RangePicker'
 
+/** "30/07/26" — הטווח שהקובץ מחליף, בפורמט שמופיע על הדוח עצמו. */
+const heDate = (iso: string) =>
+  iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : ''
+
 export function ExpensesPage() {
   const selectedMonth = useStore((s) => s.selectedMonth)
   const setSelectedMonth = useStore((s) => s.setSelectedMonth)
@@ -80,17 +84,20 @@ export function ExpensesPage() {
       // החודש והכרטיסים נקבעים אוטומטית מתוך הקובץ
       const target = res.monthKey
       const cardSet = new Set(res.cards)
-      // הקובץ יכול לפרוש על כמה חודשים — האזהרה צריכה לכסות את כולם, אחרת
-      // חודש שכבר נטען היה נדרס בלי שנשאלת
-      const clash = res.monthKeys.filter((mk) =>
-        expenses.some((e) => e.monthKey === mk && cardSet.has(e.card)),
+      // האזהרה מדברת על טווח התאריכים שהקובץ מחליף בפועל, ולא על חודשים
+      // שלמים: דוח ישראכרט נחתך ב-20, ולכן הוא נוגע רק בחלק מהחודש — אזהרה
+      // ברמת חודש הייתה נשמעת כאילו כל החודש עומד להימחק
+      const dates = res.expenses.map((e) => e.date).sort()
+      const from = dates[0]
+      const to = dates[dates.length - 1]
+      const clash = expenses.filter(
+        (e) => cardSet.has(e.card) && e.date >= from && e.date <= to,
       )
       if (clash.length) {
         const label = res.cards.map(formatCard).join(', ')
         const ok = window.confirm(
-          `כבר נטענו נתונים לכרטיס ${label} ב${clash.length > 1 ? 'חודשים' : 'חודש'} ${clash
-            .map(monthLabel)
-            .join(', ')}. להחליף אותם בקובץ החדש?`,
+          `בטווח ${heDate(from)}–${heDate(to)} כבר קיימות ${clash.length} הוצאות לכרטיס ${label}. ` +
+            `להחליף אותן בנתונים מהקובץ החדש? (הוצאות מחוץ לטווח הזה לא ייגעו.)`,
         )
         if (!ok) return
       }

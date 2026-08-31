@@ -108,22 +108,24 @@ export const useStore = create<State>()(
 
       commitImport: (mk, cards, expenses) =>
         set((s) => {
-          // החלפת הוצאות אותו חודש + אותם כרטיסים בלבד (מונע כפילות,
-          // אך שומר הוצאות של כרטיסים אחרים באותו חודש).
-          // הוצאות ישנות (LEGACY, מלפני תמיכת ריבוי-כרטיסים) מוחלפות גם הן.
+          // ההחלפה היא לפי טווח התאריכים שהקובץ באמת מכסה, ולא לפי חודש.
           //
-          // הקובץ יכול לפרוש על כמה חודשים (דוח אשראי נחתך ב-20 בחודש), ולכן
-          // ההחלפה רצה על כל חודש שהקובץ נוגע בו. אחרת טעינה חוזרת הייתה
-          // מחליפה רק את החודש הראשי ומכפילה את השני.
+          // דוח אשראי נחתך ב-20 בחודש, ולכן שני דוחות עוקבים תורמים לאותו
+          // חודש: הדוח של יולי מביא את 1–20 ביולי, והדוח של אוגוסט מביא את
+          // 20–31 ביולי. מחיקה של חודש שלם לפני הכתיבה הייתה מוחקת את החלק
+          // שהגיע מהדוח הקודם — דוח אחד לעולם לא מכסה חודש שלם.
+          // החלפה לפי הטווח מוחקת בדיוק את מה שהקובץ הזה אמור להחליף.
           const cardSet = new Set(cards)
+          const dates = expenses.map((e) => e.date).sort()
+          const from = dates[0]
+          const to = dates[dates.length - 1]
+          const others = s.expenses.filter((e) => {
+            if (!cardSet.has(e.card) && e.card !== LEGACY_CARD) return true
+            if (!from || e.date < from || e.date > to) return true
+            return false
+          })
           const touched = new Set<MonthKey>(expenses.map((e) => e.monthKey))
           touched.add(mk)
-          const others = s.expenses.filter((e) => {
-            if (!touched.has(e.monthKey)) return true
-            if (cardSet.has(e.card)) return false
-            if (e.card === LEGACY_CARD) return false
-            return true
-          })
           const months = { ...s.months }
           for (const key of touched) {
             months[key] = { ...(s.months[key] ?? emptyMonth()), imported: true }
