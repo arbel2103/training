@@ -16,6 +16,7 @@ import { isTaperWeek } from '../../lib/taper'
 import TaperGuidance from '../../components/TaperGuidance'
 import PlanProposals from './PlanProposals'
 import PlanHistory from '../../components/PlanHistory'
+import WeekReview from '../../components/WeekReview'
 
 const planSportMeta: Record<PlanSport, { iconName: IconName; label: string }> = {
   run: { iconName: 'run', label: sportLabel.run },
@@ -47,10 +48,13 @@ function WeekCard({
   week,
   allWeeks,
   isCurrent,
+  isPast,
 }: {
   week: PlanWeek
   allWeeks: PlanWeek[]
   isCurrent: boolean
+  /** the week is over — there is something to look back on */
+  isPast: boolean
 }) {
   const log = useStore((s) => s.log)
   const completion = weekCompletion(week, log)
@@ -175,6 +179,9 @@ function WeekCard({
           })}
         </div>
       )}
+
+      {/* a finished week is the only one there is anything to say about yet */}
+      {isPast && <WeekReview week={week} />}
         </div>
       )}
     </div>
@@ -229,6 +236,7 @@ export default function AerobicProgram() {
             week={w}
             allWeeks={weeks}
             isCurrent={w.weekStart === currentWeekStart}
+            isPast={w.weekStart < currentWeekStart}
           />
         ))}
       </div>

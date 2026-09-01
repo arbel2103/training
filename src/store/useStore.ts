@@ -228,6 +228,17 @@ export interface PlanWeek {
   label?: string
   focus?: string
   sessions: PlanSession[]
+  /**
+   * How the week actually went, in the athlete's own words.
+   *
+   * The numbers say what was done; this says what it felt like — an illness, a
+   * work week that ate the long ride, a run that finally clicked. The coach
+   * reads it when reviewing the week, so its feedback answers the real story
+   * rather than only the adherence count.
+   */
+  review?: string
+  /** when the review was written (ISO) */
+  reviewedAt?: string
 }
 export interface TrainingPlan {
   raceName?: string
@@ -332,7 +343,16 @@ function keepSessionIdentity(plan: TrainingPlan | null, week: PlanWeek): PlanWee
   const sessions = carryOverSessionIds(prev.sessions, week.sessions)
   const kept = new Set(sessions.map((s) => s.id))
   const survivors = prev.sessions.filter((s) => s.fromBoard && !kept.has(s.id))
-  return { ...week, id: prev.id, sessions: [...sessions, ...survivors] }
+  return {
+    ...week,
+    id: prev.id,
+    // the athlete's note about how the week went is theirs, not the coach's.
+    // A rewrite of the week's sessions never carries one, so without this any
+    // plan edit would quietly erase what they wrote.
+    review: week.review ?? prev.review,
+    reviewedAt: week.reviewedAt ?? prev.reviewedAt,
+    sessions: [...sessions, ...survivors],
+  }
 }
 
 /** Fields that appear in the Google Calendar event this workout produced. */
@@ -466,6 +486,8 @@ interface State {
   upsertPlanWeek: (week: PlanWeek, reason?: string) => void
   /** Put the plan back to one of the snapshots in `planHistory`. */
   restorePlanSnapshot: (id: ID) => boolean
+  /** Write (or clear) the athlete's own note on how a week went. */
+  setWeekReview: (weekStart: string, review: string) => void
   /**
    * Board → plan. Move matched sessions to the day they were placed on, create
    * a session for a board workout that has none, and drop a session that only
@@ -874,6 +896,30 @@ export const useStore = create<State>()(
             trainingPlan: { ...plan, weeks },
           }
         }),
+      // deliberately not snapshotted into planHistory: the review is the
+      // athlete's own text about a week that already happened, not a change to
+      // what the plan prescribes, and restoring an older plan should not
+      // silently revert it
+      setWeekReview: (weekStart, review) =>
+        set((s) => {
+          if (!s.trainingPlan) return {}
+          const text = review.trim()
+          return {
+            trainingPlan: {
+              ...s.trainingPlan,
+              weeks: s.trainingPlan.weeks.map((w) =>
+                w.weekStart === weekStart
+                  ? {
+                      ...w,
+                      review: text || undefined,
+                      reviewedAt: text ? new Date().toISOString() : undefined,
+                    }
+                  : w,
+              ),
+            },
+          }
+        }),
+
       // the restore is itself an edit, so it goes on the stack too — undoing an
       // undo has to be possible, or "restore" becomes its own trap
       restorePlanSnapshot: (id) => {

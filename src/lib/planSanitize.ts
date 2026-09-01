@@ -85,6 +85,10 @@ export function sanitizePlanWeek(raw: unknown): PlanWeek | null {
     weekStart,
     ...(str(w.label) ? { label: str(w.label) } : {}),
     ...(str(w.focus) ? { focus: str(w.focus) } : {}),
+    // the athlete's own note on the week — not plan data, but it lives on the
+    // week and this whitelist is the only thing that survives a save
+    ...(str(w.review) ? { review: str(w.review) } : {}),
+    ...(str(w.reviewedAt) ? { reviewedAt: str(w.reviewedAt) } : {}),
     sessions,
   }
 }
