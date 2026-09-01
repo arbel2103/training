@@ -69,7 +69,7 @@ export const SYSTEM_PERSONA = `אתה מאמן אישי מקצועי ומנוס�
 - **התחשב במחויבויות מהיומן** (ראה "מחויבויות ביומן" במצב הנוכחי) כשאתה מתזמן — אל תשבץ אימון על שעה תפוסה, ותכנן סביב עבודה/משמרות/אירועים. אם יום עמוס, הצע אימון קצר יותר או הזז ליום אחר.
 - **שים לב לתחושת המאמץ (RPE 1–10) ולהערות** שהמשתמש רשם על אימונים. אם רואים עייפות מצטברת או RPE גבוה עקבי — הורד עומס, הצע התאוששות, ועדכן את השבוע עם upsert_plan_week.
 - **סיכום שבוע:** אם המשתמש מבקש לסכם את השבוע, עבור על "סיכום השבוע" במצב הנוכחי (מתוכנן מול בוצע), תן פידבק קצר וקונקרטי (מה הלך טוב, מה חסר), והצע התאמות לשבוע הבא — עדכן בפועל עם upsert_plan_week אם צריך.
-- **קרא את מה שהוא כתב על השבוע לפני שאתה מסכם אותו.** אם יש הערה שלו על השבוע (מופיעה במצב הנוכחי תחת "מה שהמשתמש כתב"), התייחס אליה במפורש — היא מסבירה את המספרים. אימון שלא בוצע בגלל עומס בעבודה ואימון שלא בוצע בגלל כאב נראים זהים בטבלה ודורשים תגובה הפוכה: את הראשון מזיזים, אחרי השני בודקים. אל תסכם שבוע כאילו לא קראת אותה, ואל תחזור עליה במילים שלו — תגיב לה.
+- **קרא את מה שהוא כתב לפני שאתה מסכם.** לכל שבוע ב"סיכום השבוע" מצורפות ההערות שהוא רשם על האימונים עצמם (עם RPE) וההערה שכתב על השבוע כולו. עבור עליהן והתייחס אליהן במפורש — הן מסבירות את המספרים, והן מה שקובע את ההתאמות לשבוע הבא. סיכום שמדבר רק על כמה אימונים בוצעו הוא סיכום שלא קרא אותן. אימון שלא בוצע בגלל עומס בעבודה ואימון שלא בוצע בגלל כאב נראים זהים בטבלה ודורשים תגובה הפוכה: את הראשון מזיזים, אחרי השני בודקים. אל תסכם שבוע כאילו לא קראת אותה, ואל תחזור עליה במילים שלו — תגיב לה.
 - היה זמין תמיד לשאלות: התאוששות, טכניקה, תזונה בסיסית סביב אימונים, ותחושות. אם חסר לך מידע — שאל.
 - דבר בעברית. תן תשובה ישירה ומקצועית; אל תנתח את ההיגיון הפנימי שלך בקול.
 - למטה תמונת מצב עדכנית של הנתונים (פרופיל, תוכניות, אימונים שבוצעו לאחרונה עם תחושה, מחויבויות ביומן, סיכום השבוע, ואימונים מתוכננים). התבסס עליה.
@@ -811,7 +811,35 @@ function weekReview(weekStartISO: string, label: string): string | null {
     )
   // what the strength work actually amounted to, so a week summary can talk
   // about volume per muscle instead of just "3/4 sessions done"
-  lines.push(...volumeLines(weekStartISO, toISODate(addDays(fromISO(weekStartISO), 6))))
+  const weekEnd = toISODate(addDays(fromISO(weekStartISO), 6))
+  lines.push(...volumeLines(weekStartISO, weekEnd))
+
+  // Everything the athlete wrote during the week, gathered onto the week it
+  // belongs to. The counts say what happened; these say why, and a summary that
+  // plans the next week without them is planning against the wrong reasons.
+  const felt = s.log
+    .filter((e) => e.date >= weekStartISO && e.date <= weekEnd)
+    .filter((e) => e.note?.trim() || e.rpe != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  if (felt.length) {
+    lines.push('    מה שנרשם על האימונים עצמם:')
+    for (const e of felt) {
+      const what =
+        e.category === 'strength'
+          ? e.strengthName || 'כוח'
+          : e.sport
+            ? sportLabel[e.sport]
+            : e.otherName || 'אימון'
+      const bits = [
+        e.rpe != null ? `RPE ${e.rpe}` : '',
+        e.note?.trim() ?? '',
+      ].filter(Boolean)
+      lines.push(`      - ${e.date} ${what}: ${bits.join(' — ')}`)
+    }
+  }
+  if (w.review?.trim()) {
+    lines.push(`    מה שהמשתמש כתב על השבוע הזה: ${w.review.trim()}`)
+  }
   return lines.join('\n')
 }
 

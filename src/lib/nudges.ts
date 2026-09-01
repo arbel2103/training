@@ -62,7 +62,12 @@ function weeklyReview({ today, log, plan }: NudgeInput): Nudge | null {
     tone: done === week.sessions.length ? 'good' : 'info',
     title: 'השבוע שעבר הסתיים',
     body: `בוצעו ${done} מתוך ${week.sessions.length} האימונים המתוכננים.`,
-    ask: 'סכם לי את השבוע שעבר — מה הלך טוב, מה פספסתי, ומה כדאי להתאים לשבוע הקרוב.',
+    // the ask names the notes as well as the context carrying them: a summary
+    // built only on session counts plans the next week against numbers, when
+    // the reasons behind them are what decides what to change
+    ask:
+      'סכם לי את השבוע שעבר — מה הלך טוב, מה פספסתי, ומה כדאי להתאים לשבוע הקרוב. ' +
+      'עבור על ההערות שרשמתי על האימונים עצמם ועל ההערה שכתבתי על השבוע בתוכנית, והתייחס אליהן — הן הסיבה מאחורי המספרים.',
   }
 }
 
